@@ -1,4 +1,4 @@
-arangocity
+Arangocity (alpha)
 ==========
 
-A python driver for arangoDB that lets you enforce schemas
+A python driver for arangoDB with built schemas enforcement (if you need them) and field checks
