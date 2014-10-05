@@ -1,4 +1,4 @@
-import urllib3
+import requests
 import json
 
 #schemaless
@@ -15,14 +15,6 @@ _COLLECTION_LOADED_STATUS = 3
 _COLLECTION_LOADING_STATUS = 4
 _COLLECTION_DELETED_STATUS = 5
 
-def urlRemoveLastSlash(url) :
-	if url[-1] == "/" :
-		return url[:-1]
-	else :
-		return url
-
-def postJson(httpPool, URL, payload) :
-	return httpPool.urlopen('POST', URL, headers={'Content-Type':'application/json'}, body=payload)
 
 class ArrangoException(Exception) :
 	def __init__(self, message, errors = {}) :
@@ -71,13 +63,20 @@ class Connection(object) :
 	"""Handles databases. Can't create db's and has no conception of users for now"""
 	def __init__(self, arangoURL = 'http://localhost:8529') :
 		self.databases = {}
-		self.arangoURL = urlRemoveLastSlash(arangoURL)
-		self.URL = '%s/_api/database' % self.arangoURL
+		if arangoURL[-1] == "/" :
+			self.arangoURL = url[:-1]
+		else :
+			self.arangoURL = arangoURL
 		
-		self.httpPool = urllib3.PoolManager()
-		r = self.httpPool.request('GET', self.URL)
-		data = json.loads(r.data)
-		if r.status == 200  and not data["error"] :
+		self.URL = '%s/_api' % self.arangoURL
+			
+		self.update()
+	
+	def update(self) :
+		dbURL = '%s/database' % self.URL
+		r = requests.get(dbURL)
+		data = r.json()
+		if r.status_code == 200  and not data["error"] :
 			for dbName in data["result"] :
 				db = Database(self, dbName)
 				self.databases[dbName] = db
@@ -85,7 +84,14 @@ class Connection(object) :
 			raise ConnectonError(data["errorMessage"], data)
 
 	def __getitem__(self, dbName) :
-		return self.databases[dbName]
+		try :
+			return self.databases[dbName]
+		except KeyError :
+			self.update()
+			try :
+				return self.databases[dbName]
+			except KeyError :
+				raise KeyError("Can't find any database named : %s" % dbName)
 
 class Database(object) :
 	
@@ -94,11 +100,15 @@ class Database(object) :
 		self.connection = connection
 		self.collections = {}
 		
-		self.URL = '%s/_db/%s/_api/collection' % (self.connection.arangoURL, self.name)
-		self.httpPool = self.connection.httpPool
-		r = self.httpPool.request('GET', self.URL)
-		data = json.loads(r.data)
-		if r.status == 200 and not data["error"] :
+		self.URL = '%s/_db/%s/_api' % (self.connection.arangoURL, self.name)
+
+		self.update()
+	
+	def update(self) :
+		colURL = '%s/collection' % (self.URL)
+		r = requests.get(colURL)
+		data = r.json()
+		if r.status_code == 200 and not data["error"] :
 			for colData in data["collections"] :
 				self.collections[colData['name']] = Collection(self, colData)
 		else :
@@ -107,7 +117,7 @@ class Database(object) :
 	def _createCollection(self, **colArgs) :
 		r = postJson(self.httpPool, self.URL, json.dumps(colArgs))
 		data = json.loads(r.data)
-		if r.status == 200 and not data["error"] :
+		if r.status_code == 200 and not data["error"] :
 			col = Collection(self, data)
 			self.collections[col.name] = col
 		else :
@@ -116,8 +126,15 @@ class Database(object) :
 	def __repr__(self) :
 		return "ArangoDB database: %s" % self.name
 
-	def __getitem__(self, k) :
-		return self.collections[k]
+	def __getitem__(self, collectionName) :
+		try :
+			return self.collections[collectionName]
+		except KeyError :
+			self.update()
+			try :
+				return self.collections[collectionName]
+			except KeyError :
+				raise KeyError("Can't find any collection named : %s" % collectionName)
 
 class Collection(object) :
 
@@ -131,20 +148,19 @@ class Collection(object) :
 
 	def __init__(self, database, jsonData) :
 		self.database = database
-		self.httpPool = self.database.httpPool
-
+		
 		for k in jsonData :
 			setattr(self, k, jsonData[k])
 		
-		self.URL = "%s/%s" % (self.database.URL, self.id)
+		self.URL = "%s/collection/%s" % (self.database.URL, self.id)
 
 	def delete(self) :
 		r = self.httpPool.request('DELETE', self.URL)
-		if not r.status == 200 or data["error"] :
+		if not r.status_code == 200 or data["error"] :
 			raise DeletionError(data["errorMessage"], data)
 
 	def createDocument(self) :
-		return Document(self, self._fields)
+		return Document(self)
 
 	def findId(self) :
 		pass
@@ -155,72 +171,80 @@ class Collection(object) :
 	def findAQL(self) :
 		pass
 
-	def action(self, method, action, **args) :
+	def action(self, method, action, **params) :
 		"a generic fct for interacting everything that doesn't have an assigned fct"
-		return json.loads(self.httpPool.request(method, self.URL + "/" + action, fields = args))
+		return json.loads(self.httpPool.request(method, self.URL + "/" + action, fields = params).data)
 
 	def load(self) :
 		"loads collection in memory"
-		return json.loads(self.httpPool.request('PUT', self.URL + "/load").data)
+		return self.action('PUT', 'load')
 	
 	def unload(self) :
 		"unloads collection from memory"
-		return json.loads(self.httpPool.request('PUT', self.URL + "/unload").data)
+		return self.action('PUT', 'unload')
 
 	def revision(self) :
-		return json.loads(self.httpPool.request('GET', self.URL + "/revision").data)["revision"]
+		return self.action('GET', 'revision')["revision"]
 
 	def properties(self) :
-		return json.loads(self.httpPool.request('GET', self.URL + "/properties").data)
+		return self.action('GET', 'properties')
 
 	def checksum(self) :
-		return json.loads(self.httpPool.request('GET', self.URL + "/checksum").data)["checksum"]
+		return self.action('GET', 'checksum')["checksum"]
 
 	def count(self) :
-		return json.loads(self.httpPool.request('GET', self.URL + "/count").data)["count"]
+		return self.action('GET', 'count')["count"]
 
 	def figures(self) :
 		"a more elaborate version of count, see arangodb docs for more infos"
-		return json.loads(self.httpPool.request('GET', self.URL + "/figures").data)
+		return self.action('GET', 'figures')
 
 	def __repr__(self) :
 		return "ArangoDB collection name: %s, id: %s, type: %s, status: %s" % (self.name, self.id, self.type, self.status)
 
 class Document(object) :
 
-	def __init__(self, collection, collectionFields) :
+	def __init__(self, collection) :
 		self.collection = collection
-		self.httpPool = self.collection.httpPool
 
 		self.URL = "%s/document" % (self.collection.database.URL)
-		
-		self.store = {}
-		for k in collectionFields.keys() :
-			self.store[k] = ""
 
-	def save(self) :
+		self._store = {}
+		for k in collection.__class__._fields.keys() :
+			self._store[k] = ""
+
+	def save(self, waitForSync = True) :
 		if self.collection._criticalLevel > _COLLECTION_CRITICAL_LEVEL_LOW :
-			for k, v in self.store.iteritems() :
+			for k, v in self._store.iteritems() :
 				self.collection._fields[k].test(v)
 		
 		if not self["_id"] :
-			print self.URL
-			url = "http://localhost:8529/_api/document?collection=test_col"
-			r = postJson(self.httpPool, url, json.dumps({3:2}))
-			print r.data
-			# print self.httpPool.request('POST', url, fields = {"a" : 1}).data
-			
+			headers = {'content-type': 'application/json'}
+			params = {'collection': self.collection.name, "waitForSync" : waitForSync}
+			payload = json.dumps(self._store)
+			r = requests.post(self.URL, headers = headers, params = params, data = payload)
+			data = r.json()
+			print data
+			for k, v in data.iteritems() :
+				self[k] = v
+	
+	def __getattribute__(self, k) :
+		if k == "store" :
+			raise AttributeError("_store can be accessed directly, use self[key] instead")
+		
+		return object.__getattribute__(self, k)
+
 	def __getitem__(self, k) :
-		return self.store[k]
+		return self._store[k]
 
 	def __setitem__(self, k, v) :
-		self.store[k] = v
+		self._store[k] = v
 
 if __name__ == "__main__" :
 	conn = Connection()
 	db = conn["bluwr_test"]
-	col = db["test_col"]
+	col = db["lala"]
 	doc = col.createDocument()
 	doc["name"] = 1
 	doc.save()
-	print col.count()
+	
