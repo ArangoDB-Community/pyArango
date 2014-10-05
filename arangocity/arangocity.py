@@ -32,6 +32,10 @@ class CreationError(ArrangoException) :
 	def __init__(self, message, errors = {}) :
 		ArrangoException.__init__(self, message, errors)
 
+class UpdateError(ArrangoException) :
+	def __init__(self, message, errors = {}) :
+		ArrangoException.__init__(self, message, errors)
+
 class DeletionError(ArrangoException) :
 	def __init__(self, message, errors = {}) :
 		ArrangoException.__init__(self, message, errors)
@@ -69,19 +73,33 @@ class Connection(object) :
 			self.arangoURL = arangoURL
 		
 		self.URL = '%s/_api' % self.arangoURL
-			
+		self.databasesURL = '%s/database' % self.URL
+
 		self.update()
 	
 	def update(self) :
-		dbURL = '%s/database' % self.URL
-		r = requests.get(dbURL)
+		r = requests.get(self.databasesURL)
 		data = r.json()
 		if r.status_code == 200  and not data["error"] :
 			for dbName in data["result"] :
-				db = Database(self, dbName)
-				self.databases[dbName] = db
+				if dbName not in self.databases :
+					db = Database(self, dbName)
+					self.databases[dbName] = db
 		else :
 			raise ConnectonError(data["errorMessage"], data)
+
+	def createDatabase(self, **dbArgs) :
+		"use dbArgs to put things such as 'name = products'"
+
+		payload = json.dumps(dbArgs)
+		r = requests.post(self.databasesURL, data = payload)
+		data = r.json()
+		if r.status_code == 201 and not data["error"] :
+			db = Database(self, name)
+			self.databases[name] = db
+			return self.databases[name]
+		else :
+			raise CreationError(data["errorMessage"], data)
 
 	def __getitem__(self, dbName) :
 		try :
@@ -101,25 +119,30 @@ class Database(object) :
 		self.collections = {}
 		
 		self.URL = '%s/_db/%s/_api' % (self.connection.arangoURL, self.name)
+		self.collectionsURL = '%s/collection' % (self.URL)
 
 		self.update()
 	
 	def update(self) :
-		colURL = '%s/collection' % (self.URL)
-		r = requests.get(colURL)
+		r = requests.get(self.collectionsURL)
 		data = r.json()
 		if r.status_code == 200 and not data["error"] :
 			for colData in data["collections"] :
-				self.collections[colData['name']] = Collection(self, colData)
+				if colData['name'] not in self.collections :
+					self.collections[colData['name']] = Collection(self, colData)
 		else :
 			raise ConnectonError(data["errorMessage"], data)
 
-	def _createCollection(self, **colArgs) :
-		r = postJson(self.httpPool, self.URL, json.dumps(colArgs))
-		data = json.loads(r.data)
+	def createCollection(self, **colArgs) :
+		"use colArgs to put things such as 'name = products'"
+
+		payload = json.dumps(colArgs)
+		r = requests.post(self.collectionsURL, data = payload)
+		data = r.json()
 		if r.status_code == 200 and not data["error"] :
 			col = Collection(self, data)
 			self.collections[col.name] = col
+			return self.collections[col.name]
 		else :
 			raise CreationError(data["errorMessage"], data)
 
@@ -143,6 +166,7 @@ class Collection(object) :
 		"_key" : Field(),
 		"_rev" : Field()
 	}
+	_privates = ["_id", "_rev", "_key"]
 
 	_criticalLevel = _COLLECTION_CRITICAL_LEVEL_LOW
 
@@ -152,10 +176,11 @@ class Collection(object) :
 		for k in jsonData :
 			setattr(self, k, jsonData[k])
 		
-		self.URL = "%s/collection/%s" % (self.database.URL, self.id)
+		self.URL = "%s/collection/%s" % (self.database.URL, self.name)
 
 	def delete(self) :
-		r = self.httpPool.request('DELETE', self.URL)
+		r = requests.delete(self.URL)
+		data = r.json()
 		if not r.status_code == 200 or data["error"] :
 			raise DeletionError(data["errorMessage"], data)
 
@@ -173,7 +198,12 @@ class Collection(object) :
 
 	def action(self, method, action, **params) :
 		"a generic fct for interacting everything that doesn't have an assigned fct"
-		return json.loads(self.httpPool.request(method, self.URL + "/" + action, fields = params).data)
+		fct = getattr(requests, method.lower())
+		r = fct(self.URL + "/" + action, params = params)
+		return r.json()
+
+	def truncate(self) :
+		return self.action('PUT', 'truncate')
 
 	def load(self) :
 		"loads collection in memory"
@@ -206,28 +236,66 @@ class Document(object) :
 
 	def __init__(self, collection) :
 		self.collection = collection
+		self.privates = self.collection.__class__._privates
+		self.documentsURL = "%s/document" % (self.collection.database.URL)
+		self._reset()
 
-		self.URL = "%s/document" % (self.collection.database.URL)
-
+	def _reset(self) :
+		self.URL = None
 		self._store = {}
-		for k in collection.__class__._fields.keys() :
-			self._store[k] = ""
+		for k in self.collection.__class__._fields.keys() :
+			self._store[k] = None
 
-	def save(self, waitForSync = True) :
+	def save(self, **docArgs) :
+		"use docArgs to put things such as 'waitForSync = True'"
+
 		if self.collection._criticalLevel > _COLLECTION_CRITICAL_LEVEL_LOW :
 			for k, v in self._store.iteritems() :
 				self.collection._fields[k].test(v)
 		
-		if not self["_id"] :
-			headers = {'content-type': 'application/json'}
-			params = {'collection': self.collection.name, "waitForSync" : waitForSync}
-			payload = json.dumps(self._store)
-			r = requests.post(self.URL, headers = headers, params = params, data = payload)
-			data = r.json()
-			print data
-			for k, v in data.iteritems() :
-				self[k] = v
-	
+		params = dict(docArgs)
+		params.update({'collection': self.collection.name })
+		payload = {}
+		for k in self._store.iterkeys() :
+			if k not in self.privates :
+				payload[k] = self._store[k]
+		payload = json.dumps(payload)
+
+		if self.URL is None :
+			r = requests.post(self.documentsURL, params = params, data = payload)
+			update = False
+		else :
+			r = requests.put(self.URL, params = params, data = payload)
+			update = True
+
+		data = r.json()
+		if (r.status_code == 201 or r.status_code == 202) and not data['error'] :
+			if update :
+				self['_rev'] = data['_rev']
+			else :
+				for k in self.privates :
+					self[k] = data[k]
+				self.URL = "%s/%s" % (self.documentsURL, self["_id"])
+		else :
+			if update :
+				raise UpdateError(data['errorMessage'], data)		
+			else :
+				raise CreationError(data['errorMessage'], data)
+
+	def saveCopy(self) :
+		"saves a copy of the object and become that copy"
+		self._reset()
+		self.save()
+
+	def delete(self) :
+		if self.URL is None :
+			raise DeletionError("Can't delete a document that was not saved") 
+		r = requests.delete(self.URL)
+		data = r.json()
+		if (r.status_code != 200 and r.status_code != 202) or data['error'] :
+			raise DeletionError(data['errorMessage'], data)
+		self._reset()
+
 	def __getattribute__(self, k) :
 		if k == "store" :
 			raise AttributeError("_store can be accessed directly, use self[key] instead")
@@ -242,7 +310,8 @@ class Document(object) :
 
 if __name__ == "__main__" :
 	conn = Connection()
-	db = conn["bluwr_test"]
+	db = conn["test_db"]
+	#db.createCollection(name = 'lala')
 	col = db["lala"]
 	doc = col.createDocument()
 	doc["name"] = 1
