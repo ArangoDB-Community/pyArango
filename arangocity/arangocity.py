@@ -1,10 +1,12 @@
 import requests
 import json
 
-#schemaless
-_COLLECTION_CRITICAL_LEVEL_LOW = 0
-#enforces schema
-_COLLECTION_CRITICAL_LEVEL_NORNAL = 1
+#schemaless, no tests performed
+_COLLECTION_CRITICAL_LEVEL_BLIND = 0
+#tests performed on canonical fields before saving, non canonical fields will be saved without testing
+_COLLECTION_CRITICAL_LEVEL_TEST = 1
+#test and enforces schemas
+_COLLECTION_CRITICAL_LEVEL_SCHEMA_ENFORCE = 2
 
 _COLLECTION_DOCUMENT_TYPE = 2
 _COLLECTION_EDGE_TYPE = 3
@@ -24,7 +26,7 @@ class ArrangoException(Exception) :
 	def __str__(self) :
 		return self.message + ". Errors: " + str(self.errors)
 
-class ConnectonError(ArrangoException) :
+class ConnectionError(ArrangoException) :
 	def __init__(self, message, errors = {}) :
 		ArrangoException.__init__(self, message, errors)
 
@@ -42,6 +44,11 @@ class DeletionError(ArrangoException) :
 
 class ConstraintViolation(ArrangoException) :
 	def __init__(self, message, errors = {}) :
+		ArrangoException.__init__(self, message, errors)
+
+class SchemaViolation(ArrangoException) :
+	def __init__(self, collection, field, errors = {}) :
+		message = "Collection %s does not a field %s in it's schema" % (collection.__class__.__name__, field)
 		ArrangoException.__init__(self, message, errors)
 
 class Field(object) :
@@ -86,7 +93,7 @@ class Connection(object) :
 					db = Database(self, dbName)
 					self.databases[dbName] = db
 		else :
-			raise ConnectonError(data["errorMessage"], data)
+			raise ConnectionError(data["errorMessage"], data)
 
 	def createDatabase(self, **dbArgs) :
 		"use dbArgs to put things such as 'name = products'"
@@ -100,6 +107,9 @@ class Connection(object) :
 			return self.databases[name]
 		else :
 			raise CreationError(data["errorMessage"], data)
+
+	def hasDatabase(self, name) :
+		return name in self.databases
 
 	def __getitem__(self, dbName) :
 		try :
@@ -128,23 +138,42 @@ class Database(object) :
 		data = r.json()
 		if r.status_code == 200 and not data["error"] :
 			for colData in data["collections"] :
-				if colData['name'] not in self.collections :
-					self.collections[colData['name']] = Collection(self, colData)
+				colName = colData['name']
+				colClass = Mongocity_metaclass.getCollectionClass(colName)
+				if colName not in self.collections :
+					self.collections[colName] = colClass(self, colData)
 		else :
-			raise ConnectonError(data["errorMessage"], data)
+			raise ConnectionError(data["errorMessage"], data)
 
-	def createCollection(self, **colArgs) :
-		"use colArgs to put things such as 'name = products'"
+	def createCollection(self, classOrClassName, **colArgs) :
+		"""classOrClassName must be either a class inheriting from Collection or the name 
+		of a class inheriting from Collection. Use colArgs to put things such as 'isVolatile = True'.
+		The 'name' parameter will be ignored since it is already specified by classOrClassName"""
+		
+		if type(classOrClassName) is types.StringType
+			colClass = Mongocity_metaclass.getCollectionClass(classOrClassName)
+			colArgs['name'] = classOrClassName
+		elif isinstance(classOrClassName, Collection) :
+			colClass = classOrClassName
+			colArgs['name'] = classOrClassName.__name__ 
+		else :
+			raise ValueError("classOrClassName must be either a class inheriting from Collection or the name of a class inheriting from Collection")
+
+		if colArgs['name'] in self.collections :
+			raise CreationError("Database %s already has a collection named %s" % (self.name, colArgs['name']) )
 
 		payload = json.dumps(colArgs)
 		r = requests.post(self.collectionsURL, data = payload)
 		data = r.json()
 		if r.status_code == 200 and not data["error"] :
-			col = Collection(self, data)
+			col = colClass(self, data)
 			self.collections[col.name] = col
 			return self.collections[col.name]
 		else :
 			raise CreationError(data["errorMessage"], data)
+
+	def hasCollection(self, name) :
+		return name in self.collections
 
 	def __repr__(self) :
 		return "ArangoDB database: %s" % self.name
@@ -159,20 +188,49 @@ class Database(object) :
 			except KeyError :
 				raise KeyError("Can't find any collection named : %s" % collectionName)
 
+class Mongocity_metaclass(type) :
+	
+	collectionClasses = {}
+	
+	def __new__(cls, name, bases, attrs) :
+		
+		privateFields = { 
+			"_id" : Field(),
+			"_key" : Field(),
+			"_rev" : Field()
+		}
+		
+		if '_fields' not in attrs :
+			attrs['_fields'] = privateFields
+		else :
+			attrs['_fields'].update(privateFields)
+
+		attrs['_privates'] = ["_id", "_rev", "_key"]
+		
+		clsObj = type.__new__(cls, name, bases, attrs)
+		Mongocity_metaclass.collectionClasses['name'] = clsObj
+		return clsObj
+
+	@classmethod
+	def getCollectionClass(cls, name) :
+		try :
+			return cls.collectionClasses[name]
+		except KeyError :
+			raise KeyError("There's no child of Collection by the name of: %s" % name)
+
 class Collection(object) :
 
-	_fields = { 
-		"_id" : Field(),
-		"_key" : Field(),
-		"_rev" : Field()
-	}
-	_privates = ["_id", "_rev", "_key"]
+	#here you specify the fields that you want for the documents in your collection
+	_fields = {}
+	
+	__metaclass__ = Collection_metaclass
 
-	_criticalLevel = _COLLECTION_CRITICAL_LEVEL_LOW
+	#defines the level of schema enforcement
+	_criticalLevel = _COLLECTION_CRITICAL_LEVEL_BLIND
 
 	def __init__(self, database, jsonData) :
 		self.database = database
-		
+		self.name = self.__class__.__name__
 		for k in jsonData :
 			setattr(self, k, jsonData[k])
 		
@@ -249,9 +307,11 @@ class Document(object) :
 	def save(self, **docArgs) :
 		"use docArgs to put things such as 'waitForSync = True'"
 
-		if self.collection._criticalLevel > _COLLECTION_CRITICAL_LEVEL_LOW :
+		if self.collection._criticalLevel > _COLLECTION_CRITICAL_LEVEL_BLIND :
 			for k, v in self._store.iteritems() :
-				self.collection._fields[k].test(v)
+				if (k not in self.collection.__class__._fields) and self.collection._criticalLevel == _COLLECTION_CRITICAL_LEVEL_SCHEMA_ENFORCE :
+					raise SchemaViolation(self.collection, k)
+				self.collection.__class__.fields[k].test(v)
 		
 		params = dict(docArgs)
 		params.update({'collection': self.collection.name })
@@ -307,13 +367,4 @@ class Document(object) :
 
 	def __setitem__(self, k, v) :
 		self._store[k] = v
-
-if __name__ == "__main__" :
-	conn = Connection()
-	db = conn["test_db"]
-	#db.createCollection(name = 'lala')
-	col = db["lala"]
-	doc = col.createDocument()
-	doc["name"] = 1
-	doc.save()
 	

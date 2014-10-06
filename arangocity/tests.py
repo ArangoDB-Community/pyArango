@@ -53,6 +53,19 @@ class ArangocityTests(unittest.TestCase):
 		self.assertEqual(doc.URL, url)
 		doc.delete()
 		self.assertTrue(doc.URL is None)
-	
+
+	def test_constraints(self) :
+		class TestCol_numeric(Collection) :
+			_fields = {
+				numeric : Field(constrainFct = numericFct)
+			}
+			
+		class TestCol_notNull(Collection) :
+			_fields = {
+				notNull : Field(notNull = True)
+			}
+
+		myCol = TestCol_numeric()
+
 if __name__ == "__main__" :
 	unittest.main()
