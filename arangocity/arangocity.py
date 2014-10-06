@@ -124,6 +124,8 @@ class Connection(object) :
 class Database(object) :
 	
 	def __init__(self, connection, name) :
+		"meant to be called by the connection only"
+
 		self.name = name
 		self.connection = connection
 		self.collections = {}
@@ -205,7 +207,7 @@ class Mongocity_metaclass(type) :
 		else :
 			attrs['_fields'].update(privateFields)
 
-		attrs['_privates'] = ["_id", "_rev", "_key"]
+		attrs['_privateFields'] = ["_id", "_rev", "_key"]
 		
 		clsObj = type.__new__(cls, name, bases, attrs)
 		Mongocity_metaclass.collectionClasses['name'] = clsObj
@@ -229,6 +231,11 @@ class Collection(object) :
 	_criticalLevel = _COLLECTION_CRITICAL_LEVEL_BLIND
 
 	def __init__(self, database, jsonData) :
+		"meant to be called by the database only"
+		
+		if self.__class__ is Collection :
+			raise ValueError("Collection is abstract and is not supposed to be instanciated. Collections my inherit from it")
+
 		self.database = database
 		self.name = self.__class__.__name__
 		for k in jsonData :
@@ -292,24 +299,40 @@ class Collection(object) :
 
 class Document(object) :
 
-	def __init__(self, collection) :
-		self.collection = collection
-		self.privates = self.collection.__class__._privates
-		self.documentsURL = "%s/document" % (self.collection.database.URL)
-		self._reset()
+	def __init__(self, collection, fieldsToSet = {}) :
+		"meant to be called by the collection only"
 
-	def _reset(self) :
+		self.collection = collection
+		self._canonicalFields = self.collection.__class__._fields
+		self._privateFields = self.collection.__class__._privateFields
+		self.documentsURL = "%s/document" % (self.collection.database.URL)
+		self._reset(fieldsToSet)
+
+	def _reset(self, fieldsToSet = {}) :
+		"resets the document. meant to be called by the collection only"
 		self.URL = None
 		self._store = {}
-		for k in self.collection.__class__._fields.keys() :
-			self._store[k] = None
+		
+		if len(fieldsToSet) > :
+			for k in fieldsToSet.keys() :
+				if self.collection._criticalLevel == _COLLECTION_CRITICAL_LEVEL_SCHEMA_ENFORCE  and (k not in self._canonicalFields)  :
+					raise SchemaViolation(self.collection, k)
+				self._store[k] = fieldsToSet[k]
+		else :
+			for k in self.collection.__class__._fields.keys() :
+				self._store[k] = None
+
+		self.URL = "%s/%s" % (self.documentsURL, self["_id"])
+		self._patchStore = {}
 
 	def save(self, **docArgs) :
-		"use docArgs to put things such as 'waitForSync = True'"
+		"""This fct either performs a POST (for a new document) or a PUT (complete document overwrite).
+		If you want to only updae the modified fields use the .path() function.
+		Use docArgs to put things such as 'waitForSync = True'"""
 
 		if self.collection._criticalLevel > _COLLECTION_CRITICAL_LEVEL_BLIND :
 			for k, v in self._store.iteritems() :
-				if (k not in self.collection.__class__._fields) and self.collection._criticalLevel == _COLLECTION_CRITICAL_LEVEL_SCHEMA_ENFORCE :
+				if self.collection._criticalLevel == _COLLECTION_CRITICAL_LEVEL_SCHEMA_ENFORCE  and (k not in self._canonicalFields) :
 					raise SchemaViolation(self.collection, k)
 				self.collection.__class__.fields[k].test(v)
 		
@@ -317,7 +340,7 @@ class Document(object) :
 		params.update({'collection': self.collection.name })
 		payload = {}
 		for k in self._store.iterkeys() :
-			if k not in self.privates :
+			if k not in self._privateFields :
 				payload[k] = self._store[k]
 		payload = json.dumps(payload)
 
@@ -333,19 +356,44 @@ class Document(object) :
 			if update :
 				self['_rev'] = data['_rev']
 			else :
-				for k in self.privates :
+				for k in self._privateFields :
 					self[k] = data[k]
 				self.URL = "%s/%s" % (self.documentsURL, self["_id"])
 		else :
 			if update :
-				raise UpdateError(data['errorMessage'], data)		
+				raise UpdateError(data['errorMessage'], data)
 			else :
 				raise CreationError(data['errorMessage'], data)
 
 	def saveCopy(self) :
-		"saves a copy of the object and become that copy"
+		"saves a copy of the object and become that copy. returns a tuple (old _id, new _id)"
+		old_id = self["_id"]
 		self._reset()
 		self.save()
+		return (old_id, self["_id"])
+
+	def patch(self, keepNull = True, **docArgs) :
+		"""Updates only the modified fields.
+		The default behaviour concening the keepNull parameter is the oposite of ArangoDB's default, Null values won't be ignored
+		Use docArgs ofr things such as waitForSync = True"""
+		
+		if self.URL is None :
+			raise ValueError("Cannot patch a document that was not previously saved")
+		
+		params = dict(docArgs)
+		params.update({'collection': self.collection.name, 'keepNull' : keepNull})
+		payload = {}
+		for k in self._patchStore.iterkeys() :
+			if k not in self._privateFields :
+				payload[k] = self._store[k]
+		payload = json.dumps(payload)
+		
+		r = requests.patch(self.URL, params = params, data = payload)
+		data = r.json()
+		if (r.status_code == 201 or r.status_code == 202) and not data['error'] :
+			self['_rev'] = data['_rev']
+		else :
+			raise UpdateError(data['errorMessage'], data)
 
 	def delete(self) :
 		if self.URL is None :
@@ -357,8 +405,10 @@ class Document(object) :
 		self._reset()
 
 	def __getattribute__(self, k) :
-		if k == "store" :
-			raise AttributeError("_store can be accessed directly, use self[key] instead")
+		if k[0] == "_" :
+			if k == "_store" :
+				raise AttributeError("_store can be accessed directly. use self[key] instead")
+		raise AttributeError("%s can be accessed directly" % k)
 		
 		return object.__getattribute__(self, k)
 
@@ -366,5 +416,13 @@ class Document(object) :
 		return self._store[k]
 
 	def __setitem__(self, k, v) :
+		if k in self._privateFields :
+			raise ValueError("%s is a preivate field and cannot be modified" % k)
+		
+		if self.collection._criticalLevel == _COLLECTION_CRITICAL_LEVEL_SCHEMA_ENFORCE  and (k not in self._canonicalFields) 
+			raise SchemaViolation(self.collection, k)
+		
 		self._store[k] = v
-	
+		if self.URL is not None :
+			self._patchStore[k] = self._store[k]
+		
