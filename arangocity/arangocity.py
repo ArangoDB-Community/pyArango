@@ -306,25 +306,26 @@ class Document(object) :
 		self._canonicalFields = self.collection.__class__._fields
 		self._privateFields = self.collection.__class__._privateFields
 		self.documentsURL = "%s/document" % (self.collection.database.URL)
-		self._reset(fieldsToSet)
-
-	def _reset(self, fieldsToSet = {}) :
-		"resets the document. meant to be called by the collection only"
-		self.URL = None
 		self._store = {}
 		
 		if len(fieldsToSet) > :
-			for k in fieldsToSet.keys() :
-				if self.collection._criticalLevel == _COLLECTION_CRITICAL_LEVEL_SCHEMA_ENFORCE  and (k not in self._canonicalFields)  :
-					raise SchemaViolation(self.collection, k)
-				self._store[k] = fieldsToSet[k]
+			self.set(fieldsToSet)
 		else :
 			for k in self.collection.__class__._fields.keys() :
 				self._store[k] = None
 
-		self.URL = "%s/%s" % (self.documentsURL, self["_id"])
+		try :
+			self.URL = "%s/%s" % (self.documentsURL, self["_id"])
+		except KeyError :
+			self.URL = None
+			
 		self._patchStore = {}
 
+	def set(self, fieldsToSet) :
+		"""Sets the document according to values contained in the dictinnary fieldsToSet"""
+		for k in fieldsToSet.keys() :
+			self[k] = fieldsToSet[k]
+	
 	def save(self, **docArgs) :
 		"""This fct either performs a POST (for a new document) or a PUT (complete document overwrite).
 		If you want to only updae the modified fields use the .path() function.
@@ -332,17 +333,13 @@ class Document(object) :
 
 		if self.collection._criticalLevel > _COLLECTION_CRITICAL_LEVEL_BLIND :
 			for k, v in self._store.iteritems() :
-				if self.collection._criticalLevel == _COLLECTION_CRITICAL_LEVEL_SCHEMA_ENFORCE  and (k not in self._canonicalFields) :
+				if self.collection._criticalLevel == _COLLECTION_CRITICAL_LEVEL_SCHEMA_ENFORCE and (k not in self._canonicalFields) :
 					raise SchemaViolation(self.collection, k)
 				self.collection.__class__.fields[k].test(v)
 		
 		params = dict(docArgs)
 		params.update({'collection': self.collection.name })
-		payload = {}
-		for k in self._store.iterkeys() :
-			if k not in self._privateFields :
-				payload[k] = self._store[k]
-		payload = json.dumps(payload)
+		payload = json.dumps(self._store)
 
 		if self.URL is None :
 			r = requests.post(self.documentsURL, params = params, data = payload)
@@ -382,11 +379,7 @@ class Document(object) :
 		
 		params = dict(docArgs)
 		params.update({'collection': self.collection.name, 'keepNull' : keepNull})
-		payload = {}
-		for k in self._patchStore.iterkeys() :
-			if k not in self._privateFields :
-				payload[k] = self._store[k]
-		payload = json.dumps(payload)
+		payload = json.dumps(self._patchStore)
 		
 		r = requests.patch(self.URL, params = params, data = payload)
 		data = r.json()
@@ -419,7 +412,7 @@ class Document(object) :
 		if k in self._privateFields :
 			raise ValueError("%s is a preivate field and cannot be modified" % k)
 		
-		if self.collection._criticalLevel == _COLLECTION_CRITICAL_LEVEL_SCHEMA_ENFORCE  and (k not in self._canonicalFields) 
+		if self.collection._criticalLevel == _COLLECTION_CRITICAL_LEVEL_SCHEMA_ENFORCE and (k not in self._canonicalFields) 
 			raise SchemaViolation(self.collection, k)
 		
 		self._store[k] = v
