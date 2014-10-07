@@ -1,5 +1,10 @@
-from arangocity import *
 import unittest, copy
+
+from connection import *
+from database import *
+from collection import *
+from document import *
+from theExceptions import *
 
 class ArangocityTests(unittest.TestCase):
 
@@ -8,19 +13,17 @@ class ArangocityTests(unittest.TestCase):
 
 		try :
 			self.conn.createDatabase(name = "test_db")
-			self.db.createCollection("lala")
 		except CreationError :
 			pass
 
 		self.db = self.conn["test_db"]
-		self.collection = self.db["lala"]
 		self._resetUp()
 
 	def _resetUp(self) :
-		try :
-			self.db["to_be_erased"].delete()
-		except :
-			pass
+		self.db.update()
+		for colName in self.db.collections :
+			if not self.db[colName].isSystem :
+				self.db[colName].delete()
 
 	def tearDown(self):
 		self._resetUp()
@@ -32,17 +35,19 @@ class ArangocityTests(unittest.TestCase):
 		self.assertRaises(DeletionError, self.db["to_be_erased"].delete)
 	
 	def test_collection_count_truncate(self) :
-		self.collection.truncate()
-		doc = self.collection.createDocument()
+		collection = self.db.createCollection(name = "lala")	
+		collection.truncate()
+		doc = collection.createDocument()
 		doc.save()
-		doc2 = self.collection.createDocument()
+		doc2 = collection.createDocument()
 		doc2.save()
-		self.assertEqual(2, self.collection.count())
-		self.collection.truncate()
-		self.assertEqual(0, self.collection.count())
+		self.assertEqual(2, collection.count())
+		collection.truncate()
+		self.assertEqual(0, collection.count())
 
 	def test_document_create_update_delete(self) :
-		doc = self.collection.createDocument()
+		collection = self.db.createCollection(name = "lala")
+		doc = collection.createDocument()
 		doc["name"] = "l-3ewd"
 		self.assertTrue(doc.URL is None)
 		doc.save()
@@ -54,18 +59,50 @@ class ArangocityTests(unittest.TestCase):
 		doc.delete()
 		self.assertTrue(doc.URL is None)
 
-	def test_constraints(self) :
-		class TestCol_numeric(Collection) :
+	def test_fields_on_set(self) :
+		def strFct(v) :
+			import types
+			return type(v) is types.StringType	
+
+		class Col_on_set(Collection) :
+			_test_fields_on_save = False
+			_test_fields_on_set = True
+			_allow_foreign_fields = False
 			_fields = {
-				numeric : Field(constrainFct = numericFct)
+				"str" : Field(constraintFct = strFct),
+				"notNull" : Field(notNull = True)
 			}
 			
-		class TestCol_notNull(Collection) :
-			_fields = {
-				notNull : Field(notNull = True)
-			}
+		myCol = self.db.createCollection('Col_on_set')
+		doc = myCol.createDocument()
+		self.assertRaises(ConstraintViolation, doc.__setitem__, 'str', 3)
+		self.assertRaises(ConstraintViolation, doc.__setitem__, 'notNull', None)
+		self.assertRaises(SchemaViolation, doc.__setitem__, 'foreigner', None)
 
-		myCol = TestCol_numeric()
+
+	def test_fields_on_save(self) :
+		def strFct(v) :
+			import types
+			return type(v) is types.StringType	
+
+		class Col_on_set(Collection) :
+			_test_fields_on_save = True
+			_test_fields_on_set = False
+			_allow_foreign_fields = False
+			_fields = {
+				"str" : Field(constraintFct = strFct),
+				"notNull" : Field(notNull = True)
+			}
+			
+		myCol = self.db.createCollection('Col_on_set')
+		doc = myCol.createDocument()
+		doc["str"] = 3
+		self.assertRaises(ConstraintViolation, doc.save)
+		doc["str"] = "string"
+		self.assertRaises(ConstraintViolation, doc.save)
+		doc["foreigner"] = "string"
+		self.assertRaises(SchemaViolation,  doc.save)	
+
 
 if __name__ == "__main__" :
 	unittest.main()
