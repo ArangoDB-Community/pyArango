@@ -72,6 +72,7 @@ class Collection(object) :
 			setattr(self, k, jsonData[k])
 		
 		self.URL = "%s/collection/%s" % (self.database.URL, self.name)
+		self.documentsURL = "%s/document" % (self.database.URL)
 
 	def delete(self) :
 		r = requests.delete(self.URL)
@@ -88,8 +89,14 @@ class Collection(object) :
 			raise SchemaViolation(self, fieldName)
 		self.__class__._fields[fieldName].test(value)
 
-	def findId(self) :
-		pass
+	def findKey(self, key, rev = None) :
+		url = "%s/%s/%s" % (self.documentsURL, self.name, key)
+		if rev is not None :
+			r = requests.get(url, params = {'rev' : rev})
+		else :
+			r = requests.get(url)
+		if r.status_code != 404 :
+			return Document(self, r.json())
 
 	def findExample(self) :
 		pass

@@ -58,7 +58,23 @@ class ArangocityTests(unittest.TestCase):
 		self.assertEqual(doc.URL, url)
 		doc.delete()
 		self.assertTrue(doc.URL is None)
+	
+	def test_document_find_by_key(self) :
+		collection = self.db.createCollection(name = "lala")
+		doc = collection.createDocument()
+		doc["name"] = 'iop'
+		doc.save()
+		doc2 = collection.findKey(doc._key)
+		self.assertEqual(doc._id, doc2._id)
 
+	def test_document_create_patch(self) :
+		collection = self.db.createCollection(name = "lala")
+		doc = collection.createDocument()
+		doc["name"] = "l-3ewd3"
+		self.assertRaises(ValueError, doc.patch)
+		doc.save()
+		doc.patch()
+	
 	def test_fields_on_set(self) :
 		def strFct(v) :
 			import types

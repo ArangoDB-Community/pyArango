@@ -5,37 +5,49 @@ from theExceptions import (CreationError, UpdateError)
 
 class Document(object) :
 
-	def __init__(self, collection, _id = None, _rev = None, _key = None, fieldsToSet = {}) :
+	def __init__(self, collection, jsonFieldInit = {}) :
 		"meant to be called by the collection only"
-		self.reset(collection)
+		self.reset(collection, jsonFieldInit)
 
-	def reset(self, collection, _id = None, _rev = None, _key = None, fieldsToSet = {}) :
+	def reset(self, collection, jsonFieldInit = {}) :
 		self.collection = collection
-		self.documentsURL = "%s/document" % (self.collection.database.URL)
+		self.documentsURL = self.collection.documentsURL
 		
-		self._id = _id
-		self._key = _key 
-		self._rev = _rev
 		self._store = {}
 
-		if _id is not None :
-			self.URL = "%s/%s" % (self.documentsURL, self._id)
-		else :
-			self.URL = None
-		
-		if len(fieldsToSet) > 0 :
-			self.set(fieldsToSet)
+		if len(jsonFieldInit) > 0 :
+			self.set(jsonFieldInit)
 		else :
 			for k in self.collection.__class__._fields.keys() :
 				self._store[k] = None
-			
+			self._id, self._rev, self._key = None, None, None
+
+		if self._id is not None :
+			self.URL = "%s/%s" % (self.documentsURL, self._id)
+		else :
+			self.URL = None
+
 		self._patchStore = {}
 
 	def set(self, fieldsToSet) :
-		"""Sets the document according to values contained in the dictinnary fieldsToSet"""
-		for k in fieldsToSet.keys() :
-			self[k] = fieldsToSet[k]
-	
+		"""Sets the document according to values contained in the dictinnary fieldsToSet. This will also set self._id/_rev/_key"""
+		if "_id" in fieldsToSet :
+			self._id = fieldsToSet["_id"]
+			del(fieldsToSet["_id"])
+		if "_rev" in fieldsToSet :
+			self._rev = fieldsToSet["_rev"]
+			del(fieldsToSet["_rev"])
+		if "_key" in fieldsToSet :
+			self._key = fieldsToSet["_key"]
+			del(fieldsToSet["_key"])
+
+		if self.collection._test_fields_on_set :
+			for k in fieldsToSet.keys() :
+				self[k] = fieldsToSet[k]
+		else :
+			self._store.update(fieldsToSet)
+		
+
 	def save(self, **docArgs) :
 		"""This fct either performs a POST (for a new document) or a PUT (complete document overwrite).
 		If you want to only update the modified fields use the .path() function.
@@ -119,4 +131,6 @@ class Document(object) :
 		self._store[k] = v
 		if self.URL is not None :
 			self._patchStore[k] = self._store[k]
-		
+	
+	def __str__(self) :
+		return str(self._store)
