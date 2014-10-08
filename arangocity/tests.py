@@ -59,12 +59,12 @@ class ArangocityTests(unittest.TestCase):
 		doc.delete()
 		self.assertTrue(doc.URL is None)
 	
-	def test_document_find_by_key(self) :
+	def test_document_fetch_by_key(self) :
 		collection = self.db.createCollection(name = "lala")
 		doc = collection.createDocument()
 		doc["name"] = 'iop'
 		doc.save()
-		doc2 = collection.findKey(doc._key)
+		doc2 = collection.fetchDocument(doc._key)
 		self.assertEqual(doc._id, doc2._id)
 
 	def test_document_create_patch(self) :

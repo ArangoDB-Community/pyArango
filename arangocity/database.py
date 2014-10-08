@@ -3,7 +3,68 @@ import json
 import types
 
 from collection import Collection, SystemCollection, GenericCollection, Collection_metaclass
-from theExceptions import CreationError, UpdateError
+from document import Document
+from theExceptions import CreationError, UpdateError, AQLQueryError
+
+class AQLQueryResult(object) :
+	
+	def __init__(self, database, queryPost, jsonData) :
+		"queryPost contains a dictionnary representation of the initial POST payload sent to the database"
+
+		self.database = database
+		self.queryPost = queryPost
+
+		if jsonData["hasMore"] :
+			self.id = jsonData["id"]
+			self.URL = "%s/%s" % (self.database.cursorURL, self.id)
+		else :
+			self.id = None
+			self.URL = None
+		
+		self._resetBatch(jsonData)
+
+	def _resetBatch(self, jsonData) :
+		self.hasMore = jsonData["hasMore"]
+		self.error = jsonData["error"]
+		self.code = jsonData["code"]
+
+		try :
+			self.count = jsonData["count"]
+		except KeyError :
+			self.count = None
+		
+		try :
+			self.extra = jsonData["extra"]
+		except KeyError :
+			self.extra = None
+
+		self.result = jsonData["result"]
+
+	def getDocument(self, i, raw = False) :
+		"returns a document from the list. if raw = True, will return the json representation of the doc as a dict"
+		if raw : return self.result[i]
+		return self._developDoc(i)
+
+	def _developDoc(self, i) :
+		docJson = self.result[i]
+		collection = self.database[docJson["_id"].split("/")[0]]
+		return Document(collection, docJson)
+
+	def nextBatch(self) :
+		"become the next batch. raises a StopIteration if there is None"
+		if not self.hasMore :
+			raise StopIteration("That was the last batch")
+
+		r = requests.put(self.URL)
+		data = r.json()
+		if r.status_code == 200 and not data['error'] :
+			self._resetBatch(data)
+		else :
+			raise AQLQueryError(data["errorMessage"], self.queryPost["query"], data)
+
+	def delete(self) :
+		"kills the cursor"
+		requests.delete(self.URL)
 
 class Database(object) :
 	
@@ -16,10 +77,13 @@ class Database(object) :
 		
 		self.URL = '%s/_db/%s/_api' % (self.connection.arangoURL, self.name)
 		self.collectionsURL = '%s/collection' % (self.URL)
+		self.cursorURL = '%s/cursor' % (self.URL)
+		self.queryURL = '%s/query' % (self.URL)
 
 		self.update()
 	
 	def update(self) :
+		"updates the collection list"
 		r = requests.get(self.collectionsURL)
 		data = r.json()
 		if r.status_code == 200 and not data["error"] :
@@ -67,6 +131,25 @@ class Database(object) :
 
 	def hasCollection(self, name) :
 		return name in self.collections
+
+	def AQLQuery(self, query, batchSize, count = False) :
+		payload = {'query' : query, 'count' : count, 'batchSize' : batchSize}
+		r = requests.post(self.cursorURL, data = payload)
+		data = r.json()
+		if r.status_code == 201 and not data["error"] :
+			return AQLQueryResult(self, payload, data)
+		else :
+			raise AQLQueryError(data["errorMessage"], query, data)
+
+	def ValidateAQLQuery(self, query) :
+		"returns the server answer is the query is valid. Raises an AQLQueryError if not"
+		payload = {'query' : query}
+		r = requests.post(self.cursorURL, data = payload)
+		data = r.json()
+		if r.status_code == 200 and not data["error"] :
+			return data
+		else :
+			raise AQLQueryError(data["errorMessage"], query, data)
 
 	def __repr__(self) :
 		return "ArangoDB database: %s" % self.name

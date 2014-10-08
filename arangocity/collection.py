@@ -89,7 +89,8 @@ class Collection(object) :
 			raise SchemaViolation(self, fieldName)
 		self.__class__._fields[fieldName].test(value)
 
-	def findKey(self, key, rev = None) :
+	def fetchDocument(self, key, rev = None) :
+		"Fetches a document from the collection given it's key"
 		url = "%s/%s/%s" % (self.documentsURL, self.name, key)
 		if rev is not None :
 			r = requests.get(url, params = {'rev' : rev})
@@ -97,11 +98,8 @@ class Collection(object) :
 			r = requests.get(url)
 		if r.status_code != 404 :
 			return Document(self, r.json())
-
+	
 	def findExample(self) :
-		pass
-
-	def findAQL(self) :
 		pass
 
 	def action(self, method, action, **params) :
