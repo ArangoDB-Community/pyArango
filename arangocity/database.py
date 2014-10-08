@@ -8,10 +8,11 @@ from theExceptions import CreationError, UpdateError, AQLQueryError
 
 class AQLQueryResult(object) :
 	
-	def __init__(self, database, queryPost, jsonData) :
-		"queryPost contains a dictionnary representation of the initial POST payload sent to the database"
+	def __init__(self, database, rawResults, queryPost, jsonData) :
+		"if rawResults = True, will always return the json representation of the results and not a Document object. queryPost contains a dictionnary representation of the initial POST payload sent to the database"
 
 		self.database = database
+		self.rawResults = rawResults
 		self.queryPost = queryPost
 
 		if jsonData["hasMore"] :
@@ -40,15 +41,25 @@ class AQLQueryResult(object) :
 
 		self.result = jsonData["result"]
 
-	def getDocument(self, i, raw = False) :
-		"returns a document from the list. if raw = True, will return the json representation of the doc as a dict"
-		if raw : return self.result[i]
-		return self._developDoc(i)
+		if not self.rawResults :
+			self._developed = range(len(self.result))
+		else :
+			self._developed = None
 
+	def __getitem__(self, i) :
+		"returns a ith result of the query."
+		if not self.rawResults and self._developed[i] is not True : self._developDoc(i)
+		return self.result[i]
+		
 	def _developDoc(self, i) :
 		docJson = self.result[i]
-		collection = self.database[docJson["_id"].split("/")[0]]
-		return Document(collection, docJson)
+		try :
+			collection = self.database[docJson["_id"].split("/")[0]]
+		except KeyError :
+			raise CreationError("result %d is not a valid Document. Try setting rawResults to True" % i)
+
+		self.result[i] = Document(collection, docJson)
+		self._developed[i] = True
 
 	def nextBatch(self) :
 		"become the next batch. raises a StopIteration if there is None"
@@ -132,21 +143,23 @@ class Database(object) :
 	def hasCollection(self, name) :
 		return name in self.collections
 
-	def AQLQuery(self, query, batchSize, count = False) :
-		payload = {'query' : query, 'count' : count, 'batchSize' : batchSize}
-		r = requests.post(self.cursorURL, data = payload)
+	def AQLQuery(self, query, rawResults, batchSize, bindVars = {}, options = {}, count = False, fullCount = False) :
+		"Set rawResults = True if you want the query to returns dictionnaries instead of Document objects"
+		
+		payload = {'query' : query, 'batchSize' : batchSize, 'bindVars' : bindVars, 'options' : options, 'count' : count, 'fullCount' : fullCount}
+		r = requests.post(self.cursorURL, data = json.dumps(payload))
 		data = r.json()
 		if r.status_code == 201 and not data["error"] :
-			return AQLQueryResult(self, payload, data)
+			return AQLQueryResult(self, rawResults, payload, data)
 		else :
 			raise AQLQueryError(data["errorMessage"], query, data)
 
-	def ValidateAQLQuery(self, query) :
+	def validateAQLQuery(self, query, bindVars = {}, options = {}) :
 		"returns the server answer is the query is valid. Raises an AQLQueryError if not"
-		payload = {'query' : query}
-		r = requests.post(self.cursorURL, data = payload)
+		payload = {'query' : query, 'bindVars' : bindVars, 'options' : options}
+		r = requests.post(self.cursorURL, data = json.dumps(payload))
 		data = r.json()
-		if r.status_code == 200 and not data["error"] :
+		if r.status_code == 201 and not data["error"] :
 			return data
 		else :
 			raise AQLQueryError(data["errorMessage"], query, data)

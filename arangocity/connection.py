@@ -30,9 +30,10 @@ class Connection(object) :
 		else :
 			raise ConnectionError(data["errorMessage"], data)
 
-	def createDatabase(self, **dbArgs) :
-		"use dbArgs to put things such as 'name = products'"
+	def createDatabase(self, name, **dbArgs) :
+		"use dbArgs for arguments other than name"
 
+		dbArgs['name'] = name
 		payload = json.dumps(dbArgs)
 		r = requests.post(self.databasesURL, data = payload)
 		data = r.json()

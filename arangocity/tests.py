@@ -75,6 +75,61 @@ class ArangocityTests(unittest.TestCase):
 		doc.save()
 		doc.patch()
 	
+	def test_aql_validation(self) :
+	 	collection = self.db.createCollection(name = "users")
+		doc = collection.createDocument()
+		doc["name"] = "l-3ewd"
+		doc.save()
+
+		aql = "FOR c IN users FILTER c.name == @name LIMIT 2 RETURN c.name"
+		bindVars = {'name' : 'l-3ewd-3'}
+		self.db.validateAQLQuery(aql, bindVars)
+		
+	def set100Users(self, nbUsers) :
+	 	collection = self.db.createCollection(name = "users")
+		for i in xrange(nbUsers) :
+			doc = collection.createDocument()
+			doc["name"] = "l-3ewd-%d" % i
+			doc["number"] = i
+			doc.save()
+
+	def test_aql_query_rawResults_true(self) :
+		self.set100Users(100)
+		
+		aql = "FOR c IN users FILTER c.name == @name LIMIT 10 RETURN c.name"
+		bindVars = {'name' : 'l-3ewd-3'}
+		q = self.db.AQLQuery(aql, rawResults = True, batchSize = 10, bindVars = bindVars)
+		self.assertEqual(len(q.result), 1)
+		self.assertEqual(q[0], 'l-3ewd-3')
+
+	def test_aql_query_rawResults_false(self) :
+		self.set100Users(100)
+
+		aql = "FOR c IN users FILTER c.name == @name LIMIT 10 RETURN c"
+		bindVars = {'name' : 'l-3ewd-3'}
+		q = self.db.AQLQuery(aql, rawResults = False, batchSize = 10, bindVars = bindVars)
+		self.assertEqual(len(q.result), 1)
+		self.assertEqual(q[0]['name'], 'l-3ewd-3')		
+		self.assertTrue(isinstance(q[0], Document))		
+	
+	def test_aql_query_batch(self) :
+		nbUsers = 100
+		self.set100Users(nbUsers)
+		
+		aql = "FOR c IN users LIMIT %s RETURN c" % nbUsers
+		q = self.db.AQLQuery(aql, rawResults = False, batchSize = 1)
+		lstRes = []
+		for i in xrange(nbUsers) :
+			self.assertTrue(isinstance(q[0], Document))		
+			lstRes.append(q[0]["number"])
+			try :
+				q.nextBatch()
+			except StopIteration :
+				self.assertEqual(i, 99)
+		
+		lstRes.sort()
+		self.assertEqual(lstRes, range(nbUsers))
+
 	def test_fields_on_set(self) :
 		def strFct(v) :
 			import types
@@ -94,7 +149,6 @@ class ArangocityTests(unittest.TestCase):
 		self.assertRaises(ConstraintViolation, doc.__setitem__, 'str', 3)
 		self.assertRaises(ConstraintViolation, doc.__setitem__, 'notNull', None)
 		self.assertRaises(SchemaViolation, doc.__setitem__, 'foreigner', None)
-
 
 	def test_fields_on_save(self) :
 		def strFct(v) :
@@ -118,7 +172,6 @@ class ArangocityTests(unittest.TestCase):
 		self.assertRaises(ConstraintViolation, doc.save)
 		doc["foreigner"] = "string"
 		self.assertRaises(SchemaViolation,  doc.save)	
-
 
 if __name__ == "__main__" :
 	unittest.main()
