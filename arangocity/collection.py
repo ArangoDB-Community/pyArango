@@ -102,14 +102,14 @@ class Collection(object) :
 	
 	def fetchByExample(self, exampleDict, batchSize, rawResults = False, **queryArgs) :
 		"exampleDict should be something like {'age' : 28}"
-		return self.simpleQuery(self, 'by-example', batchSize, rawResults, **queryArgs)
+		return self.simpleQuery('by-example', batchSize, rawResults, example = exampleDict, **queryArgs)
 
 	def fetchFirstExample(self, exampleDict, batchSize, rawResults = False, **queryArgs) :
 		"exampleDict should be something like {'age' : 28}. returns only a single element but still in a SimpleQueryResult object"
-		return self.simpleQuery(self, 'first-example', batchSize, rawResults, **queryArgs)
+		return self.simpleQuery('first-example', batchSize, rawResults, example = exampleDict, **queryArgs)
 
 	def fetchAll(self, batchSize, rawResults = False, **queryArgs) :
-		return self.simpleQuery(self, 'all', batchSize, rawResults, **queryArgs)
+		return self.simpleQuery('all', batchSize, rawResults, **queryArgs)
 
 	def simpleQuery(self, queryType, batchSize, rawResults = False, **queryArgs) :
 		"""General interface for simple queries. queryType can be something like 'all', 'by-example' etc... everything is in the arango doc.
@@ -118,7 +118,7 @@ class Collection(object) :
 		payload = {'collection' : self.name, 'batchSize' : batchSize}
 		payload.update(queryArgs)
 		payload = json.dumps(payload)
-		url = "%s/simple/%s" % (self.database.url, queryType)
+		url = "%s/simple/%s" % (self.database.URL, queryType)
 
 		r = requests.put(url, data = payload)
 		data = r.json()

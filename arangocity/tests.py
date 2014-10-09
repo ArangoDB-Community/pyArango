@@ -91,7 +91,9 @@ class ArangocityTests(unittest.TestCase):
 			doc = collection.createDocument()
 			doc["name"] = "l-3ewd-%d" % i
 			doc["number"] = i
+			doc["species"] = "human"
 			doc.save()
+		return collection
 
 	def test_aql_query_rawResults_true(self) :
 		self.createManyUsers(100)
@@ -118,6 +120,24 @@ class ArangocityTests(unittest.TestCase):
 		
 		aql = "FOR c IN users LIMIT %s RETURN c" % nbUsers
 		q = self.db.AQLQuery(aql, rawResults = False, batchSize = 1)
+		lstRes = []
+		for i in xrange(nbUsers) :
+			lstRes.append(q[0]["number"])
+			try :
+				q.nextBatch()
+			except StopIteration :
+				self.assertEqual(i, nbUsers-1)
+		
+		lstRes.sort()
+		self.assertEqual(lstRes, range(nbUsers))
+
+	def test_simple_query(self) :
+		nbUsers = 100
+		col = self.createManyUsers(nbUsers)
+		
+		example = {'species' : "human"}
+
+		q = col.fetchByExample(example, batchSize = 1)
 		lstRes = []
 		for i in xrange(nbUsers) :
 			lstRes.append(q[0]["number"])

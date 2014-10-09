@@ -2,12 +2,14 @@ import requests
 import json
 
 from document import Document
-from theExceptions import AQLQueryError
+from theExceptions import QueryBatchRetrievalError
 
 class QueryResult(object) :
 	
 	def __init__(self, URL, database, rawResults, queryPost, jsonData) :
 		"if rawResults = True, will always return the json representation of the results and not a Document object. queryPost contains a dictionnary representation of the initial POST payload sent to the database"
+
+		self._batchNumber = 1
 
 		self.database = database
 		self.rawResults = rawResults
@@ -51,15 +53,16 @@ class QueryResult(object) :
 
 	def nextBatch(self) :
 		"become the next batch. raises a StopIteration if there is None"
+		self._batchNumber += 1
 		if not self.hasMore :
 			raise StopIteration("That was the last batch")
 
 		r = requests.put(self.URL)
 		data = r.json()
-		if r.status_code == 200 and not data['error'] :
+		if not data['error'] :
 			self._resetBatch(data)
 		else :
-			raise AQLQueryError(data["errorMessage"], self.queryPost["query"], data)
+			raise QueryBatchRetrievalError(data["errorMessage"], self._batchNumber, data)
 
 	def delete(self) :
 		"kills the cursor"
@@ -70,10 +73,10 @@ class QueryResult(object) :
 		if not self.rawResults and self._developed[i] is not True : self._developDoc(i)
 		return self.result[i]
 
-def AQLQueryResult(QueryResult) :
+class AQLQueryResult(QueryResult) :
 	"AQL queries are attached to a database"
 	def __init__(self, URL, database, rawResults, queryPost, jsonData) :
-		SimpleQueryResult.__init__(self, URL, database, rawResults, queryPost, jsonData)
+		QueryResult.__init__(self, URL, database, rawResults, queryPost, jsonData)
 
 	def _developDoc(self, i) :
 		docJson = self.result[i]
@@ -85,13 +88,13 @@ def AQLQueryResult(QueryResult) :
 		self.result[i] = Document(collection, docJson)
 		self._developed[i] = True
 
-def SimpleQueryResult(QueryResult) :
+class SimpleQueryResult(QueryResult) :
 	"Simple queries are attached to a single collection"
 	def __init__(self, URL, collection, rawResults, queryPost, jsonData) :
-		SimpleQueryResult.__init__(self, URL, collection.database, rawResults, queryPost, jsonData)
+		QueryResult.__init__(self, URL, collection.database, rawResults, queryPost, jsonData)
 		self.collection = collection
 
 	def _developDoc(self, i) :
 		docJson = self.result[i]
-		self.result[i] = Document(self.ollection, docJson)
-		self._developed[i] = True		
+		self.result[i] = Document(self.collection, docJson)
+		self._developed[i] = True

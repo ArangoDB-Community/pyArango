@@ -125,13 +125,13 @@ class Document(object) :
 		if patch :
 			store = self._patchStore
 		else :
-			patch = self._store
+			patch = self._storeURL
 
 		for k, v in store.iteritems() :
 			try :
 				self.collection.validateField(k, v)
-			except ConstraintViolation, SchemaViolation	as e:
-				return res[k] = e.message
+			except (ConstraintViolation, SchemaViolation) as e:
+				res[k] = e.message
 		return res
 
 	def __getattribute__(self, k) :
