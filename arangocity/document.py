@@ -41,7 +41,7 @@ class Document(object) :
 			self._key = fieldsToSet["_key"]
 			del(fieldsToSet["_key"])
 
-		if self.collection._test_fields_on_set :
+		if self.collection._validate_fields_on_set :
 			for k in fieldsToSet.keys() :
 				self[k] = fieldsToSet[k]
 		else :
@@ -52,11 +52,9 @@ class Document(object) :
 		"""This fct either performs a POST (for a new document) or a PUT (complete document overwrite).
 		If you want to only update the modified fields use the .path() function.
 		Use docArgs to put things such as 'waitForSync = True'"""
+		if self.collection._validate_fields_on_save :
+			self.validate(logErrors = False)
 
-		for k, v in self._store.iteritems() :
-			if self.collection._test_fields_on_save :
-				self.collection.testFieldValue(k, v)
-	
 		params = dict(docArgs)
 		params.update({'collection': self.collection.name })
 		payload = json.dumps(self._store)
@@ -94,7 +92,10 @@ class Document(object) :
 		"""Updates only the modified fields.
 		The default behaviour concening the keepNull parameter is the opposite of ArangoDB's default, Null values won't be ignored
 		Use docArgs for things such as waitForSync = True"""
-		
+
+		if self.collection._validate_fields_on_save :
+			self.validate(patch = True, logErrors = False)
+
 		if self.URL is None :
 			raise ValueError("Cannot patch a document that was not previously saved")
 		
@@ -118,6 +119,21 @@ class Document(object) :
 			raise DeletionError(data['errorMessage'], data)
 		self.reset(self.collection)
 
+	def validate(self, patch = False, logErrors = True) :
+		"validates either the whole store, or only the patch store( patch = True) of the document according to the collection's settings.If logErrors returns a dictionary of errros per field, else raises exceptions"
+		res = {}
+		if patch :
+			store = self._patchStore
+		else :
+			patch = self._store
+
+		for k, v in store.iteritems() :
+			try :
+				self.collection.validateField(k, v)
+			except ConstraintViolation, SchemaViolation	as e:
+				return res[k] = e.message
+		return res
+
 	def __getattribute__(self, k) :
 		return object.__getattribute__(self, k)
 
@@ -125,8 +141,8 @@ class Document(object) :
 		return self._store[k]
 
 	def __setitem__(self, k, v) :
-		if self.collection._test_fields_on_set :
-			self.collection.testFieldValue(k, v)
+		if self.collection._validate_fields_on_set :
+			self.collection.validateField(k, v)
 
 		self._store[k] = v
 		if self.URL is not None :

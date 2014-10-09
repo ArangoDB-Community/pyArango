@@ -2,7 +2,8 @@ import requests
 import json
 
 from document import Document
-from theExceptions import ConstraintViolation, CreationError, UpdateError, DeletionError, SchemaViolation
+from theExceptions import ConstraintViolation, SchemaViolation, CreationError, UpdateError, DeletionError, SimpleQueryError
+from query import SimpleQueryResult
 
 COLLECTION_DOCUMENT_TYPE = 2
 COLLECTION_EDGE_TYPE = 3
@@ -19,7 +20,7 @@ class Field(object) :
 		self.notNull = notNull
 		self.constraintFct = constraintFct
 
-	def test(self, v) :
+	def validate(self, v) :
 		if v != None  and v != "" :
 			if self.constraintFct and not self.constraintFct(v) :
 				raise ConstraintViolation("Violation of constraint fct: %s" %(self.constraintFct.func_name))
@@ -54,8 +55,8 @@ class Collection(object) :
 	#here you specify the fields that you want for the documents in your collection
 	_fields = {}
 	
-	_test_fields_on_save = False
-	_test_fields_on_set = False
+	_validate_fields_on_save = False
+	_validate_fields_on_set = False
 	_allow_foreign_fields = True
 
 	__metaclass__ = Collection_metaclass
@@ -84,10 +85,10 @@ class Collection(object) :
 		"returns an empty document"
 		return Document(self)
 
-	def testFieldValue(self, fieldName, value) :
+	def validateField(self, fieldName, value) :
 		if not self._allow_foreign_fields and (fieldName not in self._fields) :
 			raise SchemaViolation(self, fieldName)
-		self.__class__._fields[fieldName].test(value)
+		self.__class__._fields[fieldName].validate(value)
 
 	def fetchDocument(self, key, rev = None) :
 		"Fetches a document from the collection given it's key"
@@ -99,8 +100,32 @@ class Collection(object) :
 		if r.status_code != 404 :
 			return Document(self, r.json())
 	
-	def findExample(self) :
-		pass
+	def fetchByExample(self, exampleDict, batchSize, rawResults = False, **queryArgs) :
+		"exampleDict should be something like {'age' : 28}"
+		return self.simpleQuery(self, 'by-example', batchSize, rawResults, **queryArgs)
+
+	def fetchFirstExample(self, exampleDict, batchSize, rawResults = False, **queryArgs) :
+		"exampleDict should be something like {'age' : 28}. returns only a single element but still in a SimpleQueryResult object"
+		return self.simpleQuery(self, 'first-example', batchSize, rawResults, **queryArgs)
+
+	def fetchAll(self, batchSize, rawResults = False, **queryArgs) :
+		return self.simpleQuery(self, 'all', batchSize, rawResults, **queryArgs)
+
+	def simpleQuery(self, queryType, batchSize, rawResults = False, **queryArgs) :
+		"""General interface for simple queries. queryType can be something like 'all', 'by-example' etc... everything is in the arango doc.
+		If rawResults, the query will return dictionaries instead of Document objetcs.
+		"""
+		payload = {'collection' : self.name, 'batchSize' : batchSize}
+		payload.update(queryArgs)
+		payload = json.dumps(payload)
+		url = "%s/simple/%s" % (self.database.url, queryType)
+
+		r = requests.put(url, data = payload)
+		data = r.json()
+		if r.status_code == 201 and not data['error'] :
+			return SimpleQueryResult(url, self, rawResults, payload, data)
+		else :
+			raise SimpleQueryError(data["errorMessage"], data)
 
 	def action(self, method, action, **params) :
 		"a generic fct for interacting everything that doesn't have an assigned fct"
@@ -147,8 +172,8 @@ class SystemCollection(Collection) :
 class GenericCollection(Collection) :
 	"The default collection. Can store anything"
 	
-	_test_fields_on_save = False
-	_test_fields_on_set = False
+	_validate_fields_on_save = False
+	_validate_fields_on_set = False
 	_allow_foreign_fields = True
 
 	def __init__(self, database, jsonData) :

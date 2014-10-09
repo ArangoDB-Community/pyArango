@@ -26,6 +26,10 @@ class ConstraintViolation(ArrangocityException) :
 	def __init__(self, message, errors = {}) :
 		ArrangocityException.__init__(self, message, errors)
 
+class SimpleQueryError(ArrangocityException) :
+	def __init__(self, message, errors = {}) :
+		ArrangocityException.__init__(self, message, errors)
+
 class SchemaViolation(ArrangocityException) :
 	def __init__(self, collection, field, errors = {}) :
 		message = "Collection %s does not a field '%s' in it's schema" % (collection.__class__.__name__, field)

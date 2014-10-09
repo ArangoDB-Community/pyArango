@@ -85,7 +85,7 @@ class ArangocityTests(unittest.TestCase):
 		bindVars = {'name' : 'l-3ewd-3'}
 		self.db.validateAQLQuery(aql, bindVars)
 		
-	def set100Users(self, nbUsers) :
+	def createManyUsers(self, nbUsers) :
 	 	collection = self.db.createCollection(name = "users")
 		for i in xrange(nbUsers) :
 			doc = collection.createDocument()
@@ -94,7 +94,7 @@ class ArangocityTests(unittest.TestCase):
 			doc.save()
 
 	def test_aql_query_rawResults_true(self) :
-		self.set100Users(100)
+		self.createManyUsers(100)
 		
 		aql = "FOR c IN users FILTER c.name == @name LIMIT 10 RETURN c.name"
 		bindVars = {'name' : 'l-3ewd-3'}
@@ -103,7 +103,7 @@ class ArangocityTests(unittest.TestCase):
 		self.assertEqual(q[0], 'l-3ewd-3')
 
 	def test_aql_query_rawResults_false(self) :
-		self.set100Users(100)
+		self.createManyUsers(100)
 
 		aql = "FOR c IN users FILTER c.name == @name LIMIT 10 RETURN c"
 		bindVars = {'name' : 'l-3ewd-3'}
@@ -114,18 +114,17 @@ class ArangocityTests(unittest.TestCase):
 	
 	def test_aql_query_batch(self) :
 		nbUsers = 100
-		self.set100Users(nbUsers)
+		self.createManyUsers(nbUsers)
 		
 		aql = "FOR c IN users LIMIT %s RETURN c" % nbUsers
 		q = self.db.AQLQuery(aql, rawResults = False, batchSize = 1)
 		lstRes = []
 		for i in xrange(nbUsers) :
-			self.assertTrue(isinstance(q[0], Document))		
 			lstRes.append(q[0]["number"])
 			try :
 				q.nextBatch()
 			except StopIteration :
-				self.assertEqual(i, 99)
+				self.assertEqual(i, nbUsers-1)
 		
 		lstRes.sort()
 		self.assertEqual(lstRes, range(nbUsers))
