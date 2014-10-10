@@ -25,12 +25,12 @@ Basic use
   	doc["species"] = "human"
   	doc.save()
 
-  doc = collection.createDocument()
-	doc["name"] = "Tesla-101"
-	doc["number"] = 101
-	doc["species"] = "human"
-	
-	doc["name"] = "Simba"
-	# doc.save() # overwrites the document
-	doc.savePatch() # updates the modified field
-  
+doc = collection.createDocument()
+doc["name"] = "Tesla-101"
+doc["number"] = 101
+doc["species"] = "human"
+
+doc["name"] = "Simba"
+# doc.save() # overwrites the document
+doc.savePatch() # updates the modified field
+
