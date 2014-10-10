@@ -71,7 +71,7 @@ Validation
   from arangocity.Collection import *
   
   def cstFct(value) :
-    return value == "human"
+    return value != "human"
     
   class Humans(Collection) :
   
@@ -81,6 +81,6 @@ Validation
   	
   	_fields = {
   	  'name' : Field(NotNull = True),
-  	  'number' : Field(),
-  	  'species' : Field(NotNull = False, constraintFct = cstFct)
+  	  'anything' : Field(),
+  	  'species' : Field(NotNull = True, constraintFct = cstFct)
   	}
