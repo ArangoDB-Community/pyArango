@@ -71,7 +71,7 @@ Validation
   from arangocity.Collection import *
   
   def cstFct(value) :
-    return value != "human"
+    return value == "human"
     
   class Humans(Collection) :
   
