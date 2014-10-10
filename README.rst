@@ -82,5 +82,5 @@ Validation
   	_fields = {
   	  'name' : Field(NotNull = True),
   	  'number' : Field(),
-  	  'species' : Field(NotNull = False, constraintFct = fct)
+  	  'species' : Field(NotNull = False, constraintFct = cstFct)
   	}
