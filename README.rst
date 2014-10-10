@@ -8,6 +8,9 @@ I am developping Arangocity for the purpose of an other project and adding featu
 Quick Doc
 =========
 
+Basic use
+---------
+
 .. code:: python
 
   conn = Connection()
@@ -15,9 +18,19 @@ Quick Doc
   db = self.conn["test_db"]
   collection = db.createCollection(name = "users")
   
-  for i in xrange(nbUsers) :
+  for i in xrange(100) :
   	doc = collection.createDocument()
   	doc["name"] = "Tesla-%d" % i
   	doc["number"] = i
   	doc["species"] = "human"
   	doc.save()
+
+  doc = collection.createDocument()
+	doc["name"] = "Tesla-101"
+	doc["number"] = 101
+	doc["species"] = "human"
+	
+	doc["name"] = "Simba"
+	# doc.save() # overwrites the document
+	doc.savePatch() # updates the modified field
+  
