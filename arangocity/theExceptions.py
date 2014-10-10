@@ -7,8 +7,9 @@ class ArrangocityException(Exception) :
 		return self.message + ". Errors: " + str(self.errors)
 
 class ConnectionError(ArrangocityException) :
-	def __init__(self, message, errors = {}) :
-		ArrangocityException.__init__(self, message, errors)
+	def __init__(self, message, URL, errors = {}) :
+		mes = "%s. URL: %s" % (message, URL)
+		ArrangocityException.__init__(self, mes, errors)
 
 class CreationError(ArrangocityException) :
 	def __init__(self, message, errors = {}) :

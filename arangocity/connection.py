@@ -28,7 +28,7 @@ class Connection(object) :
 					db = Database(self, dbName)
 					self.databases[dbName] = db
 		else :
-			raise ConnectionError(data["errorMessage"], data)
+			raise ConnectionError(data["errorMessage"], self.databasesURL, data)
 
 	def createDatabase(self, name, **dbArgs) :
 		"use dbArgs for arguments other than name"

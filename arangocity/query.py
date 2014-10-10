@@ -15,12 +15,13 @@ class QueryResult(object) :
 		self.rawResults = rawResults
 		self.queryPost = queryPost
 
+		self.URL = URL
 		if jsonData["hasMore"] :
 			self.id = jsonData["id"]
-			self.URL = "%s/%s" % (URL, self.id)
+			self.cursorUrl = "http://localhost:8529/_db/test_db/_api/cursor/%s" % (self.id)
 		else :
 			self.id = None
-			self.URL = None
+			self.cursorUrl = None
 		
 		self._resetBatch(jsonData)
 
@@ -57,7 +58,7 @@ class QueryResult(object) :
 		if not self.hasMore :
 			raise StopIteration("That was the last batch")
 
-		r = requests.put(self.URL)
+		r = requests.put(self.cursorUrl)
 		data = r.json()
 		if not data['error'] :
 			self._resetBatch(data)
@@ -66,7 +67,7 @@ class QueryResult(object) :
 
 	def delete(self) :
 		"kills the cursor"
-		requests.delete(self.URL)
+		requests.delete(self.cursorUrl)
 
 	def __getitem__(self, i) :
 		"returns a ith result of the query."
@@ -98,3 +99,18 @@ class SimpleQueryResult(QueryResult) :
 		docJson = self.result[i]
 		self.result[i] = Document(self.collection, docJson)
 		self._developed[i] = True
+
+	def nextBatch(self) :
+		"become the next batch. raises a StopIteration if there is None"
+		self._batchNumber += 1
+		if not self.hasMore :
+			raise StopIteration("That was the last batch")
+		
+		data = json.loads(self.queryPost)
+		data = json.dumps(data)
+		r = requests.put(self.cursorUrl, data = self.queryPost)
+		data = r.json()
+		if not data['error'] :
+			self._resetBatch(data)
+		else :
+			raise QueryBatchRetrievalError(data["errorMessage"], self._batchNumber, data)

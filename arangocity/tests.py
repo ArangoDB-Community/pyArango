@@ -119,7 +119,7 @@ class ArangocityTests(unittest.TestCase):
 		self.createManyUsers(nbUsers)
 		
 		aql = "FOR c IN users LIMIT %s RETURN c" % nbUsers
-		q = self.db.AQLQuery(aql, rawResults = False, batchSize = 1)
+		q = self.db.AQLQuery(aql, rawResults = False, batchSize = 1, count = True)
 		lstRes = []
 		for i in xrange(nbUsers) :
 			lstRes.append(q[0]["number"])
@@ -130,16 +130,17 @@ class ArangocityTests(unittest.TestCase):
 		
 		lstRes.sort()
 		self.assertEqual(lstRes, range(nbUsers))
+		self.assertEqual(q.count, nbUsers)
 
-	def test_simple_query(self) :
+	def test_simple_query_example_batch(self) :
 		nbUsers = 100
 		col = self.createManyUsers(nbUsers)
 		
 		example = {'species' : "human"}
 
-		q = col.fetchByExample(example, batchSize = 1)
+		q = col.fetchByExample(example, batchSize = 1, count = True)
 		lstRes = []
-		for i in xrange(nbUsers) :
+		for i in xrange(nbUsers) :	
 			lstRes.append(q[0]["number"])
 			try :
 				q.nextBatch()
@@ -148,6 +149,24 @@ class ArangocityTests(unittest.TestCase):
 		
 		lstRes.sort()
 		self.assertEqual(lstRes, range(nbUsers))
+		self.assertEqual(q.count, nbUsers)
+
+	def test_simple_query_all_batch(self) :
+		nbUsers = 100
+		col = self.createManyUsers(nbUsers)
+		
+		q = col.fetchAll(batchSize = 1, count = True)
+		lstRes = []
+		for i in xrange(nbUsers) :	
+			lstRes.append(q[0]["number"])
+			try :
+				q.nextBatch()
+			except StopIteration :
+				self.assertEqual(i, nbUsers-1)
+		
+		lstRes.sort()
+		self.assertEqual(lstRes, range(nbUsers))
+		self.assertEqual(q.count, nbUsers)
 
 	def test_fields_on_set(self) :
 		def strFct(v) :
@@ -155,8 +174,8 @@ class ArangocityTests(unittest.TestCase):
 			return type(v) is types.StringType	
 
 		class Col_on_set(Collection) :
-			_test_fields_on_save = False
-			_test_fields_on_set = True
+			_validate_fields_on_save = False
+			_validate_fields_on_set = True
 			_allow_foreign_fields = False
 			_fields = {
 				"str" : Field(constraintFct = strFct),
@@ -175,8 +194,8 @@ class ArangocityTests(unittest.TestCase):
 			return type(v) is types.StringType	
 
 		class Col_on_set(Collection) :
-			_test_fields_on_save = True
-			_test_fields_on_set = False
+			_validate_fields_on_save = True
+			_validate_fields_on_set = False
 			_allow_foreign_fields = False
 			_fields = {
 				"str" : Field(constraintFct = strFct),

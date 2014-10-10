@@ -52,8 +52,9 @@ class Document(object) :
 		"""This fct either performs a POST (for a new document) or a PUT (complete document overwrite).
 		If you want to only update the modified fields use the .path() function.
 		Use docArgs to put things such as 'waitForSync = True'"""
+		
 		if self.collection._validate_fields_on_save :
-			self.validate(logErrors = False)
+			self.validate(patch = False, logErrors = False)
 
 		params = dict(docArgs)
 		params.update({'collection': self.collection.name })
@@ -125,13 +126,16 @@ class Document(object) :
 		if patch :
 			store = self._patchStore
 		else :
-			patch = self._storeURL
+			store = self._store
 
 		for k, v in store.iteritems() :
-			try :
-				self.collection.validateField(k, v)
-			except (ConstraintViolation, SchemaViolation) as e:
-				res[k] = e.message
+			# try :
+			self.collection.validateField(k, v)
+			# except (ConstraintViolation, SchemaViolation) as e:
+			# 	if logErrors :
+			# 		res[k] = e.message
+			# 	else :
+			# 		raise e
 		return res
 
 	def __getattribute__(self, k) :
@@ -150,3 +154,6 @@ class Document(object) :
 	
 	def __str__(self) :
 		return str(self._store)
+
+	def __repr__(self) :
+		return repr(self._store)
