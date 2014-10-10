@@ -15,8 +15,8 @@ Initiatilisation and document saving
   
   conn = Connection()
   conn.createDatabase(name = "test_db")
-  db = self.conn["test_db"]
-  collection = db.createCollection(name = "users")
+  db = self.conn["test_db"] #all databases are loaded automatically into the connection and accessible in this fashion
+  collection = db.createCollection(name = "users") #all collection are loaded automatically into the database and accessible in this fashion
   # collection.delete() # self explanatory
   
   for i in xrange(100) :
@@ -84,3 +84,5 @@ Validation
   	  'anything' : Field(),
   	  'species' : Field(NotNull = True, constraintFct = cstFct)
   	}
+  	
+  collection = db.createCollection('Humans')
