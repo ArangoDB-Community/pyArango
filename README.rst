@@ -61,8 +61,8 @@ Queries : Batches
 .. code:: python
 
   while query.hasMore :
-    query.nextBatch()
     print query[0]['name']
+    query.nextBatch()
 
 Validation
 -------
