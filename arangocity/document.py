@@ -41,7 +41,7 @@ class Document(object) :
 			self._key = fieldsToSet["_key"]
 			del(fieldsToSet["_key"])
 
-		if self.collection._validate_fields_on_set :
+		if self.collection._validation['on_set']:
 			for k in fieldsToSet.keys() :
 				self[k] = fieldsToSet[k]
 		else :
@@ -53,7 +53,7 @@ class Document(object) :
 		If you want to only update the modified fields use the .path() function.
 		Use docArgs to put things such as 'waitForSync = True'"""
 		
-		if self.collection._validate_fields_on_save :
+		if self.collection._validation['on_save'] :
 			self.validate(patch = False, logErrors = False)
 
 		params = dict(docArgs)
@@ -94,7 +94,7 @@ class Document(object) :
 		The default behaviour concening the keepNull parameter is the opposite of ArangoDB's default, Null values won't be ignored
 		Use docArgs for things such as waitForSync = True"""
 
-		if self.collection._validate_fields_on_save :
+		if self.collection._validation['on_save'] :
 			self.validate(patch = True, logErrors = False)
 
 		if self.URL is None :
@@ -145,7 +145,7 @@ class Document(object) :
 		return self._store[k]
 
 	def __setitem__(self, k, v) :
-		if self.collection._validate_fields_on_set :
+		if self.collection._validation['on_set'] :
 			self.collection.validateField(k, v)
 
 		self._store[k] = v

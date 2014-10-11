@@ -1,5 +1,6 @@
 import requests
 import json
+import types
 
 from document import Document
 from theExceptions import ConstraintViolation, SchemaViolation, CreationError, UpdateError, DeletionError, SimpleQueryError
@@ -13,42 +14,6 @@ COLLECTION_UNLOADED_STATUS = 2
 COLLECTION_LOADED_STATUS = 3
 COLLECTION_LOADING_STATUS = 4
 COLLECTION_DELETED_STATUS = 5
-
-class Field(object) :
-
-	def __init__(self, notNull = False, constraintFct = None) :
-		self.notNull = notNull
-		self.constraintFct = constraintFct
-
-	def validate(self, v) :
-		if v != None  and v != "" :
-			if self.constraintFct and not self.constraintFct(v) :
-				raise ConstraintViolation("Violation of constraint fct: %s" %(self.constraintFct.func_name))
-		
-		if self.notNull :
-			raise ConstraintViolation("This fields can't have a NULL value (\"None\" or \"\")")
-		
-		return True
-
-	def __repr__(self) :
-		return "<Field, not null: %s, constraint fct: %s>" %(self.notNull, self.constraintFct.func_name)
-
-class Collection_metaclass(type) :
-	
-	collectionClasses = {}
-
-	def __new__(cls, name, bases, attrs) :
-		
-		clsObj = type.__new__(cls, name, bases, attrs)
-		Collection_metaclass.collectionClasses[name] = clsObj
-		return clsObj
-
-	@classmethod
-	def getCollectionClass(cls, name) :
-		try :
-			return cls.collectionClasses[name]
-		except KeyError :
-			raise KeyError("There's no child of Collection by the name of: %s" % name)
 
 class CachedDoc(object) :
 	def __init__(self, document, prev, next) :
@@ -68,7 +33,7 @@ class DocumentCache(object) :
 
 	def cache(self, doc) :
 		if doc.key in self.cacheStore :
-			ret = self.cacheStore[doc.key].document
+			ret = self.cacheStore[doc.key]
 			if ret.prev is not None :
 				ret.prev.next = ret.next
 				self.head.prev = ret
@@ -92,6 +57,15 @@ class DocumentCache(object) :
 				self.head = self.head.prev
 				self.cacheStore[doc.key] = ret
 
+	def delete(self, key) :
+		try :
+			doc = self.cacheStore[key]
+			doc.prev.next = doc.next
+			doc.next.prev = doc.prev
+			del(self.cacheStore[key])
+		except KeyError :
+			raise KeyError("Document with key %s is not available in cache" % key)
+	
 	def getChain(self) :
 		"returns a list ok keys representing the chain of documents"		
 		l = []
@@ -113,22 +87,81 @@ class DocumentCache(object) :
 	def __getitem__(self, key) :
 		if key in self.cacheStore :
 			try :
-				return self.cacheStore[key]
+				ret = self.cacheStore[key]
+				self.cache(ret)
+				return ret
 			except KeyError :
 				raise KeyError("Document with key %s is not available in cache" % key)
 
 	def __repr__(self) :
 		return "[DocumentCache, size: %d, full: %d]" %(self.cacheSize, len(self.cacheStore))
 
+class Field(object) :
+
+	def __init__(self, notNull = False, constraintFct = None) :
+		self.notNull = notNull
+		self.constraintFct = constraintFct
+
+	def validate(self, v) :
+		if v != None  and v != "" :
+			if self.constraintFct and not self.constraintFct(v) :
+				raise ConstraintViolation("Violation of constraint fct: %s" %(self.constraintFct.func_name))
+		
+		if self.notNull :
+			raise ConstraintViolation("This fields can't have a NULL value (\"None\" or \"\")")
+		
+		return True
+
+	def __repr__(self) :
+		return "<Field, not null: %s, constraint fct: %s>" %(self.notNull, self.constraintFct.func_name)
+
+class Collection_metaclass(type) :
+	
+	collectionClasses = {}
+	
+	validationDefault = {
+			'on_save' : False,
+			'on_set' : False,
+			'allow_foreign_fields' : True
+		}
+
+	def __new__(cls, name, bases, attrs) :
+
+		if '_validation' not in attrs :
+			attrs['validation'] = cls.validationDefault
+		else :
+			for k, v in attrs['_validation'].iteritems() :
+				if k not in cls.validationDefault :
+					raise KeyError("Unknown validation parameter %s for class %s"  %(k, name))
+				if type(v) is not types.BooleanType :
+					raise ValueError("validation parameter %s for class %s has a non boolean value"  %(k, name))
+
+			for k, v in cls.validationDefault.iteritems() :
+				if k not in attrs['_validation']	:
+					attrs['_validation'][k] = v
+			
+		clsObj = type.__new__(cls, name, bases, attrs)
+		Collection_metaclass.collectionClasses[name] = clsObj
+		return clsObj
+
+	@classmethod
+	def getCollectionClass(cls, name) :
+		try :
+			return cls.collectionClasses[name]
+		except KeyError :
+			raise KeyError("There's no child of Collection by the name of: %s" % name)
+
 class Collection(object) :
 
 	#here you specify the fields that you want for the documents in your collection
 	_fields = {}
 	
-	_validate_fields_on_save = False
-	_validate_fields_on_set = False
-	_allow_foreign_fields = True
-
+	_validation = {
+		'on_save' : False,
+		'on_set' : False,
+		'allow_foreign_fields' : True
+	}
+	
 	__metaclass__ = Collection_metaclass
 
 	def __init__(self, database, jsonData) :
@@ -144,8 +177,15 @@ class Collection(object) :
 		
 		self.URL = "%s/collection/%s" % (self.database.URL, self.name)
 		self.documentsURL = "%s/document" % (self.database.URL)
-		self.documentCache = {}
-		self.documentCacheSize = 100
+		self.documentCache = None
+	
+	def activateCache(self, cacheSize) :
+		"activate the caching system. Cached documents are only available through the __getitem__ interface"
+		self.documentCache = DocumentCache(cacheSize)
+	
+	def deactivateCache(self) :
+		"deactivate the caching system"
+		self.documentCache = None
 
 	def delete(self) :
 		r = requests.delete(self.URL)
@@ -158,12 +198,12 @@ class Collection(object) :
 		return Document(self)
 
 	def validateField(self, fieldName, value) :
-		if not self._allow_foreign_fields and (fieldName not in self._fields) :
+		if not self._validation["allow_foreign_fields"] and (fieldName not in self._fields) :
 			raise SchemaViolation(self, fieldName)
 		self.__class__._fields[fieldName].validate(value)
 
 	def fetchDocument(self, key, rev = None) :
-		"Fetches a document from the collection given it's key"
+		"Fetches a document from the collection given it's key. This function always goes straight to the db and bypasses the cache"
 		url = "%s/%s/%s" % (self.documentsURL, self.name, key)
 		if rev is not None :
 			r = requests.get(url, params = {'rev' : rev})
@@ -235,11 +275,16 @@ class Collection(object) :
 	def __repr__(self) :
 		return "ArangoDB collection name: %s, id: %s, type: %s, status: %s" % (self.name, self.id, self.type, self.status)
 
-	# def __getitem__(self, key) :
-	# 	if key in self.documentCache :
-	# 		return self.documentCache[k]
-
-	# 	return self.fetchDocument(key)
+	def __getitem__(self, key) :
+		"returns a document from the cache. If it's not there, fetches it from the db and caches it first. If the cache is not activated this is equivalent to fetchDocument()"
+		if self.documentCache is None :
+			return self.fetchDocument(key) 
+		try :
+			return self.documentCache[key] 
+		except KeyError :
+			doc = self.fetchDocument(key)
+			self.documentCache.cache(doc)
+		return doc
 
 class SystemCollection(Collection) :
 	"for all collections with isSystem = True"
@@ -250,10 +295,6 @@ class SystemCollection(Collection) :
 class GenericCollection(Collection) :
 	"The default collection. Can store anything"
 	
-	_validate_fields_on_save = False
-	_validate_fields_on_set = False
-	_allow_foreign_fields = True
-
 	def __init__(self, database, jsonData) :
 		Collection.__init__(self, database, jsonData)
 		

@@ -173,9 +173,12 @@ class ArangocityTests(unittest.TestCase):
 			return type(v) is types.StringType	
 
 		class Col_on_set(Collection) :
-			_validate_fields_on_save = False
-			_validate_fields_on_set = True
-			_allow_foreign_fields = False
+			_validation = {
+				"on_save" : False,
+				"on_set" : True,
+				"allow_foreign_fields" : False
+			}
+			
 			_fields = {
 				"str" : Field(constraintFct = strFct),
 				"notNull" : Field(notNull = True)
@@ -193,9 +196,13 @@ class ArangocityTests(unittest.TestCase):
 			return type(v) is types.StringType	
 
 		class Col_on_set(Collection) :
-			_validate_fields_on_save = True
-			_validate_fields_on_set = False
-			_allow_foreign_fields = False
+
+			_validation = {
+				"on_save" : True,
+				"on_set" : False,
+				"allow_foreign_fields" : False
+			}
+
 			_fields = {
 				"str" : Field(constraintFct = strFct),
 				"notNull" : Field(notNull = True)
@@ -224,10 +231,49 @@ class ArangocityTests(unittest.TestCase):
 		cache = DocumentCache(5)
 		for doc in docs :
 			cache.cache(doc)
-			self.assertEqual(cache.head.document.key, doc.key)
+			self.assertEqual(cache.head.key, doc.key)
 		
 		self.assertEqual(cache.cacheStore.keys(), [5, 6, 7, 8, 9])	
-		self.assertEqual(cache.getChain(), [9, 8, 7, 6, 5])	
+		self.assertEqual(cache.getChain(), [9, 8, 7, 6, 5])
+		doc = cache[5]
+		self.assertEqual(cache.head.key, doc.key)
+		self.assertEqual(cache.getChain(), [5, 9, 8, 7, 6])
 
+	def test_validation_default_settings(self) :
+
+		class Col_empty(Collection) :
+			pass
+
+		class Col_empty2(Collection) :
+			_validation = {
+				"on_save" : False,
+			}
+
+		c = Col_empty
+		self.assertEqual(c._validation, Collection_metaclass.validationDefault)
+
+		c = Col_empty2
+		self.assertEqual(c._validation, Collection_metaclass.validationDefault)
+
+	def test_validation_default_inlavid_key(self) :
+
+		def keyTest() :
+			class Col(Collection) :
+				_validation = {
+					"on_sav" : True,
+				}
+
+		self.assertRaises(KeyError, keyTest)
+		
+	def test_validation_default_inlavid_value(self) :
+
+		def keyTest() :
+			class Col(Collection) :
+				_validation = {
+					"on_save" : "wrong",
+				}
+
+		self.assertRaises(ValueError, keyTest)
+		
 if __name__ == "__main__" :
 	unittest.main()
