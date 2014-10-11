@@ -1,7 +1,7 @@
 import requests
 import json
 
-from theExceptions import (CreationError, UpdateError)
+from theExceptions import (CreationError, UpdateError, ConstraintViolation, SchemaViolation)
 
 class Document(object) :
 
@@ -129,13 +129,13 @@ class Document(object) :
 			store = self._store
 
 		for k, v in store.iteritems() :
-			# try :
-			self.collection.validateField(k, v)
-			# except (ConstraintViolation, SchemaViolation) as e:
-			# 	if logErrors :
-			# 		res[k] = e.message
-			# 	else :
-			# 		raise e
+			try :
+				self.collection.validateField(k, v)
+			except (ConstraintViolation, SchemaViolation) as e:
+				if logErrors :
+					res[k] = e.message
+				else :
+					raise e
 		return res
 
 	def __getattribute__(self, k) :

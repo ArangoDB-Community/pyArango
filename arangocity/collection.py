@@ -50,6 +50,76 @@ class Collection_metaclass(type) :
 		except KeyError :
 			raise KeyError("There's no child of Collection by the name of: %s" % name)
 
+class CachedDoc(object) :
+	def __init__(self, document, prev, next) :
+		self.prev = prev
+		self.document = document
+		self.next = next
+		self.key = document.key
+
+class DocumentCache(object) :
+	"Doument cache for collection with insert, deletes and updates in O(1)"
+
+	def __init__(self, cacheSize) :
+		self.cacheSize = cacheSize
+		self.cacheStore = {}
+		self.head = None
+		self.tail = None
+
+	def cache(self, doc) :
+		if doc.key in self.cacheStore :
+			ret = self.cacheStore[doc.key].document
+			if ret.prev is not None :
+				ret.prev.next = ret.next
+				self.head.prev = ret
+				ret.next = self.head
+				self.head = ret
+			return self.head
+		else :
+			if len(self.cacheStore) == 0 :
+				ret = CachedDoc(doc, prev = None, next = None)
+				self.head = ret
+				self.tail = self.head
+				self.cacheStore[doc.key] = ret
+			else :
+				if len(self.cacheStore) >= self.cacheSize :
+					del(self.cacheStore[self.tail.key])
+					self.tail = self.tail.prev
+					self.tail.next = None
+
+				ret = CachedDoc(doc, prev = None, next = self.head)
+				self.head.prev = ret
+				self.head = self.head.prev
+				self.cacheStore[doc.key] = ret
+
+	def getChain(self) :
+		"returns a list ok keys representing the chain of documents"		
+		l = []
+		h = self.head
+		while h :
+			l.append(h.key)
+			h = h.next
+		return l
+
+	def stringify(self) :
+		"a pretty str version of getChain()"
+		l = []
+		h = self.head
+		while h :
+			l.append(str(h.key))
+			h = h.next
+		return "<->".join(l)
+
+	def __getitem__(self, key) :
+		if key in self.cacheStore :
+			try :
+				return self.cacheStore[key]
+			except KeyError :
+				raise KeyError("Document with key %s is not available in cache" % key)
+
+	def __repr__(self) :
+		return "[DocumentCache, size: %d, full: %d]" %(self.cacheSize, len(self.cacheStore))
+
 class Collection(object) :
 
 	#here you specify the fields that you want for the documents in your collection
@@ -74,6 +144,8 @@ class Collection(object) :
 		
 		self.URL = "%s/collection/%s" % (self.database.URL, self.name)
 		self.documentsURL = "%s/document" % (self.database.URL)
+		self.documentCache = {}
+		self.documentCacheSize = 100
 
 	def delete(self) :
 		r = requests.delete(self.URL)
@@ -162,6 +234,12 @@ class Collection(object) :
 
 	def __repr__(self) :
 		return "ArangoDB collection name: %s, id: %s, type: %s, status: %s" % (self.name, self.id, self.type, self.status)
+
+	# def __getitem__(self, key) :
+	# 	if key in self.documentCache :
+	# 		return self.documentCache[k]
+
+	# 	return self.fetchDocument(key)
 
 class SystemCollection(Collection) :
 	"for all collections with isSystem = True"

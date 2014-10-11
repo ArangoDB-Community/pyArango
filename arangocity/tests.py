@@ -27,7 +27,17 @@ class ArangocityTests(unittest.TestCase):
 
 	def tearDown(self):
 		self._resetUp()
-
+		
+	def createManyUsers(self, nbUsers) :
+	 	collection = self.db.createCollection(name = "users")
+		for i in xrange(nbUsers) :
+			doc = collection.createDocument()
+			doc["name"] = "Tesla-%d" % i
+			doc["number"] = i
+			doc["species"] = "human"
+			doc.save()
+		return collection
+	
 	def test_collection_create_delete(self) :
 		col = self.db.createCollection(name = "to_be_erased")
 		self.db["to_be_erased"].delete()
@@ -48,12 +58,12 @@ class ArangocityTests(unittest.TestCase):
 	def test_document_create_update_delete(self) :
 		collection = self.db.createCollection(name = "lala")
 		doc = collection.createDocument()
-		doc["name"] = "l-3ewd"
+		doc["name"] = "Tesla"
 		self.assertTrue(doc.URL is None)
 		doc.save()
 		self.assertTrue(doc.URL is not None)
 		url = copy.copy(doc.URL)
-		doc["name"] = "l-3ewd2"
+		doc["name"] = "Tesla2"
 		doc.save()
 		self.assertEqual(doc.URL, url)
 		doc.delete()
@@ -70,7 +80,7 @@ class ArangocityTests(unittest.TestCase):
 	def test_document_create_patch(self) :
 		collection = self.db.createCollection(name = "lala")
 		doc = collection.createDocument()
-		doc["name"] = "l-3ewd3"
+		doc["name"] = "Tesla3"
 		self.assertRaises(ValueError, doc.patch)
 		doc.save()
 		doc.patch()
@@ -78,40 +88,29 @@ class ArangocityTests(unittest.TestCase):
 	def test_aql_validation(self) :
 	 	collection = self.db.createCollection(name = "users")
 		doc = collection.createDocument()
-		doc["name"] = "l-3ewd"
+		doc["name"] = "Tesla"
 		doc.save()
 
 		aql = "FOR c IN users FILTER c.name == @name LIMIT 2 RETURN c.name"
-		bindVars = {'name' : 'l-3ewd-3'}
-		self.db.validateAQLQuery(aql, bindVars)
-		
-	def createManyUsers(self, nbUsers) :
-	 	collection = self.db.createCollection(name = "users")
-		for i in xrange(nbUsers) :
-			doc = collection.createDocument()
-			doc["name"] = "l-3ewd-%d" % i
-			doc["number"] = i
-			doc["species"] = "human"
-			doc.save()
-		return collection
+		bindVars = {'name' : 'Tesla-3'}
 
 	def test_aql_query_rawResults_true(self) :
 		self.createManyUsers(100)
 		
 		aql = "FOR c IN users FILTER c.name == @name LIMIT 10 RETURN c.name"
-		bindVars = {'name' : 'l-3ewd-3'}
+		bindVars = {'name' : 'Tesla-3'}
 		q = self.db.AQLQuery(aql, rawResults = True, batchSize = 10, bindVars = bindVars)
 		self.assertEqual(len(q.result), 1)
-		self.assertEqual(q[0], 'l-3ewd-3')
+		self.assertEqual(q[0], 'Tesla-3')
 
 	def test_aql_query_rawResults_false(self) :
 		self.createManyUsers(100)
 
 		aql = "FOR c IN users FILTER c.name == @name LIMIT 10 RETURN c"
-		bindVars = {'name' : 'l-3ewd-3'}
+		bindVars = {'name' : 'Tesla-3'}
 		q = self.db.AQLQuery(aql, rawResults = False, batchSize = 10, bindVars = bindVars)
 		self.assertEqual(len(q.result), 1)
-		self.assertEqual(q[0]['name'], 'l-3ewd-3')		
+		self.assertEqual(q[0]['name'], 'Tesla-3')		
 		self.assertTrue(isinstance(q[0], Document))		
 	
 	def test_aql_query_batch(self) :
@@ -210,6 +209,25 @@ class ArangocityTests(unittest.TestCase):
 		self.assertRaises(ConstraintViolation, doc.save)
 		doc["foreigner"] = "string"
 		self.assertRaises(SchemaViolation,  doc.save)	
+
+	def test_document_cache(self) :
+		class DummyDoc(object) :
+			def __init__(self, key) :
+				self.key = key
+			def __repr__(self) :
+				return repr(self.key)
+
+		docs = []
+		for i in xrange(10) :
+			docs.append(DummyDoc(i))
+
+		cache = DocumentCache(5)
+		for doc in docs :
+			cache.cache(doc)
+			self.assertEqual(cache.head.document.key, doc.key)
+		
+		self.assertEqual(cache.cacheStore.keys(), [5, 6, 7, 8, 9])	
+		self.assertEqual(cache.getChain(), [9, 8, 7, 6, 5])	
 
 if __name__ == "__main__" :
 	unittest.main()

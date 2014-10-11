@@ -99,18 +99,3 @@ class SimpleQueryResult(QueryResult) :
 		docJson = self.result[i]
 		self.result[i] = Document(self.collection, docJson)
 		self._developed[i] = True
-
-	def nextBatch(self) :
-		"become the next batch. raises a StopIteration if there is None"
-		self._batchNumber += 1
-		if not self.hasMore :
-			raise StopIteration("That was the last batch")
-		
-		data = json.loads(self.queryPost)
-		data = json.dumps(data)
-		r = requests.put(self.cursorUrl, data = self.queryPost)
-		data = r.json()
-		if not data['error'] :
-			self._resetBatch(data)
-		else :
-			raise QueryBatchRetrievalError(data["errorMessage"], self._batchNumber, data)
