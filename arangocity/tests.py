@@ -167,6 +167,12 @@ class ArangocityTests(unittest.TestCase):
 		self.assertEqual(lstRes, range(nbUsers))
 		self.assertEqual(q.count, nbUsers)
 
+	def test_empty_query(self) :
+		col = self.createManyUsers(1)
+		example = {'species' : "rat"}
+		q = col.fetchByExample(example, batchSize = 1, count = True)
+		self.assertEqual(q.result, [])
+		
 	def test_fields_on_set(self) :
 		def strFct(v) :
 			import types

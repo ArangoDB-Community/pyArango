@@ -74,7 +74,7 @@ class Database(object) :
 
 	def AQLQuery(self, query, rawResults, batchSize, bindVars = {}, options = {}, count = False, fullCount = False) :
 		"Set rawResults = True if you want the query to return dictionnaries instead of Document objects"
-		return AQLQuery(self, query, rawResults, batchSize, bindVars, options, count, fullCount)
+		return AQLQueryResult(self, query, rawResults, batchSize, bindVars, options, count, fullCount)
 
 	def validateAQLQuery(self, query, bindVars = {}, options = {}) :
 		"returns the server answer is the query is valid. Raises an AQLQueryError if not"

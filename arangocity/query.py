@@ -2,21 +2,21 @@ import requests
 import json
 
 from document import Document
-from theExceptions import QueryBatchRetrievalError, QueryError, SimpleQueryError
+from theExceptions import QueryBatchRetrievalError, AQLQueryError, SimpleQueryError
 
 class QueryResult(object) :
 	"This class abstract and should not be instanciated"
-	
+
 	def __init__(self, request, rawResults) :
 		"if rawResults = True, will always return the json representation of the results and not a Document object. queryPost contains a dictionnary representation of the initial POST payload sent to the database"
 
 		self.rawResults = rawResults
 		self.response = request.json()
 
-		if request.code == 404 :
+		if request.status_code == 404 :
 			self.batchNumber = 0
 			self.result = []
-		elif request.code = 201 :
+		elif request.status_code == 201 :
 			self.batchNumber = 1
 			if self.response["hasMore"] :
 				self.cursorUrl = "http://localhost:8529/_db/test_db/_api/cursor/%s" % (self.id)
@@ -62,9 +62,10 @@ class QueryResult(object) :
 
 	def __getattr__(self, k) :
 		try :
-			return self.response[k]
-		except KeyError:
-			raise  AttributeError("%s has not attribute %s" %(self.__class__.name, k))
+			resp = object.__getattribute__(self, "response")
+			return resp[k]
+		except (KeyError, AttributeError) :
+			raise  AttributeError("There's not attribute %s" %(k))
 
 class AQLQueryResult(QueryResult) :
 	"AQL queries are attached to a database"
@@ -73,7 +74,7 @@ class AQLQueryResult(QueryResult) :
 		
 		self.query = query
 		self.database = database
-		r = requests.post(databse.cursorsURL, data = json.dumps(payload))
+		request = requests.post(database.cursorsURL, data = json.dumps(payload))
 		QueryResult.__init__(self, request, rawResults)
 
 	def _raiseInitFailed(self, request) :
@@ -91,13 +92,13 @@ class AQLQueryResult(QueryResult) :
 
 class SimpleQueryResult(QueryResult) :
 	"Simple queries are attached to a single collection"
-	def __init__(self, collection, queryType, batchSize, rawResults, queryArgs) :
+	def __init__(self, collection, queryType, batchSize, rawResults, **queryArgs) :
 
 		self.collection = collection
 		payload = {'collection' : collection.name, 'batchSize' : batchSize}
 		payload.update(queryArgs)
 		payload = json.dumps(payload)
-		URL = "%s/simple/%s" % (self.database.URL, queryType)
+		URL = "%s/simple/%s" % (collection.database.URL, queryType)
 
 		request = requests.put(URL, data = payload)
 

@@ -3,8 +3,8 @@ import json
 import types
 
 from document import Document
-from theExceptions import ConstraintViolation, SchemaViolation, CreationError, UpdateError, DeletionError, SimpleQueryError
-from query import SimpleQueryResult, EmptySimpleQueryResult
+from theExceptions import ConstraintViolation, SchemaViolation, CreationError, UpdateError, DeletionError
+from query import SimpleQueryResult
 
 COLLECTION_DOCUMENT_TYPE = 2
 COLLECTION_EDGE_TYPE = 3
