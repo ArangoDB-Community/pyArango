@@ -4,7 +4,7 @@ import types
 
 from document import Document
 from theExceptions import ConstraintViolation, SchemaViolation, CreationError, UpdateError, DeletionError, SimpleQueryError
-from query import SimpleQueryResult
+from query import SimpleQueryResult, EmptySimpleQueryResult
 
 COLLECTION_DOCUMENT_TYPE = 2
 COLLECTION_EDGE_TYPE = 3
@@ -211,14 +211,16 @@ class Collection(object) :
 			r = requests.get(url)
 		if r.status_code != 404 :
 			return Document(self, r.json())
-	
+		else :
+			raise KeyError("Unable to find document with _key: %s" % key)
+
 	def fetchByExample(self, exampleDict, batchSize, rawResults = False, **queryArgs) :
 		"exampleDict should be something like {'age' : 28}"
 		return self.simpleQuery('by-example', batchSize, rawResults, example = exampleDict, **queryArgs)
 
-	def fetchFirstExample(self, exampleDict, batchSize, rawResults = False, **queryArgs) :
+	def fetchFirstExample(self, exampleDict, rawResults = False, **queryArgs) :
 		"exampleDict should be something like {'age' : 28}. returns only a single element but still in a SimpleQueryResult object"
-		return self.simpleQuery('first-example', batchSize, rawResults, example = exampleDict, **queryArgs)
+		return self.simpleQuery('first-example', batchSize = 1, rawResults = rawResults, example = exampleDict, **queryArgs)
 
 	def fetchAll(self, batchSize, rawResults = False, **queryArgs) :
 		return self.simpleQuery('all', batchSize, rawResults, **queryArgs)
@@ -227,17 +229,7 @@ class Collection(object) :
 		"""General interface for simple queries. queryType can be something like 'all', 'by-example' etc... everything is in the arango doc.
 		If rawResults, the query will return dictionaries instead of Document objetcs.
 		"""
-		payload = {'collection' : self.name, 'batchSize' : batchSize}
-		payload.update(queryArgs)
-		payload = json.dumps(payload)
-		url = "%s/simple/%s" % (self.database.URL, queryType)
-
-		r = requests.put(url, data = payload)
-		data = r.json()
-		if r.status_code == 201 and not data['error'] :
-			return SimpleQueryResult(url, self, rawResults, payload, data)
-		else :
-			raise SimpleQueryError(data["errorMessage"], data)
+		return SimpleQueryResult(self, queryType, batchSize, rawResults, **queryArgs)
 
 	def action(self, method, action, **params) :
 		"a generic fct for interacting everything that doesn't have an assigned fct"

@@ -18,9 +18,8 @@ class Database(object) :
 		
 		self.URL = '%s/_db/%s/_api' % (self.connection.arangoURL, self.name)
 		self.collectionsURL = '%s/collection' % (self.URL)
-		self.cursorURL = '%s/cursor' % (self.URL)
-		self.queryURL = '%s/query' % (self.URL)
-
+		self.cursorsURL = '%s/cursor' % (self.URL)
+		
 		self.update()
 	
 	def update(self) :
@@ -74,20 +73,13 @@ class Database(object) :
 		return name in self.collections
 
 	def AQLQuery(self, query, rawResults, batchSize, bindVars = {}, options = {}, count = False, fullCount = False) :
-		"Set rawResults = True if you want the query to returns dictionnaries instead of Document objects"
-		
-		payload = {'query' : query, 'batchSize' : batchSize, 'bindVars' : bindVars, 'options' : options, 'count' : count, 'fullCount' : fullCount}
-		r = requests.post(self.cursorURL, data = json.dumps(payload))
-		data = r.json()
-		if r.status_code == 201 and not data["error"] :
-			return AQLQueryResult(self.cursorURL, self, rawResults, payload, data)
-		else :
-			raise AQLQueryError(data["errorMessage"], query, data)
+		"Set rawResults = True if you want the query to return dictionnaries instead of Document objects"
+		return AQLQuery(self, query, rawResults, batchSize, bindVars, options, count, fullCount)
 
 	def validateAQLQuery(self, query, bindVars = {}, options = {}) :
 		"returns the server answer is the query is valid. Raises an AQLQueryError if not"
 		payload = {'query' : query, 'bindVars' : bindVars, 'options' : options}
-		r = requests.post(self.cursorURL, data = json.dumps(payload))
+		r = requests.post(self.cursorsURL, data = json.dumps(payload))
 		data = r.json()
 		if r.status_code == 201 and not data["error"] :
 			return data
