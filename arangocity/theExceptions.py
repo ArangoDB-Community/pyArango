@@ -54,7 +54,7 @@ class AQLQueryError(ArrangocityException) :
 		message = "Error in: %s.\n->%s" % (query, message)
 		ArrangocityException.__init__(self, message, errors)
 
-class QueryBatchRetrievalError(ArrangocityException) :
-	def __init__(self, message, bacthNumber, errors = {}) :
-		message = "Can't retrieve batch %d. Error: %s" % (bacthNumber, message)
+class CursorError(ArrangocityException) :
+	def __init__(self, message, cursorId, errors = {}) :
+		message = "Unable to retreive data for cursor %s: %s" % (cursorId, message)
 		ArrangocityException.__init__(self, message, errors)

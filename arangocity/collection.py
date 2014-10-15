@@ -4,7 +4,7 @@ import types
 
 from document import Document
 from theExceptions import ConstraintViolation, SchemaViolation, CreationError, UpdateError, DeletionError
-from query import SimpleQueryResult
+from query import SimpleQuery
 
 COLLECTION_DOCUMENT_TYPE = 2
 COLLECTION_EDGE_TYPE = 3
@@ -221,7 +221,7 @@ class Collection(object) :
 		return self.simpleQuery('by-example', batchSize, rawResults, example = exampleDict, **queryArgs)
 
 	def fetchFirstExample(self, exampleDict, rawResults = False, **queryArgs) :
-		"exampleDict should be something like {'age' : 28}. returns only a single element but still in a SimpleQueryResult object"
+		"exampleDict should be something like {'age' : 28}. returns only a single element but still in a SimpleQuery object"
 		return self.simpleQuery('first-example', batchSize = 1, rawResults = rawResults, example = exampleDict, **queryArgs)
 
 	def fetchAll(self, batchSize, rawResults = False, **queryArgs) :
@@ -231,7 +231,7 @@ class Collection(object) :
 		"""General interface for simple queries. queryType can be something like 'all', 'by-example' etc... everything is in the arango doc.
 		If rawResults, the query will return dictionaries instead of Document objetcs.
 		"""
-		return SimpleQueryResult(self, queryType, batchSize, rawResults, **queryArgs)
+		return SimpleQuery(self, queryType, batchSize, rawResults, **queryArgs)
 
 	def action(self, method, action, **params) :
 		"a generic fct for interacting everything that doesn't have an assigned fct"
