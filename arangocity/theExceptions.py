@@ -27,13 +27,26 @@ class ConstraintViolation(ArrangocityException) :
 	def __init__(self, message, errors = {}) :
 		ArrangocityException.__init__(self, message, errors)
 
-class SimpleQueryError(ArrangocityException) :
-	def __init__(self, message, errors = {}) :
-		ArrangocityException.__init__(self, message, errors)
-
 class SchemaViolation(ArrangocityException) :
 	def __init__(self, collection, field, errors = {}) :
 		message = "Collection %s does not a field '%s' in it's schema" % (collection.__class__.__name__, field)
+		ArrangocityException.__init__(self, message, errors)
+
+class ValidationError(ArrangocityException) :
+	def __init__(self, errors) :
+		message = "Unsuccesful validation" 
+		self.strErrors = []
+		for k, v in errors.iteritems() :
+			self.strErrors.append("%s -> %s" % (k, v))
+		self.strErrors = '\n\t'.join(self.strErrors)
+
+		ArrangocityException.__init__(self, message, errors)
+	
+	def __str__(self) :
+		return self.message + ":\n\t" + self.strErrors
+
+class SimpleQueryError(ArrangocityException) :
+	def __init__(self, message, errors = {}) :
 		ArrangocityException.__init__(self, message, errors)
 
 class AQLQueryError(ArrangocityException) :

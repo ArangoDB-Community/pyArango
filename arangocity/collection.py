@@ -107,7 +107,7 @@ class Field(object) :
 			if self.constraintFct and not self.constraintFct(v) :
 				raise ConstraintViolation("Violation of constraint fct: %s" %(self.constraintFct.func_name))
 		
-		if self.notNull :
+		elif self.notNull :
 			raise ConstraintViolation("This fields can't have a NULL value (\"None\" or \"\")")
 		
 		return True
@@ -202,7 +202,7 @@ class Collection(object) :
 			raise SchemaViolation(self, fieldName)
 		self.__class__._fields[fieldName].validate(value)
 
-	def fetchDocument(self, key, rev = None) :
+	def fetchDocument(self, key, rawResults = False, rev = None) :
 		"Fetches a document from the collection given it's key. This function always goes straight to the db and bypasses the cache"
 		url = "%s/%s/%s" % (self.documentsURL, self.name, key)
 		if rev is not None :
@@ -210,6 +210,8 @@ class Collection(object) :
 		else :
 			r = requests.get(url)
 		if r.status_code != 404 :
+			if rawResults :
+				return r.json()
 			return Document(self, r.json())
 		else :
 			raise KeyError("Unable to find document with _key: %s" % key)
@@ -268,13 +270,13 @@ class Collection(object) :
 		return "ArangoDB collection name: %s, id: %s, type: %s, status: %s" % (self.name, self.id, self.type, self.status)
 
 	def __getitem__(self, key) :
-		"returns a document from the cache. If it's not there, fetches it from the db and caches it first. If the cache is not activated this is equivalent to fetchDocument()"
+		"returns a document from the cache. If it's not there, fetches it from the db and caches it first. If the cache is not activated this is equivalent to fetchDocument( rawResults = False)"
 		if self.documentCache is None :
-			return self.fetchDocument(key) 
+			return self.fetchDocument(key, rawResults = False) 
 		try :
 			return self.documentCache[key] 
 		except KeyError :
-			doc = self.fetchDocument(key)
+			doc = self.fetchDocument(key, rawResults = False)
 			self.documentCache.cache(doc)
 		return doc
 

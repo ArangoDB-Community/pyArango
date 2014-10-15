@@ -12,19 +12,24 @@ class QueryResult(object) :
 
 		self.rawResults = rawResults
 		self.response = request.json()
-
-		if request.status_code == 404 :
-			self.batchNumber = 0
-			self.result = []
-		elif request.status_code == 201 :
+		self._developed = set()
+		if request.status_code == 201 or request.status_code == 200:
 			self.batchNumber = 1
+			try : #if there's only one element
+				self.response = {"result" : [self.response["document"]], 'hasMore' : False}
+				del(self.response["document"])
+			except KeyError :
+				pass
+
 			if self.response["hasMore"] :
 				self.cursorUrl = "http://localhost:8529/_db/test_db/_api/cursor/%s" % (self.id)
 			else :
 				self.cursorUrl = None
-			self._developed = set()
+		elif request.status_code == 404 :
+			self.batchNumber = 0
+			self.result = []
 		else :
-			raise self._raiseInitFailed(request)
+			self._raiseInitFailed(request)
 	
 	def _raiseInitFailed(self, request) :
 		"must be implemented in child, this called if the __init__ fails"
@@ -106,7 +111,7 @@ class SimpleQueryResult(QueryResult) :
 
 	def _raiseInitFailed(self, request) :
 		data = request.json()
-		SimpleQueryError(data["errorMessage"], data)
+		raise SimpleQueryError(data["errorMessage"], data)
 
 	def _developDoc(self, i) :
 		docJson = self.result[i]

@@ -1,7 +1,7 @@
 import requests
 import json
 
-from theExceptions import (CreationError, UpdateError, ConstraintViolation, SchemaViolation)
+from theExceptions import (CreationError, UpdateError, ConstraintViolation, SchemaViolation, ValidationError)
 
 class Document(object) :
 
@@ -29,23 +29,24 @@ class Document(object) :
 
 		self._patchStore = {}
 
-	def set(self, fieldsToSet) :
-		"""Sets the document according to values contained in the dictinnary fieldsToSet. This will also set self._id/_rev/_key"""
-		if "_id" in fieldsToSet :
-			self._id = fieldsToSet["_id"]
-			del(fieldsToSet["_id"])
-		if "_rev" in fieldsToSet :
-			self._rev = fieldsToSet["_rev"]
-			del(fieldsToSet["_rev"])
-		if "_key" in fieldsToSet :
-			self._key = fieldsToSet["_key"]
-			del(fieldsToSet["_key"])
+	def set(self, fieldDict) :
+		"""Sets the document according to values contained in the dictinnary fieldDict. This will also set self._id/_rev/_key"""
+		
+		if "_id" in fieldDict :
+			self._id = fieldDict["_id"]
+			del(fieldDict["_id"])
+		if "_rev" in fieldDict :
+			self._rev = fieldDict["_rev"]
+			del(fieldDict["_rev"])
+		if "_key" in fieldDict :
+			self._key = fieldDict["_key"]
+			del(fieldDict["_key"])
 
 		if self.collection._validation['on_set']:
-			for k in fieldsToSet.keys() :
-				self[k] = fieldsToSet[k]
+			for k in fieldDict.keys() :
+				self[k] = fieldDict[k]
 		else :
-			self._store.update(fieldsToSet)
+			self._store.update(fieldDict)
 		
 
 	def save(self, **docArgs) :
@@ -83,11 +84,11 @@ class Document(object) :
 				raise CreationError(data['errorMessage'], data)
 
 	def saveCopy(self) :
-		"saves a copy of the object and become that copy. returns a tuple (old _id, new _id)"
-		old_id = self._id
+		"saves a copy of the object and become that copy. returns a tuple (old _key, new _key)"
+		old_key = self._key
 		self.reset(self.collection)
 		self.save()
-		return (old_id, self._id)
+		return (old_key, self._key)
 
 	def patch(self, keepNull = True, **docArgs) :
 		"""Updates only the modified fields.
@@ -132,17 +133,20 @@ class Document(object) :
 			try :
 				self.collection.validateField(k, v)
 			except (ConstraintViolation, SchemaViolation) as e:
-				if logErrors :
-					res[k] = e.message
-				else :
-					raise e
+				res[k] = str(e)
+
+		if len(res) > 0 :
+			raise ValidationError(res)
+
 		return res
 
-	def __getattribute__(self, k) :
-		return object.__getattribute__(self, k)
-
 	def __getitem__(self, k) :
-		return self._store[k]
+		if self.collection._validation['allow_foreign_fields'] :
+			return self._store.get(k)
+		try :
+			return self._store[k]
+		except KeyError :
+			raise KeyError("Document has no field %s, for a permissive behaviour set 'allow_foreign_fields' to True" % k)
 
 	def __setitem__(self, k, v) :
 		if self.collection._validation['on_set'] :
@@ -153,7 +157,7 @@ class Document(object) :
 			self._patchStore[k] = self._store[k]
 	
 	def __str__(self) :
-		return str(self._store)
+		return 'ArangoDoc: ' + str(self._store)
 
 	def __repr__(self) :
-		return repr(self._store)
+		return 'ArangoDoc: ' + repr(self._store)
