@@ -5,6 +5,7 @@ from document import Document
 from theExceptions import AQLQueryError, SimpleQueryError
 
 class RawCursor(object) :
+	"a raw interface to cursors that returns json"
 	def __init__(self, database, cursorId) :
 		self.database = database
 		self.id = cursorId
@@ -21,11 +22,12 @@ class RawCursor(object) :
 class Query(object) :
 	"This class abstract and should not be instanciated"
 
-	def __init__(self, request, rawResults) :
+	def __init__(self, request, database, rawResults) :
 		"if rawResults = True, will always return the json representation of the results and not a Document object. queryPost contains a dictionnary representation of the initial POST payload sent to the database"
 
 		self.rawResults = rawResults
 		self.response = request.json()
+		self.database = database
 		self._developed = set()
 		if request.status_code == 201 or request.status_code == 200:
 			self.batchNumber = 1
@@ -96,18 +98,20 @@ class AQLQuery(Query) :
 		self.query = query
 		self.database = database
 		request = requests.post(database.cursorsURL, data = json.dumps(payload))
-		Query.__init__(self, request, rawResults)
+		Query.__init__(self, request, database, rawResults)
 
 	def _raiseInitFailed(self, request) :
 		data = request.json()
 		raise AQLQueryError(data["errorMessage"], self.query, data)
 
 class Cursor(Query) :
-	"AQL queries are attached to a database"
+	"Cursor queries are attached to a database, use them to continue where you left"
 	def __init__(self, database, cursorId, rawResults) :
-		self.database = database
-		self.id = cursorId
-		Query.__init__(self, request, rawResults)
+		self.rawResults = rawResults
+		self._developed = set()
+		self.batchNumber = 1
+		self.cursor = RawCursor(database, cursorId)
+		self.response = self.cursor.next()
 
 	def _raiseInitFailed(self, request) :
 		data = request.json()
@@ -126,7 +130,7 @@ class SimpleQuery(Query) :
 
 		request = requests.put(URL, data = payload)
 
-		Query.__init__(self, request, rawResults)
+		Query.__init__(self, request, collection.database, rawResults)
 
 	def _raiseInitFailed(self, request) :
 		data = request.json()

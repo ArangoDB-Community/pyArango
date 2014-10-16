@@ -4,6 +4,7 @@ from connection import *
 from database import *
 from collection import *
 from document import *
+from query import *
 from theExceptions import *
 
 class ArangocityTests(unittest.TestCase):
@@ -172,7 +173,18 @@ class ArangocityTests(unittest.TestCase):
 		example = {'species' : "rat"}
 		q = col.fetchByExample(example, batchSize = 1, count = True)
 		self.assertEqual(q.result, [])
+	
+	def test_cursor(self) :
+		nbUsers = 2
+		col = self.createManyUsers(nbUsers)
 		
+		q = col.fetchAll(batchSize = 1, count = True)
+		q2 = Cursor(q.database, q.cursor.id, rawResults = True)
+
+		lstRes = [q.result[0]["number"], q2.result[0]["number"]]
+		self.assertEqual(lstRes, range(nbUsers))
+		self.assertEqual(q.count, nbUsers)
+
 	def test_fields_on_set(self) :
 		def strFct(v) :
 			import types
@@ -217,11 +229,11 @@ class ArangocityTests(unittest.TestCase):
 		myCol = self.db.createCollection('Col_on_set')
 		doc = myCol.createDocument()
 		doc["str"] = 3
-		self.assertRaises(ConstraintViolation, doc.save)
+		self.assertRaises(ValidationError, doc.save)
 		doc["str"] = "string"
-		self.assertRaises(ConstraintViolation, doc.save)
+		self.assertRaises(ValidationError, doc.save)
 		doc["foreigner"] = "string"
-		self.assertRaises(SchemaViolation,  doc.save)	
+		self.assertRaises(ValidationError,  doc.save)	
 
 	def test_document_cache(self) :
 		class DummyDoc(object) :
