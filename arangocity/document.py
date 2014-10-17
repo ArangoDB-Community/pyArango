@@ -1,7 +1,7 @@
 import requests
 import json
 
-from theExceptions import (CreationError, UpdateError, ConstraintViolation, SchemaViolation, ValidationError)
+from theExceptions import (CreationError, DeletionError, UpdateError, ConstraintViolation, SchemaViolation, ValidationError)
 
 class Document(object) :
 
@@ -32,15 +32,17 @@ class Document(object) :
 	def set(self, fieldDict) :
 		"""Sets the document according to values contained in the dictinnary fieldDict. This will also set self._id/_rev/_key"""
 		
-		if "_id" in fieldDict :
+		try :
 			self._id = fieldDict["_id"]
 			del(fieldDict["_id"])
-		if "_rev" in fieldDict :
+			
 			self._rev = fieldDict["_rev"]
 			del(fieldDict["_rev"])
-		if "_key" in fieldDict :
+		
 			self._key = fieldDict["_key"]
 			del(fieldDict["_key"])
+		except KeyError :
+			self._id, self._rev, self._key = None, None, None
 
 		if self.collection._validation['on_set']:
 			for k in fieldDict.keys() :

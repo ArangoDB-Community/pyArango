@@ -209,12 +209,12 @@ class Collection(object) :
 			r = requests.get(url, params = {'rev' : rev})
 		else :
 			r = requests.get(url)
-		if r.status_code != 404 :
+		if (r.status_code - 400) < 0 :
 			if rawResults :
 				return r.json()
 			return Document(self, r.json())
 		else :
-			raise KeyError("Unable to find document with _key: %s" % key)
+			raise CreationError("Unable to find document with _key: %s" % key, r.json())
 
 	def fetchByExample(self, exampleDict, batchSize, rawResults = False, **queryArgs) :
 		"exampleDict should be something like {'age' : 28}"
@@ -291,4 +291,9 @@ class GenericCollection(Collection) :
 	
 	def __init__(self, database, jsonData) :
 		Collection.__init__(self, database, jsonData)
-		
+
+class Edges(Collection) :
+	"The default collection. Can store anything"
+	
+	def __init__(self, database, jsonData) :
+		Collection.__init__(self, database, jsonData)
