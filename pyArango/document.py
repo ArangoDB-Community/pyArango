@@ -6,7 +6,6 @@ from theExceptions import (CreationError, DeletionError, UpdateError, Constraint
 class Document(object) :
 
 	def __init__(self, collection, jsonFieldInit = {}) :
-		"meant to be called by the collection only"
 		self.reset(collection, jsonFieldInit)
 
 	def reset(self, collection, jsonFieldInit = {}) :
@@ -15,25 +14,24 @@ class Document(object) :
 		
 		self._store = {}
 
-		if len(jsonFieldInit) > 0 :
-			self.set(jsonFieldInit)
-		else :
-			for k in self.collection.__class__._fields.keys() :
-				self._store[k] = None
-			self._id, self._rev, self._key = None, None, None
+		# if len(jsonFieldInit) > 0 :
+		# 	self.set(jsonFieldInit)
+		# else :
+		# 	for k in self.collection.__class__._fields.keys() :
+		# 		self._store[k] = None
+		# 	self._id, self._rev, self._key = None, None, None
 
-		if self._id is not None :
-			self.URL = "%s/%s" % (self.documentsURL, self._id)
-		else :
-			self.URL = None
+		# if self._id is not None :
+		# 	self.documentsURL = "%s/%s" % (self.documentsURL, self._id)
+		# else :
+		# 	self.documentsURL = None
 
 		self._patchStore = {}
 
-	def set(self, fieldDict) :
-		"""Sets the document according to values contained in the dictinnary fieldDict. This will also set self._id/_rev/_key"""
-		
+	def setPrivates(self, fieldDict) :
 		try :
 			self._id = fieldDict["_id"]
+			self.URL = "%s/%s" % (self.documentsURL, self._id)
 			del(fieldDict["_id"])
 			
 			self._rev = fieldDict["_rev"]
@@ -43,6 +41,12 @@ class Document(object) :
 			del(fieldDict["_key"])
 		except KeyError :
 			self._id, self._rev, self._key = None, None, None
+			self.URL = None
+
+	def set(self, fieldDict) :
+		"""Sets the document according to values contained in the dictinnary fieldDict. This will also set self._id/_rev/_key"""
+
+		self.setPrivates(fieldDict)
 
 		if self.collection._validation['on_set']:
 			for k in fieldDict.keys() :
@@ -75,10 +79,8 @@ class Document(object) :
 			if update :
 				self._rev = data['_rev']
 			else :
-				self._id = data["_id"]
-				self._key = data["_key"]
-				self._rev = data["_rev"]
-				self.URL = "%s/%s" % (self.documentsURL, self._id)
+				self.setPrivates(data)
+				# self.documentsURL = "%s/%s" % (self.documentsURL, self._id)
 		else :
 			if update :
 				raise UpdateError(data['errorMessage'], data)
@@ -163,3 +165,23 @@ class Document(object) :
 
 	def __repr__(self) :
 		return 'ArangoDoc: ' + repr(self._store)
+
+class Edge(Document) :
+
+	def __init__(self, edgeCollection, jsonFieldInit = {}) :
+		self.reset(edgeCollection, jsonFieldInit)
+
+	def reset(self, edgeCollection, jsonFieldInit = {}) :
+		Document.reset(self, edgeCollection, jsonFieldInit)
+
+	def setPrivates(self, edgeCollection, jsonFieldInit = {}) :
+		try :
+			self._id = fieldDict["_to"]
+			del(fieldDict["_to"])
+			
+			self._rev = fieldDict["_from"]
+			del(fieldDict["_from"])
+		except KeyError :
+			self._to, self._from = None, None
+
+		Document.setPrivates(jsonFieldInit)

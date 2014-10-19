@@ -9,14 +9,14 @@ with open(path.join(here, 'DESCRIPTION.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='arangocity',
+    name='pyArango',
 
     version='1.0.0a1',
 
     description='An easy to use python driver for ArangoDB with built-in validation',
     long_description=long_description,
     
-    url='https://github.com/tariqdaouda/arangocity',
+    url='https://github.com/tariqdaouda/pyArango',
 
     author='Tariq Daouda',
     author_email='tariq.daouda@umontreal.ca',
