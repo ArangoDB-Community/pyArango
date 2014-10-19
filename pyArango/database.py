@@ -1,8 +1,7 @@
 import requests
 import json
-import types
 
-from collection import Collection, SystemCollection, GenericCollection, Collection_metaclass
+from collection import Collection, SystemCollection, GenericCollection, Edges, Collection_metaclass, COLLECTION_DOCUMENT_TYPE, COLLECTION_EDGE_TYPE
 from document import Document
 from query import AQLQuery
 from theExceptions import CreationError, UpdateError
@@ -45,8 +44,9 @@ class Database(object) :
 			raise UpdateError(data["errorMessage"], data)
 
 	def createCollection(self, className = 'GenericCollection', **colArgs) :
-		""" Must be the name of a class inheriting from Collection. Use colArgs to put things such as 'isVolatile = True'.
-		The 'name' parameter will be ignored if className != 'GenericCollection' since it is already specified by className"""
+		""" Must be a string representing the name of a class inheriting from Collection or Egdes. Use colArgs to put things such as 'isVolatile = True'.
+		The 'name' parameter will be ignored if className != 'GenericCollection' since it is already specified by className.
+		The 'type' parameter is always ignored since it alreday defined by the class of inheritence"""
 		
 		if className != 'GenericCollection' :
 			colArgs['name'] = className
@@ -59,6 +59,11 @@ class Database(object) :
 		if colArgs['name'] in self.collections :
 			raise CreationError("Database %s already has a collection named %s" % (self.name, colArgs['name']) )
 
+		if issubclass(colClass, Edges) :
+			colArgs["type"] = COLLECTION_EDGE_TYPE
+		else :
+			colArgs["type"] = COLLECTION_DOCUMENT_TYPE
+				
 		payload = json.dumps(colArgs)
 		r = requests.post(self.collectionsURL, data = payload)
 		data = r.json()

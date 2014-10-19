@@ -13,20 +13,10 @@ class Document(object) :
 		self.documentsURL = self.collection.documentsURL
 		
 		self._store = {}
-
-		# if len(jsonFieldInit) > 0 :
-		# 	self.set(jsonFieldInit)
-		# else :
-		# 	for k in self.collection.__class__._fields.keys() :
-		# 		self._store[k] = None
-		# 	self._id, self._rev, self._key = None, None, None
-
-		# if self._id is not None :
-		# 	self.documentsURL = "%s/%s" % (self.documentsURL, self._id)
-		# else :
-		# 	self.documentsURL = None
-
 		self._patchStore = {}
+
+		self.set(jsonFieldInit)
+		
 
 	def setPrivates(self, fieldDict) :
 		try :
@@ -53,7 +43,6 @@ class Document(object) :
 				self[k] = fieldDict[k]
 		else :
 			self._store.update(fieldDict)
-		
 
 	def save(self, **docArgs) :
 		"""This fct either performs a POST (for a new document) or a PUT (complete document overwrite).
@@ -80,7 +69,6 @@ class Document(object) :
 				self._rev = data['_rev']
 			else :
 				self.setPrivates(data)
-				# self.documentsURL = "%s/%s" % (self.documentsURL, self._id)
 		else :
 			if update :
 				raise UpdateError(data['errorMessage'], data)
@@ -176,12 +164,70 @@ class Edge(Document) :
 
 	def setPrivates(self, edgeCollection, jsonFieldInit = {}) :
 		try :
-			self._id = fieldDict["_to"]
-			del(fieldDict["_to"])
+			self._id = jsonFieldInit["_to"]
+			del(jsonFieldInit["_to"])
 			
-			self._rev = fieldDict["_from"]
-			del(fieldDict["_from"])
+			self._rev = jsonFieldInit["_from"]
+			del(jsonFieldInit["_from"])
 		except KeyError :
 			self._to, self._from = None, None
 
-		Document.setPrivates(jsonFieldInit)
+		Document.setPrivates(self, jsonFieldInit)
+
+	def links(self, fromVertice, toVertice, **edgeArgs) :
+		"an alias of save that works only for first saves"
+		if self.URL is not None :
+			raise AttributeError("It appears that the edge has already been saved. You can now use save() and patch()")
+
+		self.save(fromVertice, toVertice, **edgeArgs)
+
+	def save(self, fromVertice = None, toVertice = None, **edgeArgs) :
+		"Works like Document's except that the irst time you save an Edge you must specify the 'from' and 'to' vertices. If you fear forgetting there's a links() function especially for first saves"
+		if self.URL is None and (fromVertice is None or toVertice is None) :
+			raise ValueError("The first time you save an Edge you must specify the 'from' and 'to' vertices")
+
+		if fromVertice.__class__ is Document :
+			fv = fromVertice._key
+		elif type(fromVertice) is types.StringType :
+			fv = fromVertice
+		else :
+			raise ValueError("fromVertice must be either a Document or a String")
+		
+		if toVertice.__class__ is Document :
+			to = toVertice._key
+		elif type(toVertice) is types.StringType :
+			to = toVertice
+		else :
+			raise ValueError("toVertice must be either a Document or a String")
+
+		edgeArgs["from"] = fv
+		edgeArgs["to"] = to
+
+		if self.collection._validation['on_save'] :
+			self.validate(patch = False, logErrors = False)
+
+		params = dict(edgeArgs)
+		params.update({'collection': fromVertice.collection.name })
+		payload = json.dumps(self._store)
+
+		if self.URL is None :
+			r = requests.post(self.documentsURL, params = params, data = payload)
+			update = False
+		else :
+			r = requests.put(self.URL, params = params, data = payload)
+			update = True
+
+		data = r.json()
+		if (r.status_code == 201 or r.status_code == 202) and not data['error'] :
+			if update :
+				self._rev = data['_rev']
+			else :
+				self.setPrivates(data)
+		else :
+			if update :
+				raise UpdateError(data['errorMessage'], data)
+			else :
+				print "--op--"
+				print params
+				print payload
+				raise CreationError(data['errorMessage'], data)

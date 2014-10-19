@@ -2,7 +2,7 @@ import requests
 import json
 import types
 
-from document import Document
+from document import Document, Edge
 from theExceptions import ConstraintViolation, SchemaViolation, CreationError, UpdateError, DeletionError
 from query import SimpleQuery
 
@@ -119,27 +119,30 @@ class Collection_metaclass(type) :
 	
 	collectionClasses = {}
 	
-	validationDefault = {
+	_validationDefault = {
 			'on_save' : False,
 			'on_set' : False,
 			'allow_foreign_fields' : True
 		}
 
 	def __new__(cls, name, bases, attrs) :
+		def check_set_ConfigDict(dictName) :
+			defaultDict = getattr(cls, "%sDefault" % dictName)
 
-		if '_validation' not in attrs :
-			attrs['validation'] = cls.validationDefault
-		else :
-			for k, v in attrs['_validation'].iteritems() :
-				if k not in cls.validationDefault :
-					raise KeyError("Unknown validation parameter %s for class %s"  %(k, name))
-				if type(v) is not types.BooleanType :
-					raise ValueError("validation parameter %s for class %s has a non boolean value"  %(k, name))
+			if dictName not in attrs :
+				attrs[dictName] = defaultDict
+			else :
+				for k, v in attrs[dictName].iteritems() :
+					if k not in defaultDict :
+						raise KeyError("Unknown validation parameter '%s' for class '%s'"  %(k, name))
+					if type(v) is not type(defaultDict[k]) :
+						raise ValueError("'%s' parameter '%s' for class '%s' is of type '%s' instead of '%s'"  %(dictName, k, name, type(v), type(defaultDict[k])))
 
-			for k, v in cls.validationDefault.iteritems() :
-				if k not in attrs['_validation']	:
-					attrs['_validation'][k] = v
-			
+				for k, v in defaultDict.iteritems() :
+					if k not in attrs[dictName] :
+						attrs[dictName][k] = v
+
+		check_set_ConfigDict('_validation')
 		clsObj = type.__new__(cls, name, bases, attrs)
 		Collection_metaclass.collectionClasses[name] = clsObj
 		return clsObj
@@ -161,7 +164,7 @@ class Collection(object) :
 		'on_set' : False,
 		'allow_foreign_fields' : True
 	}
-	
+
 	__metaclass__ = Collection_metaclass
 
 	def __init__(self, database, jsonData) :
@@ -178,7 +181,9 @@ class Collection(object) :
 		self.URL = "%s/collection/%s" % (self.database.URL, self.name)
 		self.documentsURL = "%s/document" % (self.database.URL)
 		self.documentCache = None
-	
+		
+		self.documentClass = Document
+
 	def activateCache(self, cacheSize) :
 		"activate the caching system. Cached documents are only available through the __getitem__ interface"
 		self.documentCache = DocumentCache(cacheSize)
@@ -195,7 +200,7 @@ class Collection(object) :
 
 	def createDocument(self) :
 		"returns an empty document"
-		return Document(self)
+		return self.documentClass(self)
 
 	def validateField(self, fieldName, value) :
 		if not self._validation["allow_foreign_fields"] and (fieldName not in self._fields) :
@@ -212,7 +217,7 @@ class Collection(object) :
 		if (r.status_code - 400) < 0 :
 			if rawResults :
 				return r.json()
-			return Document(self, r.json())
+			return self.documentClass(self, r.json())
 		else :
 			raise CreationError("Unable to find document with _key: %s" % key, r.json())
 
@@ -242,6 +247,10 @@ class Collection(object) :
 	def truncate(self) :
 		return self.action('PUT', 'truncate')
 
+	def empty(self) :
+		"alias for truncate"
+		return self.truncate()
+
 	def load(self) :
 		"loads collection in memory"
 		return self.action('PUT', 'load')
@@ -266,8 +275,32 @@ class Collection(object) :
 		"a more elaborate version of count, see arangodb docs for more infos"
 		return self.action('GET', 'figures')
 
+	def getType(self) :
+		"returns a word describing the type instead of a number, if you prefer the number it's in self.type"
+		if self.type == COLLECTION_DOCUMENT_TYPE :
+			return "document"
+		elif self.type == COLLECTION_EDGE_TYPE :
+			return "egde"
+		else :
+			raise ValueError("The collection is of Unknown type %s" % self.type)
+
+	def getStatus(self) :
+		"returns a word describing the status instead of a number, if you prefer the number it's in self.status"
+		if self.status == COLLECTION_LOADING_STATUS :
+			return "loading"
+		elif self.status == COLLECTION_LOADED_STATUS :
+			return "loaded"
+		elif self.status == COLLECTION_DELETED_STATUS :
+			return "deleted"
+		elif self.status == COLLECTION_UNLOADED_STATUS :
+			return "unloaded"
+		elif self.status == COLLECTION_NEWBORN_STATUS :
+			return "newborn"
+		else :
+			raise ValueError("The collection has an Unknown status %s" % self.status)
+
 	def __repr__(self) :
-		return "ArangoDB collection name: %s, id: %s, type: %s, status: %s" % (self.name, self.id, self.type, self.status)
+		return "ArangoDB collection name: %s, id: %s, type: %s, status: %s" % (self.name, self.id, self.getType(), self.getStatus())
 
 	def __getitem__(self, key) :
 		"returns a document from the cache. If it's not there, fetches it from the db and caches it first. If the cache is not activated this is equivalent to fetchDocument( rawResults = False)"
@@ -293,7 +326,8 @@ class GenericCollection(Collection) :
 		Collection.__init__(self, database, jsonData)
 
 class Edges(Collection) :
-	"The default collection. Can store anything"
-	
+	"The default edge collection. your edge Collections must inherit from it"
+
 	def __init__(self, database, jsonData) :
 		Collection.__init__(self, database, jsonData)
+		self.documentClass = Edge

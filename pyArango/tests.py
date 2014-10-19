@@ -182,6 +182,7 @@ class ArangocityTests(unittest.TestCase):
 		q2 = Cursor(q.database, q.cursor.id, rawResults = True)
 
 		lstRes = [q.result[0]["number"], q2.result[0]["number"]]
+		lstRes.sort()
 		self.assertEqual(lstRes, range(nbUsers))
 		self.assertEqual(q.count, nbUsers)
 
@@ -231,7 +232,6 @@ class ArangocityTests(unittest.TestCase):
 		doc["str"] = 3
 		self.assertRaises(ValidationError, doc.save)
 		doc["str"] = "string"
-		self.assertRaises(ValidationError, doc.save)
 		doc["foreigner"] = "string"
 		self.assertRaises(ValidationError,  doc.save)	
 
@@ -268,10 +268,10 @@ class ArangocityTests(unittest.TestCase):
 			}
 
 		c = Col_empty
-		self.assertEqual(c._validation, Collection_metaclass.validationDefault)
+		self.assertEqual(c._validation, Collection_metaclass._validationDefault)
 
 		c = Col_empty2
-		self.assertEqual(c._validation, Collection_metaclass.validationDefault)
+		self.assertEqual(c._validation, Collection_metaclass._validationDefault)
 
 	def test_validation_default_inlavid_key(self) :
 
@@ -292,6 +292,49 @@ class ArangocityTests(unittest.TestCase):
 				}
 
 		self.assertRaises(ValueError, keyTest)
+	
+	def test_collection_type_creation(self) :
+		class Edgy(Edges) :
+			pass
 		
+		class Coly(Collection) :
+			pass
+
+		edgy = self.db.createCollection("Edgy")
+		self.assertEqual(edgy.type, COLLECTION_EDGE_TYPE)
+		coly = self.db.createCollection("Coly")
+		self.assertEqual(coly.type, COLLECTION_DOCUMENT_TYPE)
+
+	def test_save_edge(self) :
+		class Human(Collection) :
+			_fields = {
+				"name" : Field()
+			}
+
+		class Relation(Edges) :
+			_fields = {
+				"ctype" : Field()
+			}
+
+		humans = self.db.createCollection("Human")
+		rels = self.db.createCollection("Relation")
+
+		tete = humans.createDocument()
+		tete["name"] = "tete"
+		tete.save()
+		toto = humans.createDocument()
+		toto["name"] = "toto"
+		toto.save()
+
+		link = rels.createDocument()
+		link["ctype"] = "brother"
+		print rels.type
+		link.links(tete, toto)
+
+		sameLink = rels[link._key]
+		self.assertEqual(sameLink["ctype"], link["ctype"])
+		self.assertEqual(sameLink._from, tete._key)
+		self.assertEqual(sameLink._to, toto._key)
+
 if __name__ == "__main__" :
 	unittest.main()
