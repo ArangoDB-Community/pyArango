@@ -74,10 +74,12 @@ Validation
     return value == "human"
     
   class Humans(Collection) :
-  
-    _validate_fields_on_save = True
-  	_validate_fields_on_set = True
-  	_allow_foreign_fields = True # allow fields that are not part of the schema
+    
+    _validation = {
+      'on_save' : False,
+      'on_set' : False,
+      'allow_foreign_fields' : True # allow fields that are not part of the schema
+    }
   	
   	_fields = {
   	  'name' : Field(NotNull = True),
@@ -86,3 +88,8 @@ Validation
   	}
   	
   collection = db.createCollection('Humans')
+
+A note on inheritence:
+----------------------
+
+pyArango does not support the inheritence _validation on _fields. If the a class does not define it's own dictionaries, the default values will be automatically assigned.
