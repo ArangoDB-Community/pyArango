@@ -99,4 +99,4 @@ A note on inheritence:
 ----------------------
 
 pyArango does not support the inheritence of the "_validation" and "_fields" dictionaries.
-If the a class does not fully define it's own, the defaults will be automatically assigned for any missing value.
+If a class does not fully define it's own, the defaults will be automatically assigned to any missing value.
