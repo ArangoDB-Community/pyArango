@@ -150,18 +150,19 @@ Geting Edges linked to a vertex:
 You can do it either from a Document or an Edges collection:
 
 .. code:: python
- # in edges
- myDocument.getInEdges(myConnections)
- myConnection.getInEdges(myDocument)
- 
- # out edges
- myDocument.getOutEdges(myConnections)
- myConnection.getOutEdges(myDocument)
- 
- # both
- myDocument.getEdges(myConnections)
- myConnection.getEdges(myDocument)
- 
- #you can also of ask for the raw json with
- myDocument.getInEdges(myConnections, rawResults = True)
- #otherwise Document objects are retuned in a list
+  
+  # in edges
+  myDocument.getInEdges(myConnections)
+  myConnections.getInEdges(myDocument)
+  
+  # out edges
+  myDocument.getOutEdges(myConnections)
+  myConnections.getOutEdges(myDocument)
+  
+  # both
+  myDocument.getEdges(myConnections)
+  myConnections.getEdges(myDocument)
+  
+  #you can also of ask for the raw json with
+  myDocument.getInEdges(myConnections, rawResults = True)
+  #otherwise Document objects are retuned in a list
