@@ -100,3 +100,43 @@ A note on inheritence:
 
 pyArango does not support the inheritence of the "_validation" and "_fields" dictionaries.
 If a class does not fully define it's own, the defaults will be automatically assigned to any missing value.
+
+Creating Edges:
+---------
+
+.. code:: python
+
+  from pyArango.Collection import Edges
+  
+  class Connections(Edges) :
+    
+    _validation = {
+      'on_save' : False,
+      'on_set' : False,
+      'allow_foreign_fields' : True # allow fields that are not part of the schema
+    }
+  	
+  	_fields = {
+  	  'length' : Field(NotNull = True),
+  	}
+  	
+Linking Documents with Edges:
+--------------
+
+.. code:: python
+
+ from pyArango.Collection import *
+ 
+ class Things(Collection) :
+   ....
+
+ class Connections(Edges) :
+   ....
+
+ ....
+ a = myThings.createDocument()
+ b = myThings.createDocument()
+ 
+ conn = myConnections.createEdge()
+ 
+ conn.links(a, b)
