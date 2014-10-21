@@ -140,3 +140,28 @@ Linking Documents with Edges:
  conn = myConnections.createEdge()
  
  conn.links(a, b)
+ conn["someField"] = 35
+ conn.save() #once an edge links documents, save() and patch() can be used as with any other Document object
+
+
+Geting Edges linked to a vertex:
+--------------
+
+You can do it either from a Document or an Edges collection:
+
+.. code:: python
+ # in edges
+ myDocument.getInEdges(myConnections)
+ myConnection.getInEdges(myDocument)
+ 
+ # out edges
+ myDocument.getOutEdges(myConnections)
+ myConnection.getOutEdges(myDocument)
+ 
+ # both
+ myDocument.getEdges(myConnections)
+ myConnection.getEdges(myDocument)
+ 
+ #you can also of ask for the raw json with
+ myDocument.getInEdges(myConnections, rawResults = True)
+ #otherwise Document objects are retuned in a list
