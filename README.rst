@@ -1,6 +1,12 @@
 pyArango (alpha)
 ==========
 
+Key Features :
+--------------
+ - Light and Simple interface
+ - Built-in Validation of fields
+ - Caching of documents with Insertions and Lookups in O(1)
+
 pyArango is still in active developpement, but it's tested and perfectly usable.
 pyArango aims to be an easy to use driver for arangoDB with built in validation. Collections are treated as types that apply to the documents within. You can be 100% permissive or enforce schemas and validate fields on set, on save or on both.
 I am developping pyArango for the purpose of an other project and adding features as they are needed.
@@ -93,4 +99,4 @@ A note on inheritence:
 ----------------------
 
 pyArango does not support the inheritence of the "_validation" and "_fields" dictionaries.
-If the a class does not fully define it's own, the defaults will be automatically assigned for any missing value.
+If a class does not fully define it's own, the defaults will be automatically assigned to any missing value.
