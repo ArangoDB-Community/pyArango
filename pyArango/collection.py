@@ -331,3 +331,4 @@ class Edges(Collection) :
 	def __init__(self, database, jsonData) :
 		Collection.__init__(self, database, jsonData)
 		self.documentClass = Edge
+		self.documentsURL = "%s/edge" % (self.database.URL)

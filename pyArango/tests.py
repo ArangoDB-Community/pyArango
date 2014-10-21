@@ -328,13 +328,12 @@ class ArangocityTests(unittest.TestCase):
 
 		link = rels.createDocument()
 		link["ctype"] = "brother"
-		print rels.type
 		link.links(tete, toto)
 
 		sameLink = rels[link._key]
 		self.assertEqual(sameLink["ctype"], link["ctype"])
-		self.assertEqual(sameLink._from, tete._key)
-		self.assertEqual(sameLink._to, toto._key)
+		self.assertEqual(sameLink._from, tete._id)
+		self.assertEqual(sameLink._to, toto._id)
 
 if __name__ == "__main__" :
 	unittest.main()

@@ -162,16 +162,12 @@ class Edge(Document) :
 	def reset(self, edgeCollection, jsonFieldInit = {}) :
 		Document.reset(self, edgeCollection, jsonFieldInit)
 
-	def setPrivates(self, edgeCollection, jsonFieldInit = {}) :
+	def setPrivates(self, jsonFieldInit) :
 		try :
-			self._id = jsonFieldInit["_to"]
-			del(jsonFieldInit["_to"])
-			
-			self._rev = jsonFieldInit["_from"]
-			del(jsonFieldInit["_from"])
+			self._from = jsonFieldInit["_from"]
+			self._to = jsonFieldInit["_to"]
 		except KeyError :
-			self._to, self._from = None, None
-
+			self._from, self._to = None, None
 		Document.setPrivates(self, jsonFieldInit)
 
 	def links(self, fromVertice, toVertice, **edgeArgs) :
@@ -187,47 +183,29 @@ class Edge(Document) :
 			raise ValueError("The first time you save an Edge you must specify the 'from' and 'to' vertices")
 
 		if fromVertice.__class__ is Document :
-			fv = fromVertice._key
+			fromId = fromVertice._id
 		elif type(fromVertice) is types.StringType :
-			fv = fromVertice
+			fromId = fromVertice
 		else :
 			raise ValueError("fromVertice must be either a Document or a String")
 		
 		if toVertice.__class__ is Document :
-			to = toVertice._key
+			toId = toVertice._id
 		elif type(toVertice) is types.StringType :
-			to = toVertice
+			toId = toVertice
 		else :
 			raise ValueError("toVertice must be either a Document or a String")
 
-		edgeArgs["from"] = fv
-		edgeArgs["to"] = to
+		edgeArgs["from"] = fromId
+		edgeArgs["to"] = toId
+		
+		self._from = fromId
+		self._to = toId
 
-		if self.collection._validation['on_save'] :
-			self.validate(patch = False, logErrors = False)
+		Document.save(self, **edgeArgs)
 
-		params = dict(edgeArgs)
-		params.update({'collection': fromVertice.collection.name })
-		payload = json.dumps(self._store)
+	def __str__(self) :
+		return 'ArangoEdge: ' + str(self._store)
 
-		if self.URL is None :
-			r = requests.post(self.documentsURL, params = params, data = payload)
-			update = False
-		else :
-			r = requests.put(self.URL, params = params, data = payload)
-			update = True
-
-		data = r.json()
-		if (r.status_code == 201 or r.status_code == 202) and not data['error'] :
-			if update :
-				self._rev = data['_rev']
-			else :
-				self.setPrivates(data)
-		else :
-			if update :
-				raise UpdateError(data['errorMessage'], data)
-			else :
-				print "--op--"
-				print params
-				print payload
-				raise CreationError(data['errorMessage'], data)
+	def __repr__(self) :
+		return 'ArangoEdge: ' + repr(self._store)

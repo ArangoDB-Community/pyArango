@@ -1,8 +1,9 @@
 import requests
 import json
 
-from document import Document
+from document import Document, Edge
 from theExceptions import AQLQueryError, SimpleQueryError
+import collection as COL
 
 class RawCursor(object) :
 	"a raw interface to cursors that returns json"
@@ -58,7 +59,10 @@ class Query(object) :
 		except KeyError :
 			raise CreationError("result %d is not a valid Document. Try setting rawResults to True" % i)
 
-		self.result[i] = Document(collection, docJson)
+		if collection.type == COL.COLLECTION_EDGE_TYPE :
+			self.result[i] = Edge(collection, docJson)
+ 		else :
+ 			self.result[i] = Document(collection, docJson)
 
 	def nextBatch(self) :
 		"become the next batch. raises a StopIteration if there is None"
@@ -138,4 +142,7 @@ class SimpleQuery(Query) :
 
 	def _developDoc(self, i) :
 		docJson = self.result[i]
-		self.result[i] = Document(self.collection, docJson)
+		if self.collection.type == COL.COLLECTION_EDGE_TYPE :
+			self.result[i] = Edge(self.collection, docJson)
+ 		else :
+ 			self.result[i] = Document(self.collection, docJson)
