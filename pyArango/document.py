@@ -132,6 +132,22 @@ class Document(object) :
 
 		return res
 
+	def getInEdges(self, edges, rawResults = False) :
+		"An alias for getEdges() that returns only the in Edges"
+		return self.getEdges(edges, inEdges = True, outEdges = False, rawResults = rawResults)
+		
+	def getOutEdges(self, edges, rawResults = False) :
+		"An alias for getEdges() that returns only the out Edges"
+		return self.getEdges(edges, inEdges = False, outEdges = True, rawResults = rawResults)
+
+	def getEdges(self, edges, inEdges = True, outEdges = True, rawResults = False) :
+		"""returns in, out, or both edges liked to self in the collection edges.
+		If rawResults a arango results will be return as fetched, if false, will return a liste of Edge objects"""
+		try :
+			return edges.getEdges(self, inEdges, outEdges, rawResults)
+		except AttributeError :
+			raise AttributeError("%s does not seem to be a valid Edges object" % edges)
+
 	def __getitem__(self, k) :
 		if self.collection._validation['allow_foreign_fields'] :
 			return self._store.get(k)
@@ -184,14 +200,14 @@ class Edge(Document) :
 
 		if fromVertice.__class__ is Document :
 			fromId = fromVertice._id
-		elif type(fromVertice) is types.StringType :
+		elif (type(fromVertice) is types.StringType) or (type(fromVertice) is types.UnicodeType) :
 			fromId = fromVertice
 		else :
 			raise ValueError("fromVertice must be either a Document or a String")
 		
 		if toVertice.__class__ is Document :
 			toId = toVertice._id
-		elif type(toVertice) is types.StringType :
+		elif (type(toVertice) is types.StringType) or (type(toVertice) is types.UnicodeType) :
 			toId = toVertice
 		else :
 			raise ValueError("toVertice must be either a Document or a String")

@@ -326,7 +326,7 @@ class ArangocityTests(unittest.TestCase):
 		toto["name"] = "toto"
 		toto.save()
 
-		link = rels.createDocument()
+		link = rels.createEdge()
 		link["ctype"] = "brother"
 		link.links(tete, toto)
 
@@ -334,6 +334,45 @@ class ArangocityTests(unittest.TestCase):
 		self.assertEqual(sameLink["ctype"], link["ctype"])
 		self.assertEqual(sameLink._from, tete._id)
 		self.assertEqual(sameLink._to, toto._id)
+
+	def test_get_edge(self) :
+		class Human(Collection) :
+			_fields = {
+				"number" : Field()
+			}
+
+		class Relation(Edges) :
+			_fields = {
+				"number" : Field()
+			}
+
+		humans = self.db.createCollection("Human")
+		rels = self.db.createCollection("Relation")
+		humansList = []
+		
+		for i in range(10) :
+			h = humans.createDocument()
+			h["number"] = i
+			humansList.append(h)
+			h.save()
+
+		for i in range(10) :
+			e = rels.createEdge()
+			e["number"] = i
+			if i % 2 == 1 :
+				e.links(humansList[0], humansList[i])
+			else :
+				e.links(humansList[-1], humansList[i])
+
+		outs = humansList[0].getOutEdges(rels)
+		self.assertEqual(len(outs), 5)
+		for o in outs :
+			self.assertEqual(o["number"] % 2, 1)
+
+		ins = humansList[-1].getOutEdges(rels)
+		self.assertEqual(len(ins), 5)
+		for i in ins :
+			self.assertEqual(i["number"] % 2, 0)
 
 if __name__ == "__main__" :
 	unittest.main()

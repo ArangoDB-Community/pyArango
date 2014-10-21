@@ -332,3 +332,49 @@ class Edges(Collection) :
 		Collection.__init__(self, database, jsonData)
 		self.documentClass = Edge
 		self.documentsURL = "%s/edge" % (self.database.URL)
+		self.edgesURL = "%ss/%s" % (self.documentsURL, self.name)
+
+	def createEdge(self) :
+		"alias for createDocument, both create an edge for Edges"
+		return self.createDocument()
+
+	def getInEdges(self, vertex, rawResults = False) :
+		"An alias for getEdges() that returns only the in Edges"
+		return self.getEdges(vertex, inEdges = True, outEdges = False, rawResults = rawResults)
+		
+	def getOutEdges(self, vertex, rawResults = False) :
+		"An alias for getEdges() that returns only the out Edges"
+		return self.getEdges(vertex, inEdges = False, outEdges = True, rawResults = rawResults)
+
+	def getEdges(self, vertex, inEdges = True, outEdges = True, rawResults = False) :
+		"""returns in, out, or both edges liked to a given document. vertex can be either a Document object or a string for an _id.
+		If rawResults a arango results will be return as fetched, if false, will return a liste of Edge objects"""
+		if vertex.__class__ is Document :
+			vId = vertex._id
+		elif (type(vertex) is types.UnicodeType) or (type(vertex) is types.StringType) :
+			vId = vertex
+		else :
+			raise ValueError("Vertex is neither a Document nor a String")
+
+		params = {"vertex" : vId}
+		if inEdges and outEdges :
+			pass
+		elif inEdges :
+			params["direction"] = "in"
+		elif outEdges :
+			params["direction"] = "out"
+		else :
+			raise ValueError("inEdges, outEdges or both must have a boolean value")
+		
+		r = requests.get(self.edgesURL, params = params)
+		data = r.json()
+		if r.status_code == 200 :
+			if not rawResults :
+				ret = []
+				for e in data["edges"] :
+					ret.append(Edge(self, e))
+				return ret
+			else :
+				return data["edges"]
+		else :
+			raise CreationError("Unable to return edges for vertex: %s" % vId, data)
