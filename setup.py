@@ -45,6 +45,8 @@ setup(
         'Programming Language :: Python :: 2.7',
     ],
 
+    install_requires=['requests'],
+    
     keywords='database ORM sqlite3',
 
     packages=find_packages(),

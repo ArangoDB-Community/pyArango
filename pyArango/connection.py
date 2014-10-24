@@ -16,9 +16,10 @@ class Connection(object) :
 		self.URL = '%s/_api' % self.arangoURL
 		self.databasesURL = '%s/database' % self.URL
 
-		self.update()
+		self.reload()
 	
-	def update(self) :
+	def reload(self) :
+		"reloads the database list"
 		r = requests.get(self.databasesURL)
 		data = r.json()
 		if r.status_code == 200  and not data["error"] :
@@ -51,7 +52,7 @@ class Connection(object) :
 		try :
 			return self.databases[dbName]
 		except KeyError :
-			self.update()
+			self.reload()
 			try :
 				return self.databases[dbName]
 			except KeyError :

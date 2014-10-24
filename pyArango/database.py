@@ -3,6 +3,7 @@ import json
 
 from collection import Collection, SystemCollection, GenericCollection, Edges, Collection_metaclass, COLLECTION_DOCUMENT_TYPE, COLLECTION_EDGE_TYPE
 from document import Document
+from graph import Graph
 from query import AQLQuery
 from theExceptions import CreationError, UpdateError
 
@@ -18,15 +19,20 @@ class Database(object) :
 		self.URL = '%s/_db/%s/_api' % (self.connection.arangoURL, self.name)
 		self.collectionsURL = '%s/collection' % (self.URL)
 		self.cursorsURL = '%s/cursor' % (self.URL)
-		
-		self.update()
+		self.graphsURL = "%s/graph" % self.URL
+
+		self.collections = {}
+		self.graphs = {}
+
+		self.reload()
 	
-	def update(self) :
-		"updates the collection list"
+	def reloadCollections(self) :
+		"reloads the collection list."
 		r = requests.get(self.collectionsURL)
 		data = r.json()
-		if r.status_code == 200 and not data["error"] :
+		if r.status_code == 200 :
 			self.collections = {}
+			
 			for colData in data["collections"] :
 				colName = colData['name']
 				if colData['isSystem'] :
@@ -37,12 +43,26 @@ class Database(object) :
 						colObj = colClass(self, colData)
 					except KeyError :
 						colObj = GenericCollection(self, colData)
+				self.collections[colName] = colObj
+		else :
+			raise updateError(data["errorMessage"], data)
 
-				if colName not in self.collections :
-					self.collections[colName] = colObj
+	def reloadGraphs(self) :
+		"reloads the graph list"
+		r = requests.get(self.graphsURL)
+		data = r.json()
+		if r.status_code == 200 :
+			self.graphs = {}
+			for graphData in data["graphs"] :
+				self.graphs[graphData["_key"]] = Graph(self, graphData)
 		else :
 			raise UpdateError(data["errorMessage"], data)
-
+	
+	def reload(self) :
+		"reloads collections and graphs"
+		self.reloadCollections()
+		self.reloadGraphs()
+	
 	def createCollection(self, className = 'GenericCollection', **colArgs) :
 		""" Must be a string representing the name of a class inheriting from Collection or Egdes. Use colArgs to put things such as 'isVolatile = True'.
 		The 'name' parameter will be ignored if className != 'GenericCollection' since it is already specified by className.
@@ -74,9 +94,26 @@ class Database(object) :
 		else :
 			raise CreationError(data["errorMessage"], data)
 
+	# def createEdges(self, className, **colArgs) :
+	# 	"an alias of createCollection"
+	# 	self.createCollection(className, **colArgs)
+	
+	def createGraph(self, _key, vertices, edges) :
+		payload = json.dumps({"_key" : _key, "vertices": vertices, "edges": edges})
+		r = requests.post(self.graphsURL, data = payload)
+		data = r.json()
+		if r.status_code == 201 :
+			self.graphs[_key] = Graph(self, data["graph"])
+		else :
+			raise CreationError(data["errorMessage"], data)		
+		return self.graphs[_key]
+
 	def hasCollection(self, name) :
 		return name in self.collections
 
+	def hasGraph(name):
+		return name in self.graphs
+	
 	def AQLQuery(self, query, rawResults, batchSize, bindVars = {}, options = {}, count = False, fullCount = False) :
 		"Set rawResults = True if you want the query to return dictionnaries instead of Document objects"
 		return AQLQuery(self, query, rawResults, batchSize, bindVars, options, count, fullCount)

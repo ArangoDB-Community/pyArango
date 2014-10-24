@@ -5,6 +5,7 @@ from database import *
 from collection import *
 from document import *
 from query import *
+from graph import *
 from theExceptions import *
 
 class ArangocityTests(unittest.TestCase):
@@ -21,7 +22,7 @@ class ArangocityTests(unittest.TestCase):
 		self._resetUp()
 
 	def _resetUp(self) :
-		self.db.update()
+		self.db.reload()
 		for colName in self.db.collections :
 			if not self.db[colName].isSystem :
 				self.db[colName].delete()
@@ -335,7 +336,7 @@ class ArangocityTests(unittest.TestCase):
 		self.assertEqual(sameLink._from, tete._id)
 		self.assertEqual(sameLink._to, toto._id)
 
-	def test_get_edge(self) :
+	def test_get_edges(self) :
 		class Human(Collection) :
 			_fields = {
 				"number" : Field()
@@ -373,6 +374,22 @@ class ArangocityTests(unittest.TestCase):
 		self.assertEqual(len(ins), 5)
 		for i in ins :
 			self.assertEqual(i["number"] % 2, 0)
+
+	def test_graph(self) :
+		class Human(Collection) :
+			_fields = {
+				"number" : Field()
+			}
+
+		class Relation(Edges) :
+			_fields = {
+				"number" : Field()
+			}
+
+		humans = self.db.createCollection("Human")
+		rels = self.db.createCollection("Relation")
+		g = self.db.createGraph("graph1", vertices = "Human", edges = "Relation")
+		print g
 
 if __name__ == "__main__" :
 	unittest.main()
