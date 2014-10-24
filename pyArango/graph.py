@@ -8,15 +8,12 @@ class Graph(object) :
 	def __init__(self, database, jsonInit) :
 		self.database = database
 
-		self._key = jsonInit["_key"]
+		self._key = jsonInit["name"]
 		self._rev = jsonInit["_rev"]
 		self._id = jsonInit["_id"]
 		self.edgeDefinitions = jsonInit["edgeDefinitions"]
-		try :
-			self.orphanCollections = jsonInit["orphanCollections"]
-		except KeyError :
-			self.orphanCollections = None
-
+		self.orphanCollections = jsonInit["orphanCollections"]
+	
 		self.URL = "%s/%s" % (self.database.graphsURL, self._key)
 
 	def createVertex(self, docAttributes, docName = None) :

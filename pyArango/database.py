@@ -1,5 +1,6 @@
 import requests
 import json
+import types
 
 from collection import Collection, SystemCollection, GenericCollection, Edges, Collection_metaclass, COLLECTION_DOCUMENT_TYPE, COLLECTION_EDGE_TYPE
 from document import Document
@@ -19,7 +20,7 @@ class Database(object) :
 		self.URL = '%s/_db/%s/_api' % (self.connection.arangoURL, self.name)
 		self.collectionsURL = '%s/collection' % (self.URL)
 		self.cursorsURL = '%s/cursor' % (self.URL)
-		self.graphsURL = "%s/graph" % self.URL
+		self.graphsURL = "%s/gharial" % self.URL
 
 		self.collections = {}
 		self.graphs = {}
@@ -51,6 +52,7 @@ class Database(object) :
 		"reloads the graph list"
 		r = requests.get(self.graphsURL)
 		data = r.json()
+		print data, self.graphsURL
 		if r.status_code == 200 :
 			self.graphs = {}
 			for graphData in data["graphs"] :
@@ -98,8 +100,24 @@ class Database(object) :
 	# 	"an alias of createCollection"
 	# 	self.createCollection(className, **colArgs)
 	
-	def createGraph(self, _key, vertices, edges) :
-		payload = json.dumps({"_key" : _key, "vertices": vertices, "edges": edges})
+	def createGraph(self, name, edges, fromCollections, toCollections, orphanCollections = []) :
+
+		if type(fromCollections) is not types.ListType or type(toCollections) is not types.ListType or type(orphanCollections) is not types.ListType :
+			raise ValueError("The values of 'fromCollections', 'toCollections' and 'orphanCollections' must be lists")
+
+		p = {
+				"name": name,
+				"edgeDefinitions":[
+					{
+						"collection":edges,
+						"from":fromCollections,
+						"to":toCollections
+					}
+				],
+				"orphanCollections":orphanCollections
+			}
+		
+		payload = json.dumps(p)
 		r = requests.post(self.graphsURL, data = payload)
 		data = r.json()
 		if r.status_code == 201 :

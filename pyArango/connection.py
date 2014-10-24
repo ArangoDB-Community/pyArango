@@ -4,6 +4,18 @@ import json
 from database import Database
 from theExceptions import SchemaViolation, CreationError, ConnectionError
 
+class DBHandle(Database) :
+	"As the loading of a DB triggers the loading of collections and graphs within. Only handles are loaded first. The full database is loaded on demand."
+	def __init__(self, connection, name) :
+		self.connection = connection
+		self.name = name
+
+	def __getattr__(self, k) :
+		name = object.__getattribute__(self, 'name')
+		connection = object.__getattribute__(self, 'connection')
+		Database.__init__(self, connection, name)
+		return object.__getattribute__(self, k)
+
 class Connection(object) :
 	"""Handles databases. Can't create db's and has no conception of users for now"""
 	def __init__(self, arangoURL = 'http://localhost:8529') :
@@ -19,15 +31,16 @@ class Connection(object) :
 		self.reload()
 	
 	def reload(self) :
-		"reloads the database list"
+		"""reloads the database list
+		As the loading of a DB triggers the loading of collections and graphs within. Only handles are loaded when this function is called. The full database is loaded on demand.
+		"""
 		r = requests.get(self.databasesURL)
 		data = r.json()
 		if r.status_code == 200  and not data["error"] :
 			self.databases = {}
 			for dbName in data["result"] :
 				if dbName not in self.databases :
-					db = Database(self, dbName)
-					self.databases[dbName] = db
+					self.databases[dbName] = DBHandle(self, dbName)
 		else :
 			raise ConnectionError(data["errorMessage"], self.databasesURL, data)
 

@@ -27,6 +27,9 @@ class ArangocityTests(unittest.TestCase):
 			if not self.db[colName].isSystem :
 				self.db[colName].delete()
 
+		for graph in self.db.graphs.itervalues() :
+			graph.delete()
+
 	def tearDown(self):
 		self._resetUp()
 		
@@ -388,7 +391,7 @@ class ArangocityTests(unittest.TestCase):
 
 		humans = self.db.createCollection("Human")
 		rels = self.db.createCollection("Relation")
-		g = self.db.createGraph("graph1", vertices = "Human", edges = "Relation")
+		g = self.db.createGraph("graph1", edges = "Relation", fromCollections = ["Human"], toCollections = ["Human"])
 		print g
 
 if __name__ == "__main__" :
