@@ -16,7 +16,7 @@ class Document(object) :
 		self._patchStore = {}
 
 		self.set(jsonFieldInit)
-		
+		self.modified = True
 
 	def setPrivates(self, fieldDict) :
 		try :
@@ -45,35 +45,44 @@ class Document(object) :
 			self._store.update(fieldDict)
 
 	def save(self, **docArgs) :
-		"""This fct either performs a POST (for a new document) or a PUT (complete document overwrite).
+		"""Either performs a POST (for a new document) or a PUT (complete document overwrite).
 		If you want to only update the modified fields use the .path() function.
-		Use docArgs to put things such as 'waitForSync = True'"""
-		
-		if self.collection._validation['on_save'] :
-			self.validate(patch = False, logErrors = False)
+		Use docArgs to put things such as 'waitForSync = True'.
+		It will only trigger a saving of the document if it has been modified since the last save. If you want to force the saving you can use forceSave()"""
 
-		params = dict(docArgs)
-		params.update({'collection': self.collection.name })
-		payload = json.dumps(self._store)
+		if self.modified :
+			if self.collection._validation['on_save'] :
+				self.validate(patch = False, logErrors = False)
 
-		if self.URL is None :
-			r = requests.post(self.documentsURL, params = params, data = payload)
-			update = False
-		else :
-			r = requests.put(self.URL, params = params, data = payload)
-			update = True
+			params = dict(docArgs)
+			params.update({'collection': self.collection.name })
+			payload = json.dumps(self._store)
 
-		data = r.json()
-		if (r.status_code == 201 or r.status_code == 202) and not data['error'] :
-			if update :
-				self._rev = data['_rev']
+			if self.URL is None :
+				r = requests.post(self.documentsURL, params = params, data = payload)
+				update = False
 			else :
-				self.setPrivates(data)
-		else :
-			if update :
-				raise UpdateError(data['errorMessage'], data)
+				r = requests.put(self.URL, params = params, data = payload)
+				update = True
+
+			data = r.json()
+			if (r.status_code == 201 or r.status_code == 202) and not data['error'] :
+				if update :
+					self._rev = data['_rev']
+				else :
+					self.setPrivates(data)
 			else :
-				raise CreationError(data['errorMessage'], data)
+				if update :
+					raise UpdateError(data['errorMessage'], data)
+				else :
+					raise CreationError(data['errorMessage'], data)
+
+			self.modified = False
+
+	def forceSave(self, **docArgs) :
+		"saves even if the document has not been modified since the last save"
+		self.modified = True
+		self.save(**docArgs)
 
 	def saveCopy(self) :
 		"saves a copy of the object and become that copy. returns a tuple (old _key, new _key)"
@@ -93,16 +102,19 @@ class Document(object) :
 		if self.URL is None :
 			raise ValueError("Cannot patch a document that was not previously saved")
 		
-		params = dict(docArgs)
-		params.update({'collection': self.collection.name, 'keepNull' : keepNull})
-		payload = json.dumps(self._patchStore)
-		
-		r = requests.patch(self.URL, params = params, data = payload)
-		data = r.json()
-		if (r.status_code == 201 or r.status_code == 202) and not data['error'] :
-			self._rev = data['_rev']
-		else :
-			raise UpdateError(data['errorMessage'], data)
+		if len(self._patchStore) > 0 :
+			params = dict(docArgs)
+			params.update({'collection': self.collection.name, 'keepNull' : keepNull})
+			payload = json.dumps(self._patchStore)
+			
+			r = requests.patch(self.URL, params = params, data = payload)
+			data = r.json()
+			if (r.status_code == 201 or r.status_code == 202) and not data['error'] :
+				self._rev = data['_rev']
+			else :
+				raise UpdateError(data['errorMessage'], data)
+
+			self.modified = False
 
 	def delete(self) :
 		if self.URL is None :
@@ -112,6 +124,8 @@ class Document(object) :
 		if (r.status_code != 200 and r.status_code != 202) or data['error'] :
 			raise DeletionError(data['errorMessage'], data)
 		self.reset(self.collection)
+
+		self.modified = True
 
 	def validate(self, patch = False, logErrors = True) :
 		"validates either the whole store, or only the patch store( patch = True) of the document according to the collection's settings.If logErrors returns a dictionary of errros per field, else raises exceptions"
@@ -163,7 +177,9 @@ class Document(object) :
 		self._store[k] = v
 		if self.URL is not None :
 			self._patchStore[k] = self._store[k]
-	
+		
+		self.modified = True
+
 	def __str__(self) :
 		return 'ArangoDoc: ' + str(self._store)
 
@@ -187,9 +203,12 @@ class Edge(Document) :
 		Document.setPrivates(self, jsonFieldInit)
 
 	def links(self, fromVertice, toVertice, **edgeArgs) :
-		"an alias of save that works only for first saves"
+		"an alias of save that works only for first saves. It will also trigger the saving of fromVertice and toVertice"
 		if self.URL is not None :
 			raise AttributeError("It appears that the edge has already been saved. You can now use save() and patch()")
+		
+		fromVertice.save()
+		toVertice.save()
 
 		self.save(fromVertice, toVertice, **edgeArgs)
 
@@ -217,7 +236,6 @@ class Edge(Document) :
 		
 		self._from = fromId
 		self._to = toId
-
 		Document.save(self, **edgeArgs)
 
 	def __str__(self) :

@@ -154,6 +154,38 @@ class Collection_metaclass(type) :
 		except KeyError :
 			raise KeyError("There's no child of Collection by the name of: %s" % name)
 
+	@classmethod
+	def isCollection(cls, name) :
+		return name in cls.collectionClasses
+
+	@classmethod
+	def isDocumentCollection(cls, name) :
+		try :
+			col = cls.getCollectionClass(name)
+			return issubclass(col, Collection)
+		except KeyError :
+			return False
+
+	@classmethod
+	def isEdgeCollection(cls, name) :
+		try :
+			col = cls.getCollectionClass(name)
+			return issubclass(col, Edges)
+		except KeyError :
+			return False
+
+def getCollectionClass(name) :
+	return Collection_metaclass.getCollectionClass(name)
+
+def isCollection(name) :
+	return Collection_metaclass.isCollection(name)
+
+def isDocumentCollection(name) :
+	return Collection_metaclass.isDocumentCollection(name)
+
+def isEdgeCollection(name) :
+	return Collection_metaclass.isEdgeCollection(name)
+
 class Collection(object) :
 
 	#here you specify the fields that you want for the documents in your collection
@@ -198,9 +230,9 @@ class Collection(object) :
 		if not r.status_code == 200 or data["error"] :
 			raise DeletionError(data["errorMessage"], data)
 
-	def createDocument(self) :
-		"returns an empty document"
-		return self.documentClass(self)
+	def createDocument(self, initValues = {}) :
+		"create and returns a document"
+		return self.documentClass(self, initValues)
 
 	def validateField(self, fieldName, value) :
 		if not self._validation["allow_foreign_fields"] and (fieldName not in self._fields) :
@@ -274,7 +306,9 @@ class Collection(object) :
 	def figures(self) :
 		"a more elaborate version of count, see arangodb docs for more infos"
 		return self.action('GET', 'figures')
-
+	# def createEdges(self, className, **colArgs) :
+	# 	"an alias of createCollection"
+	# 	self.createCollection(className, **colArgs)
 	def getType(self) :
 		"returns a word describing the type instead of a number, if you prefer the number it's in self.type"
 		if self.type == COLLECTION_DOCUMENT_TYPE :
@@ -334,9 +368,9 @@ class Edges(Collection) :
 		self.documentsURL = "%s/edge" % (self.database.URL)
 		self.edgesURL = "%ss/%s" % (self.documentsURL, self.name)
 
-	def createEdge(self) :
-		"alias for createDocument, both create an edge for Edges"
-		return self.createDocument()
+	def createEdge(self, initValues = {}) :
+		"alias for createDocument, both functions create an edge"
+		return self.createDocument(initValues)
 
 	def getInEdges(self, vertex, rawResults = False) :
 		"An alias for getEdges() that returns only the in Edges"

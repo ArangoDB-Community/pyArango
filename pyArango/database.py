@@ -2,7 +2,19 @@ import requests
 import json
 import types
 
-from collection import Collection, SystemCollection, GenericCollection, Edges, Collection_metaclass, COLLECTION_DOCUMENT_TYPE, COLLECTION_EDGE_TYPE
+from collection import (
+	Collection,
+	SystemCollection,
+	GenericCollection,
+	Edges,
+	Collection_metaclass,
+	COLLECTION_DOCUMENT_TYPE,
+	COLLECTION_EDGE_TYPE,
+
+	isCollection,
+	isEdgeCollection
+)
+
 from document import Document
 from graph import Graph
 from query import AQLQuery
@@ -52,10 +64,14 @@ class Database(object) :
 		"reloads the graph list"
 		r = requests.get(self.graphsURL)
 		data = r.json()
-		print data, self.graphsURL
 		if r.status_code == 200 :
 			self.graphs = {}
 			for graphData in data["graphs"] :
+				try :
+					self._checkGraphCollections(graphData["edgeDefinitions"], graphData["orphanCollections"])
+				except ValueError as e :
+					print("WARNING: %s. The graph might not be functional" % e)
+
 				self.graphs[graphData["_key"]] = Graph(self, graphData)
 		else :
 			raise UpdateError(data["errorMessage"], data)
@@ -101,30 +117,50 @@ class Database(object) :
 	# 	self.createCollection(className, **colArgs)
 	
 	def createGraph(self, name, edges, fromCollections, toCollections, orphanCollections = []) :
+		"""Creates a graph and returns it. Contrary to arango's default behaviour if the collections you specify as argument do not exist, this function will raise a ValueError."""
 
 		if type(fromCollections) is not types.ListType or type(toCollections) is not types.ListType or type(orphanCollections) is not types.ListType :
 			raise ValueError("The values of 'fromCollections', 'toCollections' and 'orphanCollections' must be lists")
 
-		p = {
+		ed = [
+				{
+					"collection":edges,
+					"from":fromCollections,
+					"to":toCollections
+				}
+			]
+		
+		self._checkGraphCollections(ed, orphanCollections)
+
+		payload = {
 				"name": name,
-				"edgeDefinitions":[
-					{
-						"collection":edges,
-						"from":fromCollections,
-						"to":toCollections
-					}
-				],
+				"edgeDefinitions": ed,
 				"orphanCollections":orphanCollections
 			}
 		
-		payload = json.dumps(p)
+
+		payload = json.dumps(payload)
 		r = requests.post(self.graphsURL, data = payload)
 		data = r.json()
 		if r.status_code == 201 :
-			self.graphs[_key] = Graph(self, data["graph"])
+			self.graphs[name] = Graph(self, data["graph"])
 		else :
 			raise CreationError(data["errorMessage"], data)		
-		return self.graphs[_key]
+		return self.graphs[name]
+
+	def _checkGraphCollections(self, edgeDefinitions, orphanCollections) :
+		def checkList(lst) :
+			for colName in lst :
+				if not isCollection(colName) :
+					raise ValueError("'%s' is not a defined Collection" % colName)
+
+		for ed in edgeDefinitions :
+			if not isEdgeCollection(ed["collection"]) :
+				raise ValueError("'%s' is not a defined Edge Collection" % ed["collection"])
+			checkList(ed["from"])
+			checkList(ed["to"])
+		
+		checkList(orphanCollections)
 
 	def hasCollection(self, name) :
 		return name in self.collections

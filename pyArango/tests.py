@@ -19,19 +19,19 @@ class ArangocityTests(unittest.TestCase):
 			pass
 
 		self.db = self.conn["test_db"]
-		self._resetUp()
+		self._reset()
 
-	def _resetUp(self) :
+	def _reset(self) :
 		self.db.reload()
-		for colName in self.db.collections :
-			if not self.db[colName].isSystem :
-				self.db[colName].delete()
+		# for colName in self.db.collections :
+		# 	if not self.db[colName].isSystem :
+		# 		self.db[colName].delete()
 
-		for graph in self.db.graphs.itervalues() :
-			graph.delete()
+		# for graph in self.db.graphs.itervalues() :
+		# 	graph.delete()
 
 	def tearDown(self):
-		self._resetUp()
+		self._reset()
 		
 	def createManyUsers(self, nbUsers) :
 	 	collection = self.db.createCollection(name = "users")
@@ -379,20 +379,22 @@ class ArangocityTests(unittest.TestCase):
 			self.assertEqual(i["number"] % 2, 0)
 
 	def test_graph(self) :
-		class Human(Collection) :
+		class Humans(Collection) :
+			_fields = {
+				"name" : Field()
+			}
+
+		class Friend(Edges) :
 			_fields = {
 				"number" : Field()
 			}
 
-		class Relation(Edges) :
-			_fields = {
-				"number" : Field()
-			}
-
-		humans = self.db.createCollection("Human")
-		rels = self.db.createCollection("Relation")
-		g = self.db.createGraph("graph1", edges = "Relation", fromCollections = ["Human"], toCollections = ["Human"])
-		print g
+		humans = self.db.createCollection("Humans")
+		rels = self.db.createCollection("Friend")
+		g = self.db.createGraph("graph1", edges = "Friend", fromCollections = ["Humans"], toCollections = ["Humans"])
+		h1 = humans.createDocument({"name" : "simba"})
+		h2 = humans.createDocument({"name" : "simba2"})
+		g["Friend"].link(h1, h2, {"number" : 33})
 
 if __name__ == "__main__" :
 	unittest.main()
