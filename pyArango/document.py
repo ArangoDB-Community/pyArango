@@ -155,7 +155,7 @@ class Document(object) :
 		return self.getEdges(edges, inEdges = False, outEdges = True, rawResults = rawResults)
 
 	def getEdges(self, edges, inEdges = True, outEdges = True, rawResults = False) :
-		"""returns in, out, or both edges liked to self in the collection edges.
+		"""returns in, out, or both edges linked to self belonging the collection 'edges'.
 		If rawResults a arango results will be return as fetched, if false, will return a liste of Edge objects"""
 		try :
 			return edges.getEdges(self, inEdges, outEdges, rawResults)

@@ -23,12 +23,12 @@ class ArangocityTests(unittest.TestCase):
 
 	def _reset(self) :
 		self.db.reload()
-		# for colName in self.db.collections :
-		# 	if not self.db[colName].isSystem :
-		# 		self.db[colName].delete()
+		for colName in self.db.collections :
+			if not self.db[colName].isSystem :
+				self.db[colName].delete()
 
-		# for graph in self.db.graphs.itervalues() :
-		# 	graph.delete()
+		for graph in self.db.graphs.itervalues() :
+			graph.delete()
 
 	def tearDown(self):
 		self._reset()

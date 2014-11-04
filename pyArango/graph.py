@@ -88,3 +88,14 @@ class Graph(object) :
 
 	def __str__(self) :
 		return "ArangoGraph; %s" % self._key
+
+if False :
+	
+	class Friendship(Graph) :
+
+		_definitions = {
+			"friend" : EdgeDefinition(edges = "e", _from = [""], _to = []),
+			"livesIn" : EdgeDefinition(edges = "e", _from = [""], _to = [])
+		}
+
+		_orphanedCollections = [""]
