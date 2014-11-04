@@ -4,26 +4,57 @@ import json
 from theExceptions import (CreationError, DeletionError, UpdateError)
 import collection as COL
 
-class EdgeDefinition(object) :
-	def __init__(self, graph, jsonInit) :
-		self.graph = graph
+# class EdgeDefinition(object) :
+# 	def __init__(self, _from, _to) :	
+# 		self._from = _from
+# 		self._to = _to
 
-		self.name = jsonInit["collection"]
-		
-		self.fromCollections = set(jsonInit["from"])
-		self.toCollections = set(jsonInit["to"])
-		
-	def link(self, doc1, doc2, edgeValues) :
-		if doc1.collection.__class__.__name__ not in self.fromCollections :
-			raise ValueError("'doc1' collection must one of the following '%s', got %s" % (self.fromCollections, doc1.collection.__class__.__name__))
+class Graph_metaclass(type) :
+	
+	graphClasses = {}
+	
+	def __new__(cls, name, bases, attrs) :
+		clsObj = type.__new__(cls, name, bases, attrs)
+		Graph_metaclass.graphClasses[name] = clsObj
+		return clsObj
 
-		if doc2.collection.__class__.__name__ not in self.toCollections :
-			raise ValueError("'doc2' collection must one of the following '%s', got %s" % (self.toCollections, doc2.collection.__class__.__name__))
+	@classmethod
+	def getGraphClass(cls, name) :
+		try :
+			return cls.graphClasses[name]
+		except KeyError :
+			raise KeyError("There's no child of Graph by the name of: %s" % name)
 
-		edge = self.graph.database[self.name].createEdge(edgeValues)
-		edge.links(doc1, doc2)
+	@classmethod
+	def isGraph(cls, name) :
+		return name in cls.graphClasses
+
+	@classmethod
+	def isDocumentGraph(cls, name) :
+		try :
+			col = cls.getGraphClass(name)
+			return issubclass(col, Graph)
+		except KeyError :
+			return False
+
+	@classmethod
+	def isEdgeGraph(cls, name) :
+		try :
+			col = cls.getGraphClass(name)
+			return issubclass(col, Edges)
+		except KeyError :
+			return False
+
+def getGraphClass(name) :
+	return Graph_metaclass.getGraphClass(name)
+
+def isGraph(name) :
+	return Graph_metaclass.isGraph(name)
 
 class Graph(object) :
+
+	_definitions = {}
+	_orphanedCollections = []
 
 	def __init__(self, database, jsonInit) :
 		self.database = database
@@ -38,12 +69,22 @@ class Graph(object) :
 		self._id = jsonInit["_id"]
 	
 		self.edgeDefinitions = {}
+		defs = []
 		for e in jsonInit["edgeDefinitions"] :
-			ed = EdgeDefinition(self, e)
-			self.edgeDefinitions[ed.name] = ed
-		
-		self.orphanCollections = jsonInit["orphanCollections"]
-		
+			if e["collection"] not in self._definitions :
+				raise CreationError("Collection '%s' is not mentioned in the definition of graph '%s'" (e["collection"], self.__class__,__name__))
+			if e["from"] != self._definitions[e["collection"]]["from"] :
+				raise CreationError("Edge definition '%s' of graph '%s' mismatch for 'from':\npython:%s\narangoDB:%s" (e["collection"], self.__class__,__name__, self._definitions[e["collection"]]["from"], e["from"]))
+			if e["to"] != self._definitions[e["collection"]]["to"] :
+				raise CreationError("Edge definition '%s' of graph '%s' mismatch for 'to':\npython:%s\narangoDB:%s" (e["collection"], self.__class__,__name__, self._definitions[e["collection"]]["to"], e["to"]))if e["to"] != self._definitions[e["collection"]]["to"] :
+			defs.aappend(e["collection"])
+
+		if len(defs) != len(self._definitions) :
+
+
+		if jsonInit["orphanCollections"] != self._orphanCollections
+			raise CreationError("Orphan collection '%s' of graph '%s' mismatch:\npython:%s\narangoDB:%s" (e["collection"], self.__class__,__name__, self._orphanCollections, jsonInit["orphanCollections"]))
+			
 		self.URL = "%s/%s" % (self.database.graphsURL, self._key)
 
 	# def createVertex(self, docAttributes, docName = None) :
@@ -91,11 +132,17 @@ class Graph(object) :
 
 if False :
 	
-	class Friendship(Graph) :
+	class Social(Graph) :
 
 		_definitions = {
-			"friend" : EdgeDefinition(edges = "e", _from = [""], _to = []),
-			"livesIn" : EdgeDefinition(edges = "e", _from = [""], _to = [])
+			"friend" : EdgeDefinition(_from = [""], _to = []),
+			"livesIn" : {"from" : [], "to" : []}
 		}
 
 		_orphanedCollections = [""]
+
+
+	s = Social()
+	s.link("friend", a, b)
+	s["friend"](a, b)
+	s.newDocument()

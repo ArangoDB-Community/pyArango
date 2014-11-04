@@ -2,18 +2,21 @@ import requests
 import json
 import types
 
-from collection import (
-	Collection,
-	SystemCollection,
-	GenericCollection,
-	Edges,
-	Collection_metaclass,
-	COLLECTION_DOCUMENT_TYPE,
-	COLLECTION_EDGE_TYPE,
+# from collection import (
+# 	Collection,
+# 	COL.SystemCollection,
+# 	COL.GenericCollection,
+# 	COL.COL.Edges,
+# 	COL,
+# 	COL.COLLECTION_DOCUMENT_TYPE,
+# 	COLLECTION_EDGE_TYPE,
 
-	isCollection,
-	isEdgeCollection
-)
+# 	COL.isCollection,
+# 	COL.isEdgeCollection
+# )
+
+import collection as COL
+import graph as GR
 
 from document import Document
 from graph import Graph
@@ -49,13 +52,13 @@ class Database(object) :
 			for colData in data["collections"] :
 				colName = colData['name']
 				if colData['isSystem'] :
-					colObj = SystemCollection(self, colData)
+					colObj = COL.SystemCollection(self, colData)
 				else :
 					try :
-						colClass = Collection_metaclass.getCollectionClass(colName)
+						colClass = COL.getCollectionClass(colName)
 						colObj = colClass(self, colData)
 					except KeyError :
-						colObj = GenericCollection(self, colData)
+						colObj = COL.GenericCollection(self, colData)
 				self.collections[colName] = colObj
 		else :
 			raise updateError(data["errorMessage"], data)
@@ -67,12 +70,7 @@ class Database(object) :
 		if r.status_code == 200 :
 			self.graphs = {}
 			for graphData in data["graphs"] :
-				try :
-					self._checkGraphCollections(graphData["edgeDefinitions"], graphData["orphanCollections"])
-				except ValueError as e :
-					print("WARNING: %s. The graph might not be functional" % e)
-
-				self.graphs[graphData["_key"]] = Graph(self, graphData)
+				self.graphs[graphData["_key"]] = GR.getGraphClass(graphData["_key"])(self, graphData)
 		else :
 			raise UpdateError(data["errorMessage"], data)
 	
@@ -92,15 +90,15 @@ class Database(object) :
 			if 'name' not in colArgs :
 				raise ValueError("a 'name' argument mush be supplied if you want to create a generic collection")
 					
-		colClass = Collection_metaclass.getCollectionClass(className)
+		colClass = COL.getCollectionClass(className)
 
 		if colArgs['name'] in self.collections :
 			raise CreationError("Database %s already has a collection named %s" % (self.name, colArgs['name']) )
 
-		if issubclass(colClass, Edges) :
-			colArgs["type"] = COLLECTION_EDGE_TYPE
+		if issubclass(colClass, COL.Edges) :
+			colArgs["type"] = COL.COLLECTION_EDGE_TYPE
 		else :
-			colArgs["type"] = COLLECTION_DOCUMENT_TYPE
+			colArgs["type"] = COL.COLLECTION_DOCUMENT_TYPE
 				
 		payload = json.dumps(colArgs)
 		r = requests.post(self.collectionsURL, data = payload)
@@ -151,11 +149,11 @@ class Database(object) :
 	def _checkGraphCollections(self, edgeDefinitions, orphanCollections) :
 		def checkList(lst) :
 			for colName in lst :
-				if not isCollection(colName) :
+				if not COL.isCollection(colName) :
 					raise ValueError("'%s' is not a defined Collection" % colName)
 
 		for ed in edgeDefinitions :
-			if not isEdgeCollection(ed["collection"]) :
+			if not COL.isEdgeCollection(ed["collection"]) :
 				raise ValueError("'%s' is not a defined Edge Collection" % ed["collection"])
 			checkList(ed["from"])
 			checkList(ed["to"])
