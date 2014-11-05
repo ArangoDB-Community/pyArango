@@ -239,6 +239,20 @@ class Collection(object) :
 			raise SchemaViolation(self, fieldName)
 		self.__class__._fields[fieldName].validate(value)
 
+	def _validateDct(self, dct) :
+		"validates a dictionarie"
+		res = {}
+		for k, v in dct :
+			try :
+				self.validateField(k, v)
+			except (ConstraintViolation, SchemaViolation) as e:
+				res[k] = str(e)
+
+		if len(res) > 0 :
+			raise ValidationError(res)
+
+		return True
+
 	def fetchDocument(self, key, rawResults = False, rev = None) :
 		"Fetches a document from the collection given it's key. This function always goes straight to the db and bypasses the cache"
 		url = "%s/%s/%s" % (self.documentsURL, self.name, key)

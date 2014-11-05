@@ -127,24 +127,12 @@ class Document(object) :
 
 		self.modified = True
 
-	def validate(self, patch = False, logErrors = True) :
+	def validate(self, patch = False) :
 		"validates either the whole store, or only the patch store( patch = True) of the document according to the collection's settings.If logErrors returns a dictionary of errros per field, else raises exceptions"
-		res = {}
 		if patch :
-			store = self._patchStore
+			return self.collection._validateDct(self._patchStore)
 		else :
-			store = self._store
-
-		for k, v in store.iteritems() :
-			try :
-				self.collection.validateField(k, v)
-			except (ConstraintViolation, SchemaViolation) as e:
-				res[k] = str(e)
-
-		if len(res) > 0 :
-			raise ValidationError(res)
-
-		return res
+			return self.collection._validateDct(self._store)
 
 	def getInEdges(self, edges, rawResults = False) :
 		"An alias for getEdges() that returns only the in Edges"

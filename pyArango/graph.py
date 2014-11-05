@@ -4,11 +4,6 @@ import json
 from theExceptions import (CreationError, DeletionError, UpdateError)
 import collection as COL
 
-# class EdgeDefinition(object) :
-# 	def __init__(self, _from, _to) :	
-# 		self._from = _from
-# 		self._to = _to
-
 class Graph_metaclass(type) :
 	
 	graphClasses = {}
@@ -68,7 +63,6 @@ class Graph(object) :
 		self._rev = jsonInit["_rev"]
 		self._id = jsonInit["_id"]
 	
-		self.edgeDefinitions = {}
 		defs = []
 		for e in jsonInit["edgeDefinitions"] :
 			if e["collection"] not in self._definitions :
@@ -77,23 +71,58 @@ class Graph(object) :
 				raise CreationError("Edge definition '%s' of graph '%s' mismatch for 'from':\npython:%s\narangoDB:%s" (e["collection"], self.__class__,__name__, self._definitions[e["collection"]]["from"], e["from"]))
 			if e["to"] != self._definitions[e["collection"]]["to"] :
 				raise CreationError("Edge definition '%s' of graph '%s' mismatch for 'to':\npython:%s\narangoDB:%s" (e["collection"], self.__class__,__name__, self._definitions[e["collection"]]["to"], e["to"]))if e["to"] != self._definitions[e["collection"]]["to"] :
-			defs.aappend(e["collection"])
+			defs.append(e["collection"])
 
-		if len(defs) != len(self._definitions) :
-
-
+		# if len(defs) < len(self._definitions) :
+		# 	for e in self._definitions :
+		# 		self.addDefinition(**e)
+			
 		if jsonInit["orphanCollections"] != self._orphanCollections
 			raise CreationError("Orphan collection '%s' of graph '%s' mismatch:\npython:%s\narangoDB:%s" (e["collection"], self.__class__,__name__, self._orphanCollections, jsonInit["orphanCollections"]))
 			
 		self.URL = "%s/%s" % (self.database.graphsURL, self._key)
 
-	# def createVertex(self, docAttributes, docName = None) :
-	# 	url = "%s/vertex" % (self.URL)
+	def createVertex(self, collectionName, docAttributes, waitForSync = False) :
+		url = "%s/vertex/%s" % (self.URL, collectionName)
+		col = COL.getCollection(collectionName)
+		col._validateDct(docAttributes)
+
+		r = requests.post(url, data = docAttributes, params = {'waitForSync' : waitForSync})
+		if r.status_code == 201 or r.status_code == 202 :
+			return col[r.json()["_key"]]
+		raise CreationError("Unable to create vertice, %s" % r.json()["errorMessage"], data)
+
+	def deleteVertex(self, _key, waitForSync = False) :
+		url = "%s/vertex/%s" % (self.URL, key)
 		
-	# 	if docName is not None :
-	# 		payload = {"_key" : docName}
-	# 		payload.update
-	# 	r = requests.post()
+		r = requests.delete(url, params = {'waitForSync' : waitForSync})
+		if r.status_code == 200 or r.status_code == 202 :
+			return True
+		raise DeletionError("Unable to delete vertice, %s" % _key, data)
+
+	def createEdge(self, collectionName, _fromId, _toId, docAttributes, waitForSync = False) :
+		url = "%s/edge/%s" % (self.URL, collectionName)
+		col = COL.getCollection(collectionName)
+		col._validateDct(docAttributes)
+		payload = docAttributes
+		payload.update({'_from' : _fromId, '_to' : _toId})
+
+		r = requests.post(url, data = payload, params = {'waitForSync' : waitForSync})
+		if r.status_code == 201 or r.status_code == 202 :
+			return col[r.json()["_key"]]
+		raise CreationError("Unable to create vertice, %s" % r.json()["errorMessage"], data)
+
+	def link(self, definition, doc1, doc2, waitForSync = False) :
+		"A shorthand for createEdge that takes two documents as inputs"
+		self.createEdge(definition, doc1._id, doc2._id, waitForSync)
+
+	def deleteEdge(self, _key, waitForSync = False) :
+		url = "%s/edge/%s" % (self.URL, key)
+		
+		r = requests.delete(url, params = {'waitForSync' : waitForSync})
+		if r.status_code == 200 or r.status_code == 202 :
+			return True
+		raise DeletionError("Unable to delete edge, %s" % _key, data)
 
 	def delete(self) :
 		r = requests.delete(self.URL)
@@ -101,32 +130,7 @@ class Graph(object) :
 		if not r.status_code == 200 or data["error"] :
 			raise DeletionError(data["errorMessage"], data)
 
-	def _link(self, definitionName, edgeValues, document1, document2) :
-		edge = self.database[definitionName].createEdge()
-		edge.set(edgeValues)
-		edge.links(document1, document2)
-
-	def getRelations(self) :
-		return self.edgeDefinitions.keys()
-
-	def addVertexCollection(self, collection) :
-		pass
-
-	def removeVertexCollection(self) :
-		pass
-
-	def addEdgeDefinition(self):
-		pass	
 	
-	def replaceEdgeDefinition(self):	
-		pass
-
-	def removeEdgeDefinition(self):	
-		pass
-
-	def __getitem__(self, k) :
-		return self.edgeDefinitions[k]
-
 	def __str__(self) :
 		return "ArangoGraph; %s" % self._key
 
