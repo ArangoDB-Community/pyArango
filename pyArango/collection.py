@@ -3,7 +3,7 @@ import json
 import types
 
 from document import Document, Edge
-from theExceptions import ConstraintViolation, SchemaViolation, CreationError, UpdateError, DeletionError
+from theExceptions import ConstraintViolation, SchemaViolation, CreationError, UpdateError, DeletionError, ValidationError
 from query import SimpleQuery
 
 COLLECTION_DOCUMENT_TYPE = 2
@@ -242,7 +242,7 @@ class Collection(object) :
 	def _validateDct(self, dct) :
 		"validates a dictionarie"
 		res = {}
-		for k, v in dct :
+		for k, v in dct.iteritems() :
 			try :
 				self.validateField(k, v)
 			except (ConstraintViolation, SchemaViolation) as e:

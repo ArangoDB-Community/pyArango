@@ -52,7 +52,7 @@ class Document(object) :
 
 		if self.modified :
 			if self.collection._validation['on_save'] :
-				self.validate(patch = False, logErrors = False)
+				self.validate(patch = False)
 
 			params = dict(docArgs)
 			params.update({'collection': self.collection.name })

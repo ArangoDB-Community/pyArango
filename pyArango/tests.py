@@ -389,12 +389,18 @@ class ArangocityTests(unittest.TestCase):
 				"number" : Field()
 			}
 
+		class MyGraph(Graph) :
+
+			_edgeDefinitions = (EdgeDefinition("Friend", fromCollections = ["Humans"], toCollections = ["Humans"]), )
+			_orphanedCollections = []
+				
 		humans = self.db.createCollection("Humans")
 		rels = self.db.createCollection("Friend")
-		g = self.db.createGraph("graph1", edges = "Friend", fromCollections = ["Humans"], toCollections = ["Humans"])
-		h1 = humans.createDocument({"name" : "simba"})
-		h2 = humans.createDocument({"name" : "simba2"})
-		g["Friend"].link(h1, h2, {"number" : 33})
+		g = self.db.createGraph("MyGraph")
+		h1 = g.createVertex('Human', {"name" : "simba"})
+		h2 = g.createVertex('Human', {"name" : "simba2"})
+		g.link('Friend', h1, h2)
+		print h2.getEdges()
 
 if __name__ == "__main__" :
 	unittest.main()

@@ -114,26 +114,35 @@ class Database(object) :
 	# 	"an alias of createCollection"
 	# 	self.createCollection(className, **colArgs)
 	
-	def createGraph(self, name, edges, fromCollections, toCollections, orphanCollections = []) :
-		"""Creates a graph and returns it. Contrary to arango's default behaviour if the collections you specify as argument do not exist, this function will raise a ValueError."""
+	def createGraph(self, name, createCollections = True) :
+		"""Creates a graph and returns it. You can decide weither or not you want non existing collections to be created by setting the value of 'createCollections'.
+		  If the value if 'false' checks will be performed t omake sure that every collaction mentionned in the edges definition exist. Raises a value error in case of
+		  a non-existing collection."""
 
-		if type(fromCollections) is not types.ListType or type(toCollections) is not types.ListType or type(orphanCollections) is not types.ListType :
-			raise ValueError("The values of 'fromCollections', 'toCollections' and 'orphanCollections' must be lists")
+		def _checkCollectionList(lst) :
+			for colName in lst :
+				if not COL.isCollection(colName) :
+					raise ValueError("'%s' is not a defined Collection" % colName)
 
-		ed = [
-				{
-					"collection":edges,
-					"from":fromCollections,
-					"to":toCollections
-				}
-			]
+		graphClass = GR.getGraphClass(name)
+
+		ed = []
+		for e in graphClass._edgeDefinitions :
+			if not createCollections :
+				if not COL.isEdgeCollection(e.edgesCollection) :
+					raise ValueError("'%s' is not a defined Edge Collection" % e.edgesCollection)
+				_checkCollectionList(e.fromCollections)
+				_checkCollectionList(e.toCollections)
+
+			ed.append(e.toJson())
 		
-		self._checkGraphCollections(ed, orphanCollections)
+		if not createCollections :
+			_checkCollectionList(graphClass._orphanedCollections)
 
 		payload = {
 				"name": name,
 				"edgeDefinitions": ed,
-				"orphanCollections":orphanCollections
+				"orphanCollections": graphClass._orphanedCollections
 			}
 		
 
@@ -147,14 +156,9 @@ class Database(object) :
 		return self.graphs[name]
 
 	def _checkGraphCollections(self, edgeDefinitions, orphanCollections) :
-		def checkList(lst) :
-			for colName in lst :
-				if not COL.isCollection(colName) :
-					raise ValueError("'%s' is not a defined Collection" % colName)
 
 		for ed in edgeDefinitions :
-			if not COL.isEdgeCollection(ed["collection"]) :
-				raise ValueError("'%s' is not a defined Edge Collection" % ed["collection"])
+			
 			checkList(ed["from"])
 			checkList(ed["to"])
 		
