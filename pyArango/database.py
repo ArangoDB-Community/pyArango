@@ -70,7 +70,10 @@ class Database(object) :
 		if r.status_code == 200 :
 			self.graphs = {}
 			for graphData in data["graphs"] :
-				self.graphs[graphData["_key"]] = GR.getGraphClass(graphData["_key"])(self, graphData)
+				try :
+					self.graphs[graphData["_key"]] = GR.getGraphClass(graphData["_key"])(self, graphData)
+				except KeyError :
+					self.graphs[graphData["_key"]] = Graph(self, graphData)
 		else :
 			raise UpdateError(data["errorMessage"], data)
 	
@@ -196,3 +199,16 @@ class Database(object) :
 				return self.collections[collectionName]
 			except KeyError :
 				raise KeyError("Can't find any collection named : %s" % collectionName)
+
+
+class DBHandle(Database) :
+	"As the loading of a DB triggers the loading of collections and graphs within. Only handles are loaded first. The full database is loaded on demand."
+	def __init__(self, connection, name) :
+		self.connection = connection
+		self.name = name
+
+	def __getattr__(self, k) :
+		name = Database.__getattribute__(self, 'name')
+		connection = Database.__getattribute__(self, 'connection')
+		Database.__init__(self, connection, name)
+		return Database.__getattribute__(self, k)

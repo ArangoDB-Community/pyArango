@@ -130,9 +130,9 @@ class Document(object) :
 	def validate(self, patch = False) :
 		"validates either the whole store, or only the patch store( patch = True) of the document according to the collection's settings.If logErrors returns a dictionary of errros per field, else raises exceptions"
 		if patch :
-			return self.collection._validateDct(self._patchStore)
+			return self.collection.validateDct(self._patchStore)
 		else :
-			return self.collection._validateDct(self._store)
+			return self.collection.validateDct(self._store)
 
 	def getInEdges(self, edges, rawResults = False) :
 		"An alias for getEdges() that returns only the in Edges"

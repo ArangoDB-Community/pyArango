@@ -397,8 +397,8 @@ class ArangocityTests(unittest.TestCase):
 		humans = self.db.createCollection("Humans")
 		rels = self.db.createCollection("Friend")
 		g = self.db.createGraph("MyGraph")
-		h1 = g.createVertex('Human', {"name" : "simba"})
-		h2 = g.createVertex('Human', {"name" : "simba2"})
+		h1 = g.createVertex('Humans', {"name" : "simba"})
+		h2 = g.createVertex('Humans', {"name" : "simba2"})
 		g.link('Friend', h1, h2)
 		print h2.getEdges()
 

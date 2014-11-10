@@ -113,6 +113,9 @@ class Field(object) :
 		return True
 
 	def __repr__(self) :
+		if self.constraintFct is None :
+			return "<Field, not null: %s, constraint fct: %s>" %(self.notNull, None)
+
 		return "<Field, not null: %s, constraint fct: %s>" %(self.notNull, self.constraintFct.func_name)
 
 class Collection_metaclass(type) :
@@ -234,17 +237,23 @@ class Collection(object) :
 		"create and returns a document"
 		return self.documentClass(self, initValues)
 
-	def validateField(self, fieldName, value) :
-		if not self._validation["allow_foreign_fields"] and (fieldName not in self._fields) :
-			raise SchemaViolation(self, fieldName)
-		self.__class__._fields[fieldName].validate(value)
+	@classmethod
+	def validateField(cls, fieldName, value) :
+		if not cls._validation["allow_foreign_fields"] and (fieldName not in cls._fields) :
+			raise SchemaViolation(cls, fieldName)
+		
+		try : #if foreign field
+			cls._fields[fieldName].validate(value)
+		except KeyError :
+			pass
 
-	def _validateDct(self, dct) :
-		"validates a dictionarie"
+	@classmethod
+	def validateDct(cls, dct) :
+		"validates a dictionary"
 		res = {}
 		for k, v in dct.iteritems() :
 			try :
-				self.validateField(k, v)
+				cls.validateField(k, v)
 			except (ConstraintViolation, SchemaViolation) as e:
 				res[k] = str(e)
 

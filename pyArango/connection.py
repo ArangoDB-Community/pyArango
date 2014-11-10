@@ -1,20 +1,8 @@
 import requests
 import json
 
-from database import Database
+from database import Database, DBHandle
 from theExceptions import SchemaViolation, CreationError, ConnectionError
-
-class DBHandle(Database) :
-	"As the loading of a DB triggers the loading of collections and graphs within. Only handles are loaded first. The full database is loaded on demand."
-	def __init__(self, connection, name) :
-		self.connection = connection
-		self.name = name
-
-	def __getattr__(self, k) :
-		name = object.__getattribute__(self, 'name')
-		connection = object.__getattribute__(self, 'connection')
-		Database.__init__(self, connection, name)
-		return object.__getattribute__(self, k)
 
 class Connection(object) :
 	"""Handles databases. Can't create db's and has no conception of users for now"""
