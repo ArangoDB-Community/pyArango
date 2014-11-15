@@ -194,7 +194,7 @@ class Database(object) :
 		try :
 			return self.collections[collectionName]
 		except KeyError :
-			self.update()
+			self.reload()
 			try :
 				return self.collections[collectionName]
 			except KeyError :

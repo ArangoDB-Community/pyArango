@@ -95,10 +95,11 @@ class Graph(object) :
 		col = COL.getCollectionClass(collectionName)
 		col.validateDct(docAttributes)
 
-		r = requests.post(url, params = docAttributes)#, params = {'waitForSync' : waitForSync})
+		r = requests.post(url, data = docAttributes)#, params = {'waitForSync' : waitForSync})
+		print r.text
 		data = r.json()
 		if r.status_code == 201 or r.status_code == 202 :
-			return self.database['collectionName']["_key"]
+			return self.database[collectionName][data["vertex"]["_key"]]
 		
 		raise CreationError("Unable to create vertice, %s" % data["errorMessage"], data)
 
@@ -106,7 +107,7 @@ class Graph(object) :
 		"""deletes a vertex from the graph as well as al linked edges"""
 		url = "%s/vertex/%s" % (self.URL, document._key)
 		
-		r = requests.delete(url, params = {'waitForSync' : waitForSync})
+		r = requests.delete(url)#, params = {'waitForSync' : waitForSync})
 		data = r.json()
 		if r.status_code == 200 or r.status_code == 202 :
 			return True
@@ -120,15 +121,15 @@ class Graph(object) :
 		payload = edgeAttributes
 		payload.update({'_from' : _fromId, '_to' : _toId})
 
-		r = requests.post(url, data = payload, params = {'waitForSync' : waitForSync})
+		r = requests.post(url, data = payload)#, params = {'waitForSync' : waitForSync})
 		data = r.json()
 		if r.status_code == 201 or r.status_code == 202 :
 			return col[r.json()["_key"]]
-		raise CreationError("Unable to create vertice, %s" % r.json()["errorMessage"], data)
+		raise CreationError("Unable to create edge, %s" % r.json()["errorMessage"], data)
 
 	def link(self, definition, doc1, doc2, edgeAttributes = {}) : #, waitForSync = False) :
 		"A shorthand for createEdge that takes two documents as input"
-		self.createEdge(definition, doc1._id, doc2._id, edgeAttributes, waitForSync)
+		self.createEdge(definition, doc1._id, doc2._id, edgeAttributes)#, waitForSync)
 
 	def deleteEdge(self, _key, waitForSync = False) :
 		"""removes an edge from the graph"""

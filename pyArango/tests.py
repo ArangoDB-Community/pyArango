@@ -399,6 +399,7 @@ class ArangocityTests(unittest.TestCase):
 		g = self.db.createGraph("MyGraph")
 		h1 = g.createVertex('Humans', {"name" : "simba"})
 		h2 = g.createVertex('Humans', {"name" : "simba2"})
+		print humans[h1._key]
 		g.link('Friend', h1, h2)
 		print h2.getEdges()
 

@@ -67,7 +67,7 @@ class DocumentCache(object) :
 			raise KeyError("Document with key %s is not available in cache" % key)
 	
 	def getChain(self) :
-		"returns a list ok keys representing the chain of documents"		
+		"returns a list of keys representing the chain of documents"		
 		l = []
 		h = self.head
 		while h :
