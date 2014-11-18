@@ -89,11 +89,10 @@ class Graph(object) :
 			
 		self.URL = "%s/%s" % (self.database.graphsURL, self._key)
 
-	def createVertex(self, collectionName, docAttributes) : #, waitForSync = False) :
+	def createVertex(self, collectionName, docAttributes, waitForSync = False) :
 		"""adds a vertex to the graph and returns it"""
 		url = "%s/vertex/%s" % (self.URL, collectionName)
-		col = COL.getCollectionClass(collectionName)
-		col.validateDct(docAttributes)
+		self.database[collectionName].validateDct(docAttributes)
 
 		r = requests.post(url, data = json.dumps(docAttributes), params = {'waitForSync' : waitForSync})
 		
@@ -105,40 +104,39 @@ class Graph(object) :
 
 	def deleteVertex(self, document, waitForSync = False) :
 		"""deletes a vertex from the graph as well as al linked edges"""
-		url = "%s/vertex/%s" % (self.URL, document._key)
+		url = "%s/vertex/%s/%s" % (self.URL, document.collection.name, document._key)
 		
-		r = requests.delete(url)#, params = {'waitForSync' : waitForSync})
+		r = requests.delete(url, params = {'waitForSync' : waitForSync})
 		data = r.json()
 		if r.status_code == 200 or r.status_code == 202 :
 			return True
-		raise DeletionError("Unable to delete vertice, %s" % _key, data)
+		raise DeletionError("Unable to delete vertice, %s" % document._key, data)
 
-	def createEdge(self, collectionName, _fromId, _toId, edgeAttributes = {}) : #, waitForSync = False) :
+	def createEdge(self, collectionName, _fromId, _toId, edgeAttributes = {}, waitForSync = False) :
 		"""created an edge between to documents"""
 		url = "%s/edge/%s" % (self.URL, collectionName)
-		col = COL.getCollectionClass(collectionName)
-		col.validateDct(edgeAttributes)
+		self.database[collectionName].validateDct(edgeAttributes)
 		payload = edgeAttributes
 		payload.update({'_from' : _fromId, '_to' : _toId})
 
 		r = requests.post(url, data = json.dumps(payload), params = {'waitForSync' : waitForSync})
 		data = r.json()
 		if r.status_code == 201 or r.status_code == 202 :
-			return col[r.json()["_key"]]
+			return self.database[collectionName][data["edge"]["_key"]]
 		raise CreationError("Unable to create edge, %s" % r.json()["errorMessage"], data)
 
-	def link(self, definition, doc1, doc2, edgeAttributes = {}) : #, waitForSync = False) :
+	def link(self, definition, doc1, doc2, edgeAttributes = {}, waitForSync = False) :
 		"A shorthand for createEdge that takes two documents as input"
-		self.createEdge(definition, doc1._id, doc2._id, edgeAttributes)#, waitForSync)
+		return self.createEdge(definition, doc1._id, doc2._id, edgeAttributes, waitForSync)
 
-	def deleteEdge(self, _key, waitForSync = False) :
+	def deleteEdge(self, edge, waitForSync = False) :
 		"""removes an edge from the graph"""
-		url = "%s/edge/%s" % (self.URL, key)
+		url = "%s/edge/%s/%s" % (self.URL, edge.collection.name, edge._key)
 		
 		r = requests.delete(url, params = {'waitForSync' : waitForSync})
 		if r.status_code == 200 or r.status_code == 202 :
 			return True
-		raise DeletionError("Unable to delete edge, %s" % _key, data)
+		raise DeletionError("Unable to delete edge, %s" % edge._key, data)
 
 	def delete(self) :
 		"""deletes the graph"""

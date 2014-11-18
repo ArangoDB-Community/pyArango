@@ -402,9 +402,17 @@ class ArangocityTests(unittest.TestCase):
 		g = self.db.createGraph("MyGraph")
 		h1 = g.createVertex('Humans', {"name" : "simba"})
 		h2 = g.createVertex('Humans', {"name" : "simba2"})
-		print humans[h1._key]
+		h3 = g.createVertex('Humans', {"name" : "simba3"})
+		
+		g.link('Friend', h1, h3)
+		g.link('Friend', h2, h3)
+		self.assertEqual(len(h3.getEdges(rels)), 2)
+		self.assertEqual(len(h2.getEdges(rels)), 1)
+		g.deleteVertex(h3)
+		self.assertEqual(len(h2.getEdges(rels)), 0)
 		g.link('Friend', h1, h2)
-		print h2.getEdges()
+		self.assertEqual(len(h2.getEdges(rels)), 1)
+		# g.deleteEdge()
 
 if __name__ == "__main__" :
 	unittest.main()
