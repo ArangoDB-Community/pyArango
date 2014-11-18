@@ -95,8 +95,8 @@ class Graph(object) :
 		col = COL.getCollectionClass(collectionName)
 		col.validateDct(docAttributes)
 
-		r = requests.post(url, data = docAttributes)#, params = {'waitForSync' : waitForSync})
-		print r.text
+		r = requests.post(url, data = json.dumps(docAttributes), params = {'waitForSync' : waitForSync})
+		
 		data = r.json()
 		if r.status_code == 201 or r.status_code == 202 :
 			return self.database[collectionName][data["vertex"]["_key"]]
@@ -121,7 +121,7 @@ class Graph(object) :
 		payload = edgeAttributes
 		payload.update({'_from' : _fromId, '_to' : _toId})
 
-		r = requests.post(url, data = payload)#, params = {'waitForSync' : waitForSync})
+		r = requests.post(url, data = json.dumps(payload), params = {'waitForSync' : waitForSync})
 		data = r.json()
 		if r.status_code == 201 or r.status_code == 202 :
 			return col[r.json()["_key"]]
