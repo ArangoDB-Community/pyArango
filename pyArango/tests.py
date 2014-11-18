@@ -191,9 +191,7 @@ class ArangocityTests(unittest.TestCase):
 		self.assertEqual(q.count, nbUsers)
 
 	def test_fields_on_set(self) :
-		def strFct(v) :
-			import types
-			return type(v) is types.StringType	
+		import Validator as VAL
 
 		class Col_on_set(Collection) :
 			_validation = {
@@ -203,20 +201,25 @@ class ArangocityTests(unittest.TestCase):
 			}
 			
 			_fields = {
-				"str" : Field(constraintFct = strFct),
-				"notNull" : Field(notNull = True)
+				"str" : Field(validators = [VAL.Length(50, 51)]),
+				"notNull" : Field(validators = [VAL.NotNull()])
 			}
 			
 		myCol = self.db.createCollection('Col_on_set')
 		doc = myCol.createDocument()
-		self.assertRaises(ConstraintViolation, doc.__setitem__, 'str', 3)
-		self.assertRaises(ConstraintViolation, doc.__setitem__, 'notNull', None)
+		self.assertRaises(ValidationError, doc.__setitem__, 'str', "qwer")
+		self.assertRaises(ValidationError, doc.__setitem__, 'notNull', None)
 		self.assertRaises(SchemaViolation, doc.__setitem__, 'foreigner', None)
 
 	def test_fields_on_save(self) :
-		def strFct(v) :
-			import types
-			return type(v) is types.StringType	
+		import Validator as VAL
+		import types
+		class String_val(VAL.Validator) :
+
+			def validate(self, value) :
+				if type(value) is not types.StringType :
+					raise ValidationError("Field value must be a string")
+				return True
 
 		class Col_on_set(Collection) :
 
@@ -227,17 +230,17 @@ class ArangocityTests(unittest.TestCase):
 			}
 
 			_fields = {
-				"str" : Field(constraintFct = strFct),
-				"notNull" : Field(notNull = True)
+				"str" : Field(validators = [String_val()]),
+				"notNull" : Field(validators = [VAL.NotNull()])
 			}
 			
 		myCol = self.db.createCollection('Col_on_set')
 		doc = myCol.createDocument()
 		doc["str"] = 3
-		self.assertRaises(ValidationError, doc.save)
+		self.assertRaises(InvalidDocument, doc.save)
 		doc["str"] = "string"
 		doc["foreigner"] = "string"
-		self.assertRaises(ValidationError,  doc.save)	
+		self.assertRaises(InvalidDocument,  doc.save)	
 
 	def test_document_cache(self) :
 		class DummyDoc(object) :

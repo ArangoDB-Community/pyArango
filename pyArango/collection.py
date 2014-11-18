@@ -3,7 +3,7 @@ import json
 import types
 
 from document import Document, Edge
-from theExceptions import ConstraintViolation, SchemaViolation, CreationError, UpdateError, DeletionError, ValidationError
+from theExceptions import ValidationError, SchemaViolation, CreationError, UpdateError, DeletionError, InvalidDocument
 from query import SimpleQuery
 
 COLLECTION_DOCUMENT_TYPE = 2
@@ -98,25 +98,19 @@ class DocumentCache(object) :
 
 class Field(object) :
 
-	def __init__(self, notNull = False, constraintFct = None) :
-		self.notNull = notNull
-		self.constraintFct = constraintFct
+	def __init__(self, validators = []) :
+		self.validators = validators
 
-	def validate(self, v) :
-		if v != None  and v != "" :
-			if self.constraintFct and not self.constraintFct(v) :
-				raise ConstraintViolation("Violation of constraint fct: %s" %(self.constraintFct.func_name))
-		
-		elif self.notNull :
-			raise ConstraintViolation("This fields can't have a NULL value (\"None\" or \"\")")
-		
+	def validate(self, value) :
+		for v in self.validators :
+			v.validate(value)
 		return True
 
-	def __repr__(self) :
-		if self.constraintFct is None :
-			return "<Field, not null: %s, constraint fct: %s>" %(self.notNull, None)
-
-		return "<Field, not null: %s, constraint fct: %s>" %(self.notNull, self.constraintFct.func_name)
+	def __str__(self) :
+		strv = []
+		for v in self.validators :
+			strv.append(str(v))
+		return "<Field, validators: '%s'>" % ', '.join(strv) 
 
 class Collection_metaclass(type) :
 	
@@ -254,11 +248,11 @@ class Collection(object) :
 		for k, v in dct.iteritems() :
 			try :
 				cls.validateField(k, v)
-			except (ConstraintViolation, SchemaViolation) as e:
+			except (ValidationError, SchemaViolation) as e:
 				res[k] = str(e)
 
 		if len(res) > 0 :
-			raise ValidationError(res)
+			raise InvalidDocument(res)
 
 		return True
 

@@ -1,7 +1,7 @@
 import requests
 import json
 
-from theExceptions import (CreationError, DeletionError, UpdateError, ConstraintViolation, SchemaViolation, ValidationError)
+from theExceptions import (CreationError, DeletionError, UpdateError)
 
 class Document(object) :
 

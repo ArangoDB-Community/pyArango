@@ -23,7 +23,7 @@ class DeletionError(ArrangocityException) :
 	def __init__(self, message, errors = {}) :
 		ArrangocityException.__init__(self, message, errors)
 
-class ConstraintViolation(ArrangocityException) :
+class ValidationError(ArrangocityException) :
 	def __init__(self, message, errors = {}) :
 		ArrangocityException.__init__(self, message, errors)
 
@@ -32,7 +32,7 @@ class SchemaViolation(ArrangocityException) :
 		message = "Collection %s does not a field '%s' in it's schema" % (collection.__class__.__name__, field)
 		ArrangocityException.__init__(self, message, errors)
 
-class ValidationError(ArrangocityException) :
+class InvalidDocument(ArrangocityException) :
 	def __init__(self, errors) :
 		message = "Unsuccesful validation" 
 		self.strErrors = []
