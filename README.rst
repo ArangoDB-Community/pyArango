@@ -71,15 +71,26 @@ Queries : Batches
     query.nextBatch()
 
 Validation
--------
-.. code:: python
+----------
 
-  from pyArango.Collection import *
+PyArango allows you to implement your own field validation.
+Validators are simple objects deriving from classes that inherit
+from **Validator** and implement a **validate()** method.
+
+.. code:: python
   
-  def cstFct(value) :
-    return value == "human"
-    
-  class Humans(Collection) :
+  import pyArango.Collection as COL
+  import pyArango.Validator as VAL
+  from pyArango.theExceptions import ValidationError
+  import types
+  
+  class String_val(VAL.Validator) :
+   def validate(self, value) :
+  		if type(value) is not types.StringType :
+  			raise ValidationError("Field value must be a string")
+  		return True
+  
+  class Humans(COL.Collection) :
     
     _validation = {
       'on_save' : False,
@@ -88,9 +99,9 @@ Validation
     }
   	
   	_fields = {
-  	  'name' : Field(NotNull = True),
+  	  'name' : Field(validators = [VAL.NotNull(), String_val()]),
   	  'anything' : Field(),
-  	  'species' : Field(NotNull = True, constraintFct = cstFct)
+  	  'species' : Field(validators = [VAL.NotNull(), VAL.Length(5, 15), String_val()])
   	}
   	
   collection = db.createCollection('Humans')
