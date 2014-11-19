@@ -13,10 +13,10 @@ Collections are treated as types that apply to the documents within. That means 
 a Collection and then create instances of this Collection in several databases. The same goes for graphs
 
 In other words, you can have two databases **cache_db** and **real_db** each of them with an instance of a 
-**Users** Collection. You can then be assured that documents from both collections will be subjected to the same 
+**Users** Collection. You can then be assured that documents of both collections will be subjected to the same 
 validation rules. Ain't that cool?
 
-You can be 100% permissive or enforce schemas and validate fields on set, on save or on both.
+You can be 100% permissive or enforce schemas and validate fields, on set, on save or both.
 
 
 Initiatilisation and document saving
