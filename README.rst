@@ -193,7 +193,7 @@ to that document are also deleted.
 
 .. code:: python
 
- from pyArango.Collection import Collection
+ from pyArango.Collection import Collection, Field
  from pyArango.Graph import Graph, EdgeDefinition
  
  class Humans(Collection) :
@@ -201,9 +201,9 @@ to that document are also deleted.
   "name" : Field()
   }
  
- class Friend(Edges) :
+ class Friend(Edges) :theGraphtheGraph
   _fields = {
-  "number" : Field()
+  "lifetime" : Field()
   }
  
  #Here's how you define a graph
@@ -211,21 +211,21 @@ to that document are also deleted.
   _edgeDefinitions = (EdgeDefinition("Friend", fromCollections = ["Humans"], toCollections = ["Humans"]), )
   _orphanedCollections = []
  
- #create the collections (only do this if they don't already exist in the database)
- humans = self.db.createCollection("Humans")
- friendship = self.db.createCollection("Friend")
+ #create the collections (do this only if they don't already exist in the database)
+ self.db.createCollection("Humans")
+ self.db.createCollection("Friend")
  #same for the graph
  theGraph = self.db.createGraph("MyGraph")
  
  #creating some documents
- h1 = g.createVertex('Humans', {"name" : "simba"})
- h2 = g.createVertex('Humans', {"name" : "simba2"})
+ h1 = theGraph.createVertex('Humans', {"name" : "simba"})
+ h2 = theGraph.createVertex('Humans', {"name" : "simba2"})
  
  #linking them
- g.link('Friend', h1, h2)
+ theGraph.link('Friend', h1, h2, {"lifetime" : "eternal"})
  
  #deleting one of them along with the edge
- g.deleteVertex(h2)
+ theGraph.deleteVertex(h2)
 
 Document Cache
 --------------
