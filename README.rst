@@ -18,6 +18,16 @@ validation rules. Ain't that cool?
 
 You can be 100% permissive or enforce schemas and validate fields, on set, on save or both.
 
+Installation
+------------
+
+For the latest version
+
+.. code:: shell
+
+ git clone https://github.com/tariqdaouda/pyArango.git
+ cd pyArango
+ python setup.py develop
 
 Initiatilisation and document saving
 -------------------------------------
