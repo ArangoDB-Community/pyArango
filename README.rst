@@ -226,3 +226,15 @@ to that document are also deleted.
  
  #deleting one of them along with the edge
  g.deleteVertex(h2)
+
+Document Cache
+--------------
+
+pyArango collections have a caching system for documents that performs insertions and retrievals in O(1)
+
+.. code:: python
+ #create a cache a of 1500 documents for collection humans
+ humans.activateCache(1500)
+ 
+ #disable the cache
+ humans.deactivateCache
