@@ -113,7 +113,7 @@ class Graph(object) :
 		raise DeletionError("Unable to delete vertice, %s" % document._key, data)
 
 	def createEdge(self, collectionName, _fromId, _toId, edgeAttributes = {}, waitForSync = False) :
-		"""created an edge between to documents"""
+		"""creates an edge between two documents"""
 		url = "%s/edge/%s" % (self.URL, collectionName)
 		self.database[collectionName].validateDct(edgeAttributes)
 		payload = edgeAttributes
