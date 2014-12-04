@@ -268,7 +268,7 @@ class Collection(object) :
 				return r.json()
 			return self.documentClass(self, r.json())
 		else :
-			raise CreationError("Unable to find document with _key: %s" % key, r.json())
+			raise KeyError("Unable to find document with _key: %s" % key, r.json())
 
 	def fetchByExample(self, exampleDict, batchSize, rawResults = False, **queryArgs) :
 		"exampleDict should be something like {'age' : 28}"

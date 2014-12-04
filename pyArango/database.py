@@ -2,19 +2,6 @@ import requests
 import json
 import types
 
-# from collection import (
-# 	Collection,
-# 	COL.SystemCollection,
-# 	COL.GenericCollection,
-# 	COL.COL.Edges,
-# 	COL,
-# 	COL.COLLECTION_DOCUMENT_TYPE,
-# 	COLLECTION_EDGE_TYPE,
-
-# 	COL.isCollection,
-# 	COL.isEdgeCollection
-# )
-
 import collection as COL
 import graph as GR
 

@@ -29,7 +29,7 @@ class ValidationError(ArrangocityException) :
 
 class SchemaViolation(ArrangocityException) :
 	def __init__(self, collection, field, errors = {}) :
-		message = "Collection %s does not a field '%s' in it's schema" % (collection.__class__.__name__, field)
+		message = "Collection '%s' does not have a field '%s' in it's schema" % (collection.__name__, field)
 		ArrangocityException.__init__(self, message, errors)
 
 class InvalidDocument(ArrangocityException) :

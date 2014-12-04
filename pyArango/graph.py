@@ -53,11 +53,11 @@ class EdgeDefinition(object) :
 		return { 'collection' : self.edgesCollection, 'from' : self.fromCollections, 'to' : self.toCollections }
 
 class Graph(object) :
-	"""The superclass fro witch all your graph types must derive"""
+	"""The superclass from witch all your graph types must derive"""
 
 	__metaclass__ = Graph_metaclass
 
-	_edgeDefinitions = {}
+	_edgeDefinitions = []
 	_orphanedCollections = []
 
 	def __init__(self, database, jsonInit) :
