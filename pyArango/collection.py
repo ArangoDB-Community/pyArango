@@ -214,7 +214,7 @@ class Collection(object) :
 		self.documentClass = Document
 
 	def activateCache(self, cacheSize) :
-		"activate the caching system. Cached documents are only available through the __getitem__ interface"
+		"Activate the caching system. Cached documents are only available through the __getitem__ interface"
 		self.documentCache = DocumentCache(cacheSize)
 	
 	def deactivateCache(self) :

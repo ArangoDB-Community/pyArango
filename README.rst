@@ -1,19 +1,36 @@
-pyArango (alpha)
-==========
+pyArango
+=========
 
-Key Features :
---------------
+NoSQL is really cool, but in this harsh world it is impossible to live without field validation.
+
+Key Features
+------------
  - Light and Simple interface
- - Built-in Validation of fields
+ - Built-in Validation of fields on seting or on saving
  - Caching of documents with Insertions and Lookups in O(1)
 
-pyArango is still in active developpement, but it's tested and perfectly usable.
-pyArango aims to be an easy to use driver for arangoDB with built in validation. Collections are treated as types that apply to the documents within. You can be 100% permissive or enforce schemas and validate fields on set, on save or on both.
-I am developping pyArango for the purpose of an other project and adding features as they are needed.
+Collections are treated as types that apply to the documents within. That means that you can define
+a Collection and then create instances of this Collection in several databases. The same goes for graphs
 
+In other words, you can have two databases **cache_db** and **real_db** each of them with an instance of a 
+**Users** Collection. You can then be assured that documents of both collections will be subjected to the same 
+validation rules. Ain't that cool?
+
+You can be 100% permissive or enforce schemas and validate fields, on set, on save or both.
+
+Installation
+------------
+
+For the latest version
+
+.. code:: shell
+
+ git clone https://github.com/tariqdaouda/pyArango.git
+ cd pyArango
+ python setup.py develop
 
 Initiatilisation and document saving
----------
+-------------------------------------
 
 .. code:: python
   
@@ -21,8 +38,8 @@ Initiatilisation and document saving
   
   conn = Connection()
   conn.createDatabase(name = "test_db")
-  db = self.conn["test_db"] #all databases are loaded automatically into the connection and accessible in this fashion
-  collection = db.createCollection(name = "users") #all collection are loaded automatically into the database and accessible in this fashion
+  db = self.conn["test_db"] #all databases are loaded automatically into the connection and are accessible in this fashion
+  collection = db.createCollection(name = "users") #all collections are also loaded automatically
   # collection.delete() # self explanatory
   
   for i in xrange(100) :
@@ -43,7 +60,7 @@ Initiatilisation and document saving
   doc.delete()
 
 Queries : AQL
--------
+-------------
   
 .. code:: python
   
@@ -54,7 +71,7 @@ Queries : AQL
   document = queryResult[0]
 
 Queries : Simple queries by example
--------
+-------------------------------------
 .. code:: python
 
   example = {'species' : "human"}
@@ -62,7 +79,7 @@ Queries : Simple queries by example
   print query.count # print the total number or documents
 
 Queries : Batches
--------
+------------------
 
 .. code:: python
 
@@ -70,16 +87,27 @@ Queries : Batches
     print query[0]['name']
     query.nextBatch()
 
-Validation
--------
-.. code:: python
+Defining a Collection and field/schema Validation
+-------------------------------------------------
 
-  from pyArango.Collection import *
+PyArango allows you to implement your own field validation.
+Validators are simple objects deriving from classes that inherit
+from **Validator** and implement a **validate()** method.
+
+.. code:: python
   
-  def cstFct(value) :
-    return value == "human"
-    
-  class Humans(Collection) :
+  import pyArango.Collection as COL
+  import pyArango.Validator as VAL
+  from pyArango.theExceptions import ValidationError
+  import types
+  
+  class String_val(VAL.Validator) :
+   def validate(self, value) :
+  		if type(value) is not types.StringType :
+  			raise ValidationError("Field value must be a string")
+  		return True
+  
+  class Humans(COL.Collection) :
     
     _validation = {
       'on_save' : False,
@@ -88,21 +116,21 @@ Validation
     }
   	
   	_fields = {
-  	  'name' : Field(NotNull = True),
+  	  'name' : Field(validators = [VAL.NotNull(), String_val()]),
   	  'anything' : Field(),
-  	  'species' : Field(NotNull = True, constraintFct = cstFct)
+  	  'species' : Field(validators = [VAL.NotNull(), VAL.Length(5, 15), String_val()])
   	}
   	
   collection = db.createCollection('Humans')
 
-A note on inheritence:
+A note on inheritence
 ----------------------
 
-pyArango does not support the inheritence of the "_validation" and "_fields" dictionaries.
+There is no inheritence of the "_validation" and "_fields" dictionaries.
 If a class does not fully define it's own, the defaults will be automatically assigned to any missing value.
 
-Creating Edges:
----------
+Creating Edges
+----------------
 
 .. code:: python
 
@@ -120,8 +148,8 @@ Creating Edges:
   	  'length' : Field(NotNull = True),
   	}
   	
-Linking Documents with Edges:
---------------
+Linking Documents with Edges
+-----------------------------
 
 .. code:: python
 
@@ -144,8 +172,8 @@ Linking Documents with Edges:
  conn.save() #once an edge links documents, save() and patch() can be used as with any other Document object
 
 
-Geting Edges linked to a vertex:
---------------
+Geting Edges linked to a vertex
+--------------------------------
 
 You can do it either from a Document or an Edges collection:
 
@@ -166,3 +194,58 @@ You can do it either from a Document or an Edges collection:
   #you can also of ask for the raw json with
   myDocument.getInEdges(myConnections, rawResults = True)
   #otherwise Document objects are retuned in a list
+
+Creating a Graph
+-----------------
+
+By using the graph interface you ensure for example that, whenever you delete a document, all the edges linking
+to that document are also deleted.
+
+.. code:: python
+
+ from pyArango.Collection import Collection, Field
+ from pyArango.Graph import Graph, EdgeDefinition
+ 
+ class Humans(Collection) :
+  _fields = {
+  "name" : Field()
+  }
+ 
+ class Friend(Edges) :theGraphtheGraph
+  _fields = {
+  "lifetime" : Field()
+  }
+ 
+ #Here's how you define a graph
+ class MyGraph(Graph) :
+  _edgeDefinitions = (EdgeDefinition("Friend", fromCollections = ["Humans"], toCollections = ["Humans"]), )
+  _orphanedCollections = []
+ 
+ #create the collections (do this only if they don't already exist in the database)
+ self.db.createCollection("Humans")
+ self.db.createCollection("Friend")
+ #same for the graph
+ theGraph = self.db.createGraph("MyGraph")
+ 
+ #creating some documents
+ h1 = theGraph.createVertex('Humans', {"name" : "simba"})
+ h2 = theGraph.createVertex('Humans', {"name" : "simba2"})
+ 
+ #linking them
+ theGraph.link('Friend', h1, h2, {"lifetime" : "eternal"})
+ 
+ #deleting one of them along with the edge
+ theGraph.deleteVertex(h2)
+
+Document Cache
+--------------
+
+pyArango collections have a caching system for documents that performs insertions and retrievals in O(1)
+
+.. code:: python
+
+ #create a cache a of 1500 documents for collection humans
+ humans.activateCache(1500)
+ 
+ #disable the cache
+ humans.deactivateCache()
