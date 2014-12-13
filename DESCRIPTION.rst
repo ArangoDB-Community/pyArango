@@ -1,5 +1,5 @@
-pyArango (alpha)
-==========
+Python Object Wrapper for ArangoDB with built-in validation
+===========================================================
 
 pyArango is still in active developpement, but it's tested and perfectly usable.
 pyArango aims to be an easy to use driver for arangoDB with built in validation. Collections are treated as types that apply to the documents within. You can be 100% permissive or enforce schemas and validate fields on set, on save or on both.
