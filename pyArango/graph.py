@@ -72,7 +72,12 @@ class Graph(object) :
 		self._rev = jsonInit["_rev"]
 		self._id = jsonInit["_id"]
 	
-		defs = []
+		self.definitions = {}
+		for de in self._edgeDefinitions :
+			if de.name not in self.database.collections and not COL.isEdgeCollection(de.name) :
+				raise KeyError("'%s' is not a valid edge collection" % de.name)
+			self.definitions[de.name] = de
+
 		# for e in jsonInit["edgeDefinitions"] :
 		# 	if e["collection"] not in self._edgeDefinitions :
 		# 		raise CreationError("Collection '%s' is not mentioned in the definition of graph '%s'" % (e["collection"], self.__class__,__name__))
@@ -114,6 +119,9 @@ class Graph(object) :
 
 	def createEdge(self, collectionName, _fromId, _toId, edgeAttributes = {}, waitForSync = False) :
 		"""creates an edge between two documents"""
+		if collectionName not in self.definitions :
+			raise KeyError("'%s' is not among the edge definitions" % collectionName)
+		
 		url = "%s/edge/%s" % (self.URL, collectionName)
 		self.database[collectionName].validateDct(edgeAttributes)
 		payload = edgeAttributes
