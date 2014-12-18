@@ -97,7 +97,7 @@ class Document(object) :
 		Use docArgs for things such as waitForSync = True"""
 
 		if self.collection._validation['on_save'] :
-			self.validate(patch = True, logErrors = False)
+			self.validate(patch = True)
 
 		if self.URL is None :
 			raise ValueError("Cannot patch a document that was not previously saved")
