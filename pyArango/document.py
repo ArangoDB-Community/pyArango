@@ -117,6 +117,7 @@ class Document(object) :
 			self.modified = False
 
 	def delete(self) :
+		"deletes the document from the database"
 		if self.URL is None :
 			raise DeletionError("Can't delete a document that was not saved") 
 		r = requests.delete(self.URL)
@@ -151,12 +152,13 @@ class Document(object) :
 			raise AttributeError("%s does not seem to be a valid Edges object" % edges)
 
 	def __getitem__(self, k) :
-		if self.collection._validation['allow_foreign_fields'] :
+		if self.collection._validation['allow_foreign_fields'] or self.collection.hasField(k) :
 			return self._store.get(k)
+
 		try :
 			return self._store[k]
 		except KeyError :
-			raise KeyError("Document has no field %s, for a permissive behaviour set 'allow_foreign_fields' to True" % k)
+			raise KeyError("Document of collection '%s' has no field '%s', for a permissive behaviour set 'allow_foreign_fields' to True" % (self.collection.name, k))
 
 	def __setitem__(self, k, v) :
 		if self.collection._validation['on_set'] :

@@ -256,6 +256,11 @@ class Collection(object) :
 
 		return True
 
+	@classmethod
+	def hasField(cls, k) :
+		"returns True/False wether the collection as field K in it's schema"
+		return k in cls._fields
+		
 	def fetchDocument(self, key, rawResults = False, rev = None) :
 		"Fetches a document from the collection given it's key. This function always goes straight to the db and bypasses the cache"
 		url = "%s/%s/%s" % (self.documentsURL, self.name, key)
