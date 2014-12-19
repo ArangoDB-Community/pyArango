@@ -32,7 +32,7 @@ class ArangocityTests(unittest.TestCase):
 
 	def tearDown(self):
 		self._reset()
-		
+
 	def createManyUsers(self, nbUsers) :
 	 	collection = self.db.createCollection(name = "users")
 		for i in xrange(nbUsers) :
@@ -50,7 +50,7 @@ class ArangocityTests(unittest.TestCase):
 		self.assertRaises(DeletionError, self.db["to_be_erased"].delete)
 	
 	def test_collection_count_truncate(self) :
-		collection = self.db.createCollection(name = "lala")	
+		collection = self.db.createCollection(name = "lala")
 		collection.truncate()
 		doc = collection.createDocument()
 		doc.save()
@@ -73,7 +73,7 @@ class ArangocityTests(unittest.TestCase):
 		self.assertEqual(doc.URL, url)
 		doc.delete()
 		self.assertTrue(doc.URL is None)
-	
+
 	def test_document_fetch_by_key(self) :
 		collection = self.db.createCollection(name = "lala")
 		doc = collection.createDocument()
@@ -81,6 +81,24 @@ class ArangocityTests(unittest.TestCase):
 		doc.save()
 		doc2 = collection.fetchDocument(doc._key)
 		self.assertEqual(doc._id, doc2._id)
+
+	def test_document_fetch_first_last_examples(self) :
+		import time
+		collection = self.db.createCollection(name = "lala")
+		for i in xrange(10) :
+			doc = collection.createDocument()
+			doc["name"] = "hop"
+			doc['i'] = i
+			doc.save()
+		res = collection.fetchFirstExamples({'name' : 'hop'}, count = 100, rawResults = True)
+		self.assertEqual(len(res), 10)
+		for i in xrange(10) :
+			self.assertEqual(res[i]['i'], i)
+		
+		res = collection.fetchLastExamples({'name' : 'hop'}, count = 100, rawResults = True)
+		self.assertEqual(len(res), 10)
+		for i in xrange(10) :
+			self.assertEqual(res[i]['i'], 10 - i - 1)
 
 	def test_document_create_patch(self) :
 		collection = self.db.createCollection(name = "lala")
@@ -396,7 +414,7 @@ class ArangocityTests(unittest.TestCase):
 
 			_edgeDefinitions = (EdgeDefinition("Friend", fromCollections = ["Humans"], toCollections = ["Humans"]), )
 			_orphanedCollections = []
-				
+		
 		humans = self.db.createCollection("Humans")
 		rels = self.db.createCollection("Friend")
 		g = self.db.createGraph("MyGraph")

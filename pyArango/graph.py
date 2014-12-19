@@ -52,6 +52,12 @@ class EdgeDefinition(object) :
 	def toJson(self) :
 		return { 'collection' : self.edgesCollection, 'from' : self.fromCollections, 'to' : self.toCollections }
 
+	def __str__(self) :
+		return '<ArangoED>'+ str(self.toJson())
+
+	def __repr__(self) :
+		return str(self)
+	
 class Graph(object) :
 	"""The superclass from witch all your graph types must derive"""
 
@@ -77,7 +83,7 @@ class Graph(object) :
 			if de.name not in self.database.collections and not COL.isEdgeCollection(de.name) :
 				raise KeyError("'%s' is not a valid edge collection" % de.name)
 			self.definitions[de.name] = de
-
+		
 		# for e in jsonInit["edgeDefinitions"] :
 		# 	if e["collection"] not in self._edgeDefinitions :
 		# 		raise CreationError("Collection '%s' is not mentioned in the definition of graph '%s'" % (e["collection"], self.__class__,__name__))
@@ -119,6 +125,7 @@ class Graph(object) :
 
 	def createEdge(self, collectionName, _fromId, _toId, edgeAttributes = {}, waitForSync = False) :
 		"""creates an edge between two documents"""
+		
 		if collectionName not in self.definitions :
 			raise KeyError("'%s' is not among the edge definitions" % collectionName)
 		

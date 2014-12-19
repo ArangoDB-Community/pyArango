@@ -140,7 +140,7 @@ class Database(object) :
 		r = requests.post(self.graphsURL, data = payload)
 		data = r.json()
 		if r.status_code == 201 :
-			self.graphs[name] = Graph(self, data["graph"])
+			self.graphs[name] = graphClass(self, data["graph"])
 		else :
 			raise CreationError(data["errorMessage"], data)		
 		return self.graphs[name]

@@ -37,8 +37,8 @@ class Query(object) :
 				del(self.response["document"])
 			except KeyError :
 				pass
-
-			if self.response["hasMore"] :
+			
+			if "hasMore" in self.response and self.response["hasMore"] :
 				self.cursor = RawCursor(self.database, self.id)
 			else :
 				self.cursor = None
@@ -124,16 +124,15 @@ class Cursor(Query) :
 
 class SimpleQuery(Query) :
 	"Simple queries are attached to a single collection"
-	def __init__(self, collection, queryType, batchSize, rawResults, **queryArgs) :
+	def __init__(self, collection, queryType, rawResults, **queryArgs) :
 
 		self.collection = collection
-		payload = {'collection' : collection.name, 'batchSize' : batchSize}
+		payload = {'collection' : collection.name}
 		payload.update(queryArgs)
 		payload = json.dumps(payload)
 		URL = "%s/simple/%s" % (collection.database.URL, queryType)
-
+		
 		request = requests.put(URL, data = payload)
-
 		Query.__init__(self, request, collection.database, rawResults)
 
 	def _raiseInitFailed(self, request) :
@@ -146,3 +145,6 @@ class SimpleQuery(Query) :
 			self.result[i] = Edge(self.collection, docJson)
  		else :
  			self.result[i] = Document(self.collection, docJson)
+
+	def __str__(self) :
+		return str(self.result)

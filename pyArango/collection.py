@@ -67,7 +67,7 @@ class DocumentCache(object) :
 			raise KeyError("Document with key %s is not available in cache" % key)
 	
 	def getChain(self) :
-		"returns a list of keys representing the chain of documents"		
+		"returns a list of keys representing the chain of documents"
 		l = []
 		h = self.head
 		while h :
@@ -260,7 +260,7 @@ class Collection(object) :
 	def hasField(cls, k) :
 		"returns True/False wether the collection as field K in it's schema"
 		return k in cls._fields
-		
+
 	def fetchDocument(self, key, rawResults = False, rev = None) :
 		"Fetches a document from the collection given it's key. This function always goes straight to the db and bypasses the cache"
 		url = "%s/%s/%s" % (self.documentsURL, self.name, key)
@@ -277,20 +277,31 @@ class Collection(object) :
 
 	def fetchByExample(self, exampleDict, batchSize, rawResults = False, **queryArgs) :
 		"exampleDict should be something like {'age' : 28}"
-		return self.simpleQuery('by-example', batchSize, rawResults, example = exampleDict, **queryArgs)
+		return self.simpleQuery('by-example', rawResults, example = exampleDict, batchSize = batchSize, **queryArgs)
 
-	def fetchFirstExample(self, exampleDict, rawResults = False, **queryArgs) :
-		"exampleDict should be something like {'age' : 28}. returns only a single element but still in a SimpleQuery object"
-		return self.simpleQuery('first-example', batchSize = 1, rawResults = rawResults, example = exampleDict, **queryArgs)
+	def fetchFirstExamples(self, exampleDict, count, rawResults = False) :
+		"""exampleDict should be something like {'age' : 28}. returns only a single element but still in a SimpleQuery object.
+		returns count examples ordered by insert/update date, the last one being the first on the list"""
+		return self.simpleQuery('first', rawResults = rawResults, example = exampleDict, count = count)
+
+	def fetchLastExamples(self, exampleDict, count, rawResults = False) :
+		"""exampleDict should be something like {'age' : 28}. returns only a single element but still in a SimpleQuery object.
+		returns count examples ordered by insert/update date, the last one being the first on the list"""
+		return self.simpleQuery('last', rawResults = rawResults, example = exampleDict, count = count)
+
+	def fetchFirstExample(self, exampleDict, rawResults = False) :
+		"""exampleDict should be something like {'age' : 28}. returns only a single element but still in a SimpleQuery object.
+		returns the first example found that matches the example"""
+		return self.simpleQuery('first-example', rawResults = rawResults)
 
 	def fetchAll(self, batchSize, rawResults = False, **queryArgs) :
-		return self.simpleQuery('all', batchSize, rawResults, **queryArgs)
+		return self.simpleQuery('all', rawResults, batchSize = batchSize, **queryArgs)
 
-	def simpleQuery(self, queryType, batchSize, rawResults = False, **queryArgs) :
+	def simpleQuery(self, queryType, rawResults = False, **queryArgs) :
 		"""General interface for simple queries. queryType can be something like 'all', 'by-example' etc... everything is in the arango doc.
 		If rawResults, the query will return dictionaries instead of Document objetcs.
 		"""
-		return SimpleQuery(self, queryType, batchSize, rawResults, **queryArgs)
+		return SimpleQuery(self, queryType, rawResults, **queryArgs)
 
 	def action(self, method, action, **params) :
 		"a generic fct for interacting everything that doesn't have an assigned fct"
