@@ -292,7 +292,7 @@ class Collection(object) :
 	def fetchFirstExample(self, exampleDict, rawResults = False) :
 		"""exampleDict should be something like {'age' : 28}. returns only a single element but still in a SimpleQuery object.
 		returns the first example found that matches the example"""
-		return self.simpleQuery('first-example', rawResults = rawResults)
+		return self.simpleQuery('first-example', rawResults = rawResults, example = exampleDict)
 
 	def fetchAll(self, batchSize, rawResults = False, **queryArgs) :
 		return self.simpleQuery('all', rawResults, batchSize = batchSize, **queryArgs)
