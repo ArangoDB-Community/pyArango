@@ -183,6 +183,10 @@ def isDocumentCollection(name) :
 def isEdgeCollection(name) :
 	return Collection_metaclass.isEdgeCollection(name)
 
+def getCollectionClasses(name) :
+	"returns a dictionary of all defined collection classes"
+	return Collection_metaclass.collectionClasses
+
 class Collection(object) :
 
 	#here you specify the fields that you want for the documents in your collection

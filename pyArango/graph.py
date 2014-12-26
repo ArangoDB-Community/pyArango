@@ -41,6 +41,10 @@ def isGraph(name) :
 	"""alias for Graph_metaclass.isGraph()"""
 	return Graph_metaclass.isGraph(name)
 
+def getGraphClasses(name) :
+	"returns a dictionary of all defined graph classes"
+	return Graph_metaclass.graphClasses
+
 class EdgeDefinition(object) :
 	"""An edge definition for a graph"""
 
