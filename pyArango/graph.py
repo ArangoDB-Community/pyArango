@@ -17,7 +17,8 @@ class Graph_metaclass(type) :
 			except KeyError :
 				raise CreationError("Graph class '%s' has no field _edgeDefinition" % name)
 
-		Graph_metaclass.graphClasses[name] = clsObj
+		if name != "Graph" :
+			Graph_metaclass.graphClasses[name] = clsObj
 		return clsObj
 
 	@classmethod
@@ -41,7 +42,7 @@ def isGraph(name) :
 	"""alias for Graph_metaclass.isGraph()"""
 	return Graph_metaclass.isGraph(name)
 
-def getGraphClasses(name) :
+def getGraphClasses() :
 	"returns a dictionary of all defined graph classes"
 	return Graph_metaclass.graphClasses
 
@@ -149,17 +150,23 @@ class Graph(object) :
 		"A shorthand for createEdge that takes two documents as input"
 		return self.createEdge(definition, doc1._id, doc2._id, edgeAttributes, waitForSync)
 
-	def traverse(self, startVertex, **args) :
-		"Traversal, see arangodDB doc for the list of keyword args that you can use"
-		url = "%s/_api/traversal" % self.database.connection.arangoURL
-		args["startVertex"] = startVertex._id
-		args["graphName"] = self.name
-		# print json.dumps(args)
-		r = requests.post(url, data = json.dumps(args))
-		data = r.json()
-		if not r.status_code == 200 or data["error"] :
-			raise TraversalError(data["errorMessage"], data)
-		return data
+	def unlink(self, definition, doc1, doc2) :
+		"deletes all links between doc1 and doc2"
+		links = self.database[definition].fetchByExample( {"_from": user._id,"_to" : post._id} )
+		for l in links :
+			self.deleteEdge(l)
+
+	# def traverse(self, startVertex, **args) :
+	# 	"Traversal, see arangodDB doc for the list of keyword args that you can use"
+	# 	url = "%s/_api/traversal" % self.database.connection.arangoURL
+	# 	args["startVertex"] = startVertex._id
+	# 	args["graphName"] = self.name
+	# 	# print json.dumps(args)
+	# 	r = requests.post(url, data = json.dumps(args))
+	# 	data = r.json()
+	# 	if not r.status_code == 200 or data["error"] :
+	# 		raise TraversalError(data["errorMessage"], data)
+	# 	return data
 
 	def deleteEdge(self, edge, waitForSync = False) :
 		"""removes an edge from the graph"""

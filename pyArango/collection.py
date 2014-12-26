@@ -3,7 +3,7 @@ import json
 import types
 
 from document import Document, Edge
-from theExceptions import ValidationError, SchemaViolation, CreationError, UpdateError, DeletionError, InvalidDocument
+from theExceptions import ValidationError, SchemaViolation, CreationError, UpdateError, DeletionError, InvalidDocument, AbstractInstanciationError
 from query import SimpleQuery
 
 COLLECTION_DOCUMENT_TYPE = 2
@@ -141,7 +141,9 @@ class Collection_metaclass(type) :
 
 		check_set_ConfigDict('_validation')
 		clsObj = type.__new__(cls, name, bases, attrs)
-		Collection_metaclass.collectionClasses[name] = clsObj
+		if name != "Collection" and name != "Edges" :
+			Collection_metaclass.collectionClasses[name] = clsObj
+
 		return clsObj
 
 	@classmethod
@@ -183,7 +185,7 @@ def isDocumentCollection(name) :
 def isEdgeCollection(name) :
 	return Collection_metaclass.isEdgeCollection(name)
 
-def getCollectionClasses(name) :
+def getCollectionClasses() :
 	"returns a dictionary of all defined collection classes"
 	return Collection_metaclass.collectionClasses
 
@@ -204,7 +206,7 @@ class Collection(object) :
 		"meant to be called by the database only"
 		
 		if self.__class__ is Collection :
-			raise ValueError("Collection is abstract and is not supposed to be instanciated. Collections my inherit from it")
+			raise AbstractInstanciationError(self.__class__)
 
 		self.database = database
 		self.name = self.__class__.__name__

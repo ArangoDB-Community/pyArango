@@ -42,6 +42,7 @@ class Database(object) :
 					colObj = COL.SystemCollection(self, colData)
 				else :
 					try :
+						# print "========", colName
 						colClass = COL.getCollectionClass(colName)
 						colObj = colClass(self, colData)
 					except KeyError :

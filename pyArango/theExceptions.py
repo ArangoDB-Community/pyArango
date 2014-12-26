@@ -62,3 +62,12 @@ class CursorError(ArrangocityException) :
 	def __init__(self, message, cursorId, errors = {}) :
 		message = "Unable to retreive data for cursor %s: %s" % (cursorId, message)
 		ArrangocityException.__init__(self, message, errors)
+
+class AbstractInstanciationError(Exception) :
+	def __init__(self, cls) :
+		self.cls = cls
+		self.message = "%s is abstract and is not supposed to be instanciated. Collections my inherit from it" % self.cls.__name__
+		Exception.__init__(self, self.message)
+
+	def __str__(self) :
+		return self.message
