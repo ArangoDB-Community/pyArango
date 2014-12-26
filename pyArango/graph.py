@@ -1,7 +1,7 @@
 import requests
 import json
 
-from theExceptions import (CreationError, DeletionError, UpdateError)
+from theExceptions import (CreationError, DeletionError, UpdateError, TraversalError)
 import collection as COL
 
 class Graph_metaclass(type) :
@@ -75,6 +75,7 @@ class Graph(object) :
 		except KeyError :
 			raise KeyError("'jsonInit' must have a field '_key' or a field 'name'")
 
+		self.name = self._key
 		self._rev = jsonInit["_rev"]
 		self._id = jsonInit["_id"]
 	
@@ -143,6 +144,18 @@ class Graph(object) :
 	def link(self, definition, doc1, doc2, edgeAttributes = {}, waitForSync = False) :
 		"A shorthand for createEdge that takes two documents as input"
 		return self.createEdge(definition, doc1._id, doc2._id, edgeAttributes, waitForSync)
+
+	def traverse(self, startVertex, **args) :
+		"Traversal, see arangodDB doc for the list of keyword args that you can use"
+		url = "%s/_api/traversal" % self.database.connection.arangoURL
+		args["startVertex"] = startVertex._id
+		args["graphName"] = self.name
+		# print json.dumps(args)
+		r = requests.post(url, data = json.dumps(args))
+		data = r.json()
+		if not r.status_code == 200 or data["error"] :
+			raise TraversalError(data["errorMessage"], data)
+		return data
 
 	def deleteEdge(self, edge, waitForSync = False) :
 		"""removes an edge from the graph"""

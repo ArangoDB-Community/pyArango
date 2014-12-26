@@ -23,6 +23,10 @@ class DeletionError(ArrangocityException) :
 	def __init__(self, message, errors = {}) :
 		ArrangocityException.__init__(self, message, errors)
 
+class TraversalError(ArrangocityException) :
+	def __init__(self, message, errors = {}) :
+		ArrangocityException.__init__(self, message, errors)
+
 class ValidationError(ArrangocityException) :
 	def __init__(self, message, errors = {}) :
 		ArrangocityException.__init__(self, message, errors)

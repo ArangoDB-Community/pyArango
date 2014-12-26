@@ -7,6 +7,7 @@ class Document(object) :
 
 	def __init__(self, collection, jsonFieldInit = {}) :
 		self.reset(collection, jsonFieldInit)
+		self.typeName = "ArangoDoc"
 
 	def reset(self, collection, jsonFieldInit = {}) :
 		self.collection = collection
@@ -171,10 +172,10 @@ class Document(object) :
 		self.modified = True
 
 	def __str__(self) :
-		return 'ArangoDoc: ' + str(self._store)
+		return "%s '%s': %s" % (self.typeName, self.collection.name, repr(self._store))
 
 	def __repr__(self) :
-		return 'ArangoDoc: ' + repr(self._store)
+		return "%s '%s': %s" % (self.typeName, self.collection.name, repr(self._store))
 
 class Edge(Document) :
 
@@ -183,6 +184,7 @@ class Edge(Document) :
 
 	def reset(self, edgeCollection, jsonFieldInit = {}) :
 		Document.reset(self, edgeCollection, jsonFieldInit)
+		self.typeName = "ArangoEdge"
 
 	def setPrivates(self, jsonFieldInit) :
 		try :
@@ -227,9 +229,3 @@ class Edge(Document) :
 		self._from = fromId
 		self._to = toId
 		Document.save(self, **edgeArgs)
-
-	def __str__(self) :
-		return 'ArangoEdge: ' + str(self._store)
-
-	def __repr__(self) :
-		return 'ArangoEdge: ' + repr(self._store)
