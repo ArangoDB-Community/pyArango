@@ -121,7 +121,7 @@ class Graph(object) :
 
 	def deleteVertex(self, document, waitForSync = False) :
 		"""deletes a vertex from the graph as well as al linked edges"""
-		url = "%s/vertex/%s/%s" % (self.URL, document.collection.name, document._key)
+		url = "%s/vertex/%s" % (self.URL, document._id)
 		
 		r = requests.delete(url, params = {'waitForSync' : waitForSync})
 		data = r.json()
@@ -152,18 +152,17 @@ class Graph(object) :
 
 	def unlink(self, definition, doc1, doc2) :
 		"deletes all links between doc1 and doc2"
-		links = self.database[definition].fetchByExample( {"_from": user._id,"_to" : post._id} )
+		links = self.database[definition].fetchByExample( {"_from": doc1._id,"_to" : doc2._id}, batchSize = 100)
 		for l in links :
 			self.deleteEdge(l)
 
 	def deleteEdge(self, edge, waitForSync = False) :
 		"""removes an edge from the graph"""
-		url = "%s/edge/%s/%s" % (self.URL, edge.collection.name, edge._key)
-		
+		url = "%s/edge/%s" % (self.URL, edge._id)
 		r = requests.delete(url, params = {'waitForSync' : waitForSync})
 		if r.status_code == 200 or r.status_code == 202 :
 			return True
-		raise DeletionError("Unable to delete edge, %s" % edge._key, data)
+		raise DeletionError("Unable to delete edge, %s" % edge._id, r.json())
 
 	def delete(self) :
 		"""deletes the graph"""

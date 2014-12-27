@@ -24,7 +24,7 @@ class Document(object) :
 			self._id = fieldDict["_id"]
 			self.URL = "%s/%s" % (self.documentsURL, self._id)
 			del(fieldDict["_id"])
-			
+		
 			self._rev = fieldDict["_rev"]
 			del(fieldDict["_rev"])
 		
@@ -170,6 +170,9 @@ class Document(object) :
 			self._patchStore[k] = self._store[k]
 		
 		self.modified = True
+
+	def __delitem__(self, k) :
+		del(self._store[k])
 
 	def __str__(self) :
 		return "%s '%s': %s" % (self.typeName, self.collection.name, repr(self._store))

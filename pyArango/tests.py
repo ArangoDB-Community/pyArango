@@ -421,6 +421,7 @@ class ArangocityTests(unittest.TestCase):
 		h1 = g.createVertex('Humans', {"name" : "simba"})
 		h2 = g.createVertex('Humans', {"name" : "simba2"})
 		h3 = g.createVertex('Humans', {"name" : "simba3"})
+		h4 = g.createVertex('Humans', {"name" : "simba4"})
 		
 		g.link('Friend', h1, h3, {})
 		g.link('Friend', h2, h3, {})
@@ -430,6 +431,22 @@ class ArangocityTests(unittest.TestCase):
 		self.assertEqual(len(h2.getEdges(rels)), 0)
 		g.link('Friend', h1, h2, {})
 		self.assertEqual(len(h2.getEdges(rels)), 1)
+
+		g.link('Friend', h4, h1, {})
+		g.link('Friend', h4, h2, {})
+		g.link('Friend', h4, h3, {})
+		g.unlink('Friend', h4, h3)
+		self.assertEqual(len(h4.getEdges(rels)), 2)
+
+		h5 = g.createVertex('Humans', {"name" : "simba5"})
+		h6 = g.createVertex('Humans', {"name" : "simba6"})
+		for i in xrange(200) :
+			g.link('Friend', h5, h6, {})
+
+		self.assertEqual(len(h5.getEdges(rels)), 200)
+		g.unlink('Friend', h5, h6)
+		self.assertEqual(len(h5.getEdges(rels)), 0)
+
 		# g.deleteEdge()
 
 if __name__ == "__main__" :

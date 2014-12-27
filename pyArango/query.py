@@ -29,7 +29,7 @@ class Query(object) :
 		self.rawResults = rawResults
 		self.response = request.json()
 		self.database = database
-		self._developed = set()
+		self.currI = 0
 		if request.status_code == 201 or request.status_code == 200:
 			self.batchNumber = 1
 			try : #if there's only one element
@@ -53,6 +53,7 @@ class Query(object) :
 		raise NotImplemented("Must be implemented in child")
 
 	def _developDoc(self, i) :
+
 		docJson = self.result[i]
 		try :
 			collection = self.database[docJson["_id"].split("/")[0]]
@@ -67,21 +68,32 @@ class Query(object) :
 	def nextBatch(self) :
 		"become the next batch. raises a StopIteration if there is None"
 		self.batchNumber += 1
+		self.currI = 0
 		if not self.response["hasMore"] or self.cursor is None :
 			raise StopIteration("That was the last batch")
 
 		self.response = self.cursor.next()
-		self._developed = set()
 
 	def delete(self) :
 		"kills the cursor"
 		requests.delete(self.cursor)
 
+	def next(self) :
+		try :
+			v = self[self.currI]
+		except IndexError :
+			self.nextBatch()
+		v = self[self.currI]
+		self.currI += 1
+		return v
+			
+	def __iter__(self) :
+		return self
+
 	def __getitem__(self, i) :
 		"returns a ith result of the query."
-		if not self.rawResults and (i not in self._developed) : 
+		if not self.rawResults and (self.result[i].__class__ is not Edge and self.result[i].__class__ is not Document) : 
 			self._developDoc(i)
-			self._developed.add(i)
 		return self.result[i]
 
 	def __len__(self) :
