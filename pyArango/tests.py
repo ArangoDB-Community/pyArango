@@ -422,84 +422,15 @@ class ArangocityTests(unittest.TestCase):
 		h2 = g.createVertex('Humans', {"name" : "simba2"})
 		h3 = g.createVertex('Humans', {"name" : "simba3"})
 		
-		g.link('Friend', h1, h3)
-		g.link('Friend', h2, h3)
+		g.link('Friend', h1, h3, {})
+		g.link('Friend', h2, h3, {})
 		self.assertEqual(len(h3.getEdges(rels)), 2)
 		self.assertEqual(len(h2.getEdges(rels)), 1)
 		g.deleteVertex(h3)
 		self.assertEqual(len(h2.getEdges(rels)), 0)
-		g.link('Friend', h1, h2)
+		g.link('Friend', h1, h2, {})
 		self.assertEqual(len(h2.getEdges(rels)), 1)
 		# g.deleteEdge()
 
-	# def test_traversal(self) :
-	# 	class Vertices(Collection) :
-	# 		_fields = {
-	# 			"name" : Field(),
-	# 			"points" : Field()
-	# 		}
-
-	# 	class Links(Edges) :
-	# 		_fields = {
-	# 			"type" : Field()
-	# 		}
-
-	# 	class MyGraph(Graph) :
-
-	# 		_edgeDefinitions = (EdgeDefinition("Links", fromCollections = ["Vertices"], toCollections = ["Vertices"]), )
-	# 		_orphanedCollections = []
-
-	# 		def trav(self, e) :
-		
-	# 			expandFilter = """function (config, vertex, edge, path) {
-	# 				return edge.type == path.edges[0].type;
-	# 			}
-	# 			"""
-	# 			visitor = """function (config, result, vertex, path) {
-	# 				vertex.points += (0.5 * path.edges.length);
-	# 			}"""
-
-	# 			# direction = "inbound", 
-	# 			self.traverse(e, direction = "outbound")#, maxDepth = 4, strategy = "breadthFirst")
-
-	# 	verts = self.db.createCollection("Vertices")
-	# 	links = self.db.createCollection("Links")
-	# 	g = self.db.createGraph("MyGraph")
-	# 	# verts = self.db["Vertices"]
-	# 	# links = self.db["Links"]
-	# 	# g = self.db.graphs["MyGraph"]
-
-	# 	lv = []
-	# 	for i in xrange(100) :
-	# 		v = verts.createDocument()
-	# 		v["name"] = i
-	# 		v["points"] = 100
-	# 		v.save()
-	# 		lv.append(v)
-
-	# 	# for i in xrange(2, 100, 1) :
-	# 	# 	g.link(e[i-2], i)
-	# 	for i in xrange(1, len(lv), 1) :
-	# 		g.link("Links", lv[i-1], lv[i])
-
-	# 	print "---", verts[lv[0]._key].getOutEdges(links)
-	# 	g.traverse(lv[0], direction = "outbound")
-
 if __name__ == "__main__" :
 	unittest.main()
-	# url = "http://localhost:8529/_api/traversal"
-	# d = { "startVertex": 'V/62826633490', "graphName" : "G", "direction" : "outbound"}
-	# r = requests.post(url, data = json.dumps(d))
-	# print r.json()
-
-	# if False :
-	# 	conn = Connection()
-	# 	db = conn["test_db"]
-	# 	verts = db["V"]
-	# 	links = db["E"]
-	# 	g = db.graphs["G"]
-
-	# 	a = verts['62826633490']
-	# 	print a
-	# 	#print a.getOutEdges(links)
-	# 	g.traverse(a, direction = "outbound")	

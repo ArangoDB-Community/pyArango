@@ -129,14 +129,13 @@ class Graph(object) :
 			return True
 		raise DeletionError("Unable to delete vertice, %s" % document._key, data)
 
-	def createEdge(self, collectionName, _fromId, _toId, edgeAttributes = {}, waitForSync = False) :
+	def createEdge(self, collectionName, _fromId, _toId, edgeAttributes, waitForSync = False) :
 		"""creates an edge between two documents"""
 		
 		if collectionName not in self.definitions :
 			raise KeyError("'%s' is not among the edge definitions" % collectionName)
 		
 		url = "%s/edge/%s" % (self.URL, collectionName)
-		# print "-------", edgeAttributes, _fromId, _toId
 		self.database[collectionName].validateDct(edgeAttributes)
 		payload = edgeAttributes
 		payload.update({'_from' : _fromId, '_to' : _toId})
@@ -147,12 +146,8 @@ class Graph(object) :
 			return self.database[collectionName][data["edge"]["_key"]]
 		raise CreationError("Unable to create edge, %s" % r.json()["errorMessage"], data)
 
-	def link(self, definition, doc1, doc2, edgeAttributes = {}, waitForSync = False) :
+	def link(self, definition, doc1, doc2, edgeAttributes, waitForSync = False) :
 		"A shorthand for createEdge that takes two documents as input"
-		# print definition, doc1._id, doc2._id
-		# print "-------", edgeAttributes
-		# if edgeAttributes != {} :
-		# 	stop
 		return self.createEdge(definition, doc1._id, doc2._id, edgeAttributes, waitForSync)
 
 	def unlink(self, definition, doc1, doc2) :
@@ -160,18 +155,6 @@ class Graph(object) :
 		links = self.database[definition].fetchByExample( {"_from": user._id,"_to" : post._id} )
 		for l in links :
 			self.deleteEdge(l)
-
-	# def traverse(self, startVertex, **args) :
-	# 	"Traversal, see arangodDB doc for the list of keyword args that you can use"
-	# 	url = "%s/_api/traversal" % self.database.connection.arangoURL
-	# 	args["startVertex"] = startVertex._id
-	# 	args["graphName"] = self.name
-	# 	# print json.dumps(args)
-	# 	r = requests.post(url, data = json.dumps(args))
-	# 	data = r.json()
-	# 	if not r.status_code == 200 or data["error"] :
-	# 		raise TraversalError(data["errorMessage"], data)
-	# 	return data
 
 	def deleteEdge(self, edge, waitForSync = False) :
 		"""removes an edge from the graph"""
