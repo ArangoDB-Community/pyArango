@@ -90,12 +90,12 @@ class ArangocityTests(unittest.TestCase):
 			doc["name"] = "hop"
 			doc['i'] = i
 			doc.save()
-		res = collection.fetchFirstExamples({'name' : 'hop'}, count = 100, rawResults = True)
+		res = collection.fetchFirst( count = 100, rawResults = True )
 		self.assertEqual(len(res), 10)
 		for i in xrange(10) :
 			self.assertEqual(res[i]['i'], i)
 		
-		res = collection.fetchLastExamples({'name' : 'hop'}, count = 100, rawResults = True)
+		res = collection.fetchLast( count = 100, rawResults = True )
 		self.assertEqual(len(res), 10)
 		for i in xrange(10) :
 			self.assertEqual(res[i]['i'], 10 - i - 1)

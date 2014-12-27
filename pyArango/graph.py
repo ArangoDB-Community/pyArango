@@ -136,6 +136,7 @@ class Graph(object) :
 			raise KeyError("'%s' is not among the edge definitions" % collectionName)
 		
 		url = "%s/edge/%s" % (self.URL, collectionName)
+		# print "-------", edgeAttributes, _fromId, _toId
 		self.database[collectionName].validateDct(edgeAttributes)
 		payload = edgeAttributes
 		payload.update({'_from' : _fromId, '_to' : _toId})
@@ -148,6 +149,10 @@ class Graph(object) :
 
 	def link(self, definition, doc1, doc2, edgeAttributes = {}, waitForSync = False) :
 		"A shorthand for createEdge that takes two documents as input"
+		# print definition, doc1._id, doc2._id
+		# print "-------", edgeAttributes
+		# if edgeAttributes != {} :
+		# 	stop
 		return self.createEdge(definition, doc1._id, doc2._id, edgeAttributes, waitForSync)
 
 	def unlink(self, definition, doc1, doc2) :

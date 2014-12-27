@@ -290,7 +290,7 @@ class Collection(object) :
 		returns count examples ordered by insert/update date, the last one being the first on the list"""
 		return self.simpleQuery('first', rawResults = rawResults, count = count)
 
-	def fetchLast(self, exampleDict, count, rawResults = False) :
+	def fetchLast(self, count, rawResults = False) :
 		"""exampleDict should be something like {'age' : 28}. returns only a single element but still in a SimpleQuery object.
 		returns count examples ordered by insert/update date, the last one being the first on the list"""
 		return self.simpleQuery('last', rawResults = rawResults, count = count)
