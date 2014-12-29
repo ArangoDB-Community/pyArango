@@ -57,12 +57,17 @@ class Document(object) :
 
 			params = dict(docArgs)
 			params.update({'collection': self.collection.name })
-			payload = json.dumps(self._store)
-
+			payload = {} 
+			payload.update(self._store)
+			
 			if self.URL is None :
+				if self._key is not None :
+					payload["_key"] = self._key
+				payload = json.dumps(payload)
 				r = requests.post(self.documentsURL, params = params, data = payload)
 				update = False
 			else :
+				payload = json.dumps(payload)
 				r = requests.put(self.URL, params = params, data = payload)
 				update = True
 
