@@ -180,10 +180,10 @@ class Document(object) :
 		del(self._store[k])
 
 	def __str__(self) :
-		return "%s '%s': %s" % (self.typeName, self.collection.name, repr(self._store))
+		return "%s '%s': %s" % (self.typeName, self._id, repr(self._store))
 
 	def __repr__(self) :
-		return "%s '%s': %s" % (self.typeName, self.collection.name, repr(self._store))
+		return "%s '%s': %s" % (self.typeName, self._id, repr(self._store))
 
 class Edge(Document) :
 
