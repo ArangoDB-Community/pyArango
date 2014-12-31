@@ -171,5 +171,19 @@ class Graph(object) :
 		if not r.status_code == 200 or data["error"] :
 			raise DeletionError(data["errorMessage"], data)
 
+	def traverse(self, startVertex, direction, **kwargs) :
+		"""Traversal! see: https://docs.arangodb.com/HttpTraversal/README.html for a full list of the possible kwargs.
+		The direction can be either : 'any', 'outbound' or 'inbound'"""
+
+		url = "%s/traversal" % self.database.URL
+		payload = {	"startVertex": startVertex._id, "graphName" : self.name, "direction" : direction }
+		
+		r = requests.post(url, data = json.dumps(payload))
+		data = r.json()
+		if not r.status_code == 200 or data["error"] :
+			raise TraversalError(data["errorMessage"], data)
+
+		return data["result"]
+
 	def __str__(self) :
-		return "ArangoGraph; %s" % self._key
+		return "ArangoGraph: %s" % self.name

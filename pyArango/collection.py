@@ -143,7 +143,7 @@ class Collection_metaclass(type) :
 		clsObj = type.__new__(cls, name, bases, attrs)
 		if name != "Collection" and name != "Edges" :
 			Collection_metaclass.collectionClasses[name] = clsObj
-
+	
 		return clsObj
 
 	@classmethod

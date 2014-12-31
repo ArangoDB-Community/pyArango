@@ -63,6 +63,10 @@ class CursorError(ArrangocityException) :
 		message = "Unable to retreive data for cursor %s: %s" % (cursorId, message)
 		ArrangocityException.__init__(self, message, errors)
 
+class TraversalError(ArrangocityException) :
+	def __init__(self, message, errors = {}) :
+		ArrangocityException.__init__(self, message, errors)
+
 class AbstractInstanciationError(Exception) :
 	def __init__(self, cls) :
 		self.cls = cls

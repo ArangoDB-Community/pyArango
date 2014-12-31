@@ -449,5 +449,68 @@ class ArangocityTests(unittest.TestCase):
 
 		# g.deleteEdge()
 
+	def test_traversal(self) :
+
+		class persons(Collection) :
+			_fields = {
+				"name" : Field()
+			}
+
+		class knows(Edges) :
+			_fields = {
+				"number" : Field()
+			}
+
+		class knows_graph(Graph) :
+
+			_edgeDefinitions = (EdgeDefinition("knows", fromCollections = ["persons"], toCollections = ["persons"]), )
+			_orphanedCollections = []
+		
+		conn = Connection(arangoURL = "http://localhost:8529")
+		db = conn["test_db"]
+
+		pers = db.createCollection("persons")
+		rels = db.createCollection("knows")
+		g = db.createGraph("knows_graph")
+
+		alice = g.createVertex("persons", {"_key" : "alice"})
+		bob = g.createVertex("persons", {"_key" : "bob"})
+		charlie = g.createVertex("persons", {"_key" : "charlie"})
+		dave = g.createVertex("persons", {"_key" : "dave"})
+		eve = g.createVertex("persons", {"_key" : "eve"})
+
+		g.link("knows", alice, bob, {})
+		g.link("knows", bob, charlie, {})
+		g.link("knows", bob, dave, {})
+		g.link("knows", eve, alice, {})
+		g.link("knows", eve, bob, {})
+
+		travVerts = g.traverse(alice, "outbound")["visited"]["vertices"]
+		_keys = set()
+		for v in travVerts :
+			_keys.add(v["_key"])
+
+		pers = [alice, bob, charlie, dave]
+		for p in pers :
+			self.assertTrue(p._key in _keys)
+
+		travVerts = g.traverse(alice, "inbound")["visited"]["vertices"]
+		_keys = set()
+		for v in travVerts :
+			_keys.add(v["_key"])
+
+		pers = [alice, eve]
+		for p in pers :
+			self.assertTrue(p._key in _keys)
+
+		travVerts = g.traverse(alice, "any")["visited"]["vertices"]
+		_keys = set()
+		for v in travVerts :
+			_keys.add(v["_key"])
+
+		pers = [alice, bob, charlie, dave, eve]
+		for p in pers :
+			self.assertTrue(p._key in _keys)
+
 if __name__ == "__main__" :
 	unittest.main()

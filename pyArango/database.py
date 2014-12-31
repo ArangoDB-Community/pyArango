@@ -106,7 +106,7 @@ class Database(object) :
 	
 	def createGraph(self, name, createCollections = True) :
 		"""Creates a graph and returns it. You can decide weither or not you want non existing collections to be created by setting the value of 'createCollections'.
-		  If the value if 'false' checks will be performed t omake sure that every collaction mentionned in the edges definition exist. Raises a value error in case of
+		  If the value if 'false' checks will be performed to make sure that every collection mentionned in the edges definition exist. Raises a value error in case of
 		  a non-existing collection."""
 
 		def _checkCollectionList(lst) :
