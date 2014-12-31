@@ -1,0 +1,6 @@
+Graph definitions are not loaded from the db but only defined in the code.
+=> a graph that has been created outside of pyArango won't load
+
+Using the from collection import * with import pyArango.connection as PAC
+causes the metaclass for collections to load twice, and classes might not 
+be referenced by the metaclass. the import as should be avoided
