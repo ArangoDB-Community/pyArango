@@ -106,7 +106,7 @@ class Database(object) :
 	def fetchDocument(self, _id) :
 		"fetchs a document according to it's _id"
 		sid = _id.split("/")
-		return self[sid[1]][sid[0]]
+		return self[sid[0]][sid[1]]
 
 	def createGraph(self, name, createCollections = True) :
 		"""Creates a graph and returns it. You can decide weither or not you want non existing collections to be created by setting the value of 'createCollections'.
