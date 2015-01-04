@@ -103,7 +103,11 @@ class Database(object) :
 	# def createEdges(self, className, **colArgs) :
 	# 	"an alias of createCollection"
 	# 	self.createCollection(className, **colArgs)
-	
+	def fetchDocument(self, _id) :
+		"fetchs a document according to it's _id"
+		sid = _id.split("/")
+		return self[sid[1]][sid[0]]
+
 	def createGraph(self, name, createCollections = True) :
 		"""Creates a graph and returns it. You can decide weither or not you want non existing collections to be created by setting the value of 'createCollections'.
 		  If the value if 'false' checks will be performed to make sure that every collection mentionned in the edges definition exist. Raises a value error in case of
