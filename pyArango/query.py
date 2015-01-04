@@ -106,6 +106,9 @@ class Query(object) :
 		except (KeyError, AttributeError) :
 			raise  AttributeError("There's not attribute %s" %(k))
 
+	def __str__(self) :
+		return str(self.result)
+
 class AQLQuery(Query) :
 	"AQL queries are attached to a database"
 	def __init__(self, database, query, rawResults, batchSize, bindVars, options, count, fullCount) :
@@ -157,6 +160,3 @@ class SimpleQuery(Query) :
 			self.result[i] = Edge(self.collection, docJson)
  		else :
  			self.result[i] = Document(self.collection, docJson)
-
-	def __str__(self) :
-		return str(self.result)

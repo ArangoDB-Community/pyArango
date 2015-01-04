@@ -243,7 +243,7 @@ class Collection(object) :
 			raise SchemaViolation(cls, fieldName)
 		
 		try : #if foreign field
-			cls._fields[fieldName].validate(value)
+			return cls._fields[fieldName].validate(value)
 		except KeyError :
 			pass
 
