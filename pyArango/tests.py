@@ -479,6 +479,8 @@ class ArangocityTests(unittest.TestCase):
 		dave = g.createVertex("persons", {"_key" : "dave"})
 		eve = g.createVertex("persons", {"_key" : "eve"})
 
+		e = g.link("knows", alice, alice, {'me' : "aa"})
+		
 		g.link("knows", alice, bob, {})
 		g.link("knows", bob, charlie, {})
 		g.link("knows", bob, dave, {})

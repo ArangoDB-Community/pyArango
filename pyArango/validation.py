@@ -20,6 +20,15 @@ class NotNull(Validator) :
 			raise ValidationError("Field can't have a null value: '%s'" % value)
 		return True
 
+class Email(Validator) :
+	"""Checks that the Field has a non null value"""
+	def validate(self, value) :
+		import re
+		pat = '^[A-z0-9._-]+@[A-z0-9.-]+\.[A-z]{2,4}$'
+		if re.match(pat, value) is None :
+			raise ValidationError("The email address: %s is invalid" % value)
+		return True
+		
 class Length(Validator) :
 	"""validates that the value length is between given bounds"""
 	def __init__(self, minLen, maxLen) :
@@ -27,9 +36,10 @@ class Length(Validator) :
 		self.maxLen = maxLen
 
 	def validate(self, value) :
-		if len(value) <= self.minLen or len(value) >= self.maxLen :
-			raise ValidationError("Field must have a len between '%s' and '%s' got: '%s'" % (self.minLen, self.maxLen, value))
-		return True
+		if self.minLen <= len(value) and len(value) <= self.maxLen :
+			return True
+
+		raise ValidationError("Field must have a length in ['%s';'%s'] got: '%s'" % (self.minLen, self.maxLen, len(value)))
 
 	def __str__(self) :
 		return "%s[%s, %s]" % (self.__class__.__name__, self.minLen, self.maxLen)
