@@ -72,6 +72,8 @@ Queries : AQL
 
 Queries : Simple queries by example
 -------------------------------------
+PyArango supports all types of simple queries (see collection.py for the full list). Here's how you do a query by example:
+
 .. code:: python
 
   example = {'species' : "human"}
@@ -83,9 +85,8 @@ Queries : Batches
 
 .. code:: python
 
-  while query.hasMore :
-    print query[0]['name']
-    query.nextBatch()
+  for e in query :
+    print e['name']
 
 Defining a Collection and field/schema Validation
 -------------------------------------------------
