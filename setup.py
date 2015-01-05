@@ -21,7 +21,7 @@ setup(
     author='Tariq Daouda',
     author_email='tariq.daouda@umontreal.ca',
 
-    license='MIT',
+    license='ApacheV2',
 
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
@@ -31,23 +31,20 @@ setup(
         #   5 - Production/Stable
         'Development Status :: 4 - Beta',
 
-        'Intended Audience :: Science/Research',
         'Intended Audience :: Developers',
         'Intended Audience :: System Administrators',
-        'Topic :: Scientific/Engineering :: Bio-Informatics',
         'Topic :: Software Development :: Libraries',
         'Topic :: Database',
-		'Topic :: Database :: Database Engines/Servers',
-		'Topic :: Database :: Front-Ends',
+	'Topic :: Database :: Database Engines/Servers',
 
-        'License :: OSI Approved :: MIT License',
+        'License :: OSI Approved :: ApacheV2',
 
         'Programming Language :: Python :: 2.7',
     ],
 
     install_requires=['requests'],
     
-    keywords='database ORM sqlite3',
+    keywords='database ORM nosql arangodb driver validation',
 
     packages=find_packages(),
 
