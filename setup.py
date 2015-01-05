@@ -35,9 +35,9 @@ setup(
         'Intended Audience :: System Administrators',
         'Topic :: Software Development :: Libraries',
         'Topic :: Database',
-	'Topic :: Database :: Database Engines/Servers',
+    	'Topic :: Database :: Database Engines/Servers',
 
-        'License :: OSI Approved :: ApacheV2',
+        'License :: OSI Approved :: Apache Software License',
 
         'Programming Language :: Python :: 2.7',
     ],
