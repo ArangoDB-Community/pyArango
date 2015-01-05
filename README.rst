@@ -21,7 +21,13 @@ You can be 100% permissive or enforce schemas and validate fields, on set, on sa
 Installation
 ------------
 
-For the latest version
+From PyPi:
+
+.. code:: shell
+
+ pip install --pre pyArango
+
+For the latest version:
 
 .. code:: shell
 
