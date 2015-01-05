@@ -9,6 +9,6 @@ pyArango is developed by `Tariq Daouda`_, the full source code is available from
 .. _Tariq Daouda: http://bioinfo.iric.ca/~daoudat/
 .. _github: https://github.com/tariqdaouda/pyArango
 
-For the latest news about pyArnago, you can follow me on twitter `@tariqdaouda`_.
+For the latest news about pyArango, you can follow me on twitter `@tariqdaouda`_.
 
 .. _@tariqdaouda: https://www.twitter.com/tariqdaouda
