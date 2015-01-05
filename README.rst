@@ -7,6 +7,7 @@ Key Features
 ------------
  - Light and Simple interface
  - Built-in Validation of fields on seting or on saving
+ - Supports graphs and all types of queries
  - Caching of documents with Insertions and Lookups in O(1)
 
 Collections are treated as types that apply to the documents within. That means that you can define
