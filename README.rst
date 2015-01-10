@@ -7,6 +7,7 @@ Key Features
 ------------
  - Light and Simple interface
  - Built-in Validation of fields on seting or on saving
+ - Supports graphs and all types of queries
  - Caching of documents with Insertions and Lookups in O(1)
 
 Collections are treated as types that apply to the documents within. That means that you can define
@@ -21,7 +22,13 @@ You can be 100% permissive or enforce schemas and validate fields, on set, on sa
 Installation
 ------------
 
-For the latest version
+From PyPi:
+
+.. code:: shell
+
+ pip install --pre pyArango
+
+For the latest version:
 
 .. code:: shell
 
