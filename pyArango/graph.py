@@ -171,13 +171,22 @@ class Graph(object) :
 		if not r.status_code == 200 or data["error"] :
 			raise DeletionError(data["errorMessage"], data)
 
-	def traverse(self, startVertex, direction, **kwargs) :
+	def traverse(self, startVertex, **kwargs) :
 		"""Traversal! see: https://docs.arangodb.com/HttpTraversal/README.html for a full list of the possible kwargs.
-		The direction can be either : 'any', 'outbound' or 'inbound'"""
+		The function must have as argument either: direction = "outbout"/"any"/"inbound" or expander = "custom JS (see arangodb's doc)".
+		The function can't have both 'direction' and 'expander' as arguments.
+		"""
 
 		url = "%s/traversal" % self.database.URL
-		payload = {	"startVertex": startVertex._id, "graphName" : self.name, "direction" : direction }
-		
+		payload = {	"startVertex": startVertex._id, "graphName" : self.name}
+		if "expander" in kwargs :
+			if "direction" in kwargs :
+					raise ValueError("""The function can't have both 'direction' and 'expander' as arguments""") 
+		elif "direction" not in kwargs :
+			raise ValueError("""The function must have as argument either: direction = "outbout"/"any"/"inbound" or expander = "custom JS (see arangodb's doc)" """) 
+
+		payload.update(kwargs)
+
 		r = requests.post(url, data = json.dumps(payload))
 		data = r.json()
 		if not r.status_code == 200 or data["error"] :
