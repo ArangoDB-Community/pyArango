@@ -487,7 +487,7 @@ class ArangocityTests(unittest.TestCase):
 		g.link("knows", eve, alice, {})
 		g.link("knows", eve, bob, {})
 
-		travVerts = g.traverse(alice, "outbound")["visited"]["vertices"]
+		travVerts = g.traverse(alice, direction = "outbound")["visited"]["vertices"]
 		_keys = set()
 		for v in travVerts :
 			_keys.add(v["_key"])
@@ -496,7 +496,7 @@ class ArangocityTests(unittest.TestCase):
 		for p in pers :
 			self.assertTrue(p._key in _keys)
 
-		travVerts = g.traverse(alice, "inbound")["visited"]["vertices"]
+		travVerts = g.traverse(alice, direction = "inbound")["visited"]["vertices"]
 		_keys = set()
 		for v in travVerts :
 			_keys.add(v["_key"])
@@ -505,7 +505,7 @@ class ArangocityTests(unittest.TestCase):
 		for p in pers :
 			self.assertTrue(p._key in _keys)
 
-		travVerts = g.traverse(alice, "any")["visited"]["vertices"]
+		travVerts = g.traverse(alice, direction = "any")["visited"]["vertices"]
 		_keys = set()
 		for v in travVerts :
 			_keys.add(v["_key"])
