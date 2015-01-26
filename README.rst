@@ -5,9 +5,11 @@ NoSQL is really cool, but in this harsh world it is impossible to live without f
 
 Key Features
 ------------
+pyArango, is geared toward the developer. It's here to help to you develop really cool apps using ArangoDB, really fast.
+
  - Light and Simple interface
  - Built-in Validation of fields on seting or on saving
- - Supports graphs and all types of queries
+ - Supports graphs, traversals and all types of queries
  - Caching of documents with Insertions and Lookups in O(1)
 
 Collections are treated as types that apply to the documents within. That means that you can define
