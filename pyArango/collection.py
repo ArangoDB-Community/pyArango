@@ -345,9 +345,11 @@ class Collection(object) :
 	def figures(self) :
 		"a more elaborate version of count, see arangodb docs for more infos"
 		return self.action('GET', 'figures')
+	
 	# def createEdges(self, className, **colArgs) :
 	# 	"an alias of createCollection"
 	# 	self.createCollection(className, **colArgs)
+
 	def getType(self) :
 		"returns a word describing the type instead of a number, if you prefer the number it's in self.type"
 		if self.type == COLLECTION_DOCUMENT_TYPE :

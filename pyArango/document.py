@@ -197,13 +197,15 @@ class Edge(Document) :
 	def setPrivates(self, jsonFieldInit) :
 		try :
 			self._from = jsonFieldInit["_from"]
+			del(jsonFieldInit["_from"])
 			self._to = jsonFieldInit["_to"]
+			del(jsonFieldInit["_to"])
 		except KeyError :
 			self._from, self._to = None, None
 		Document.setPrivates(self, jsonFieldInit)
 
 	def links(self, fromVertice, toVertice, **edgeArgs) :
-		"an alias of save that works only for first saves. It will also trigger the saving of fromVertice and toVertice"
+		"An alias of save that works only for first saves. It will also trigger the saving of fromVertice and toVertice"
 		if self.URL is not None :
 			raise AttributeError("It appears that the edge has already been saved. You can now use save() and patch()")
 		
@@ -213,7 +215,8 @@ class Edge(Document) :
 		self.save(fromVertice, toVertice, **edgeArgs)
 
 	def save(self, fromVertice = None, toVertice = None, **edgeArgs) :
-		"Works like Document's except that the irst time you save an Edge you must specify the 'from' and 'to' vertices. If you fear forgetting there's a links() function especially for first saves"
+		"""Works like Document's except that the first time you save an Edge you must specify the 'from' and 'to' vertices.
+		There's also a links() function especially for first saves"""
 		if self.URL is None and (fromVertice is None or toVertice is None) :
 			raise ValueError("The first time you save an Edge you must specify the 'from' and 'to' vertices")
 
