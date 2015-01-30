@@ -300,8 +300,11 @@ class Collection(object) :
 		returns the first example found that matches the example"""
 		return self.simpleQuery('first-example', rawResults = rawResults, example = exampleDict)
 
-	def fetchAll(self, batchSize, rawResults = False, **queryArgs) :
-		return self.simpleQuery('all', rawResults, batchSize = batchSize, **queryArgs)
+	def fetchAll(self, rawResults = False, **queryArgs) :
+		"""Returns all the documents in the collection. You can use the optinal arguments 'skip' and 'limit'::
+	
+			fetchAlll(limit = 3, shik = 10)"""
+		return self.simpleQuery('all', rawResults = rawResults, **queryArgs)
 
 	def simpleQuery(self, queryType, rawResults = False, **queryArgs) :
 		"""General interface for simple queries. queryType can be something like 'all', 'by-example' etc... everything is in the arango doc.

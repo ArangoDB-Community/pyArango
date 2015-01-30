@@ -43,7 +43,7 @@ Initiatilisation and document saving
 
 .. code:: python
   
-  from pyArango.Connection import *
+  from pyArango.connection import *
   
   conn = Connection()
   conn.createDatabase(name = "test_db")
