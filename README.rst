@@ -28,7 +28,7 @@ From PyPi:
 
 .. code:: shell
 
- pip install --pre pyArango
+ pip install pyArango
 
 For the latest version:
 
