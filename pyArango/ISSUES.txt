@@ -4,5 +4,3 @@
 * Using the from collection import * with import pyArango.connection as PAC
 causes the metaclass for collections to load twice, and classes might not 
 be referenced by the metaclass. the import as should be avoided
-
-* on_set validation on edges causes pyArango to complain about '_to' not being part of the schema

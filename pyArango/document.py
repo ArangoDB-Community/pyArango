@@ -4,12 +4,14 @@ import json
 from theExceptions import (CreationError, DeletionError, UpdateError)
 
 class Document(object) :
+	"""The class that represents a document"""
 
 	def __init__(self, collection, jsonFieldInit = {}) :
 		self.reset(collection, jsonFieldInit)
 		self.typeName = "ArangoDoc"
 
 	def reset(self, collection, jsonFieldInit = {}) :
+		"""replaces the current values in the document by those in jsonFieldInit"""
 		self.collection = collection
 		self.documentsURL = self.collection.documentsURL
 		
@@ -20,6 +22,8 @@ class Document(object) :
 		self.modified = True
 
 	def setPrivates(self, fieldDict) :
+		"""will set self._id, self._rev and self._key field. Private fields (starting by '_') are all accessed using the self. interface,
+		other fields are accessed through self[fielName], the same as regular dictionnary in python"""
 		try :
 			self._id = fieldDict["_id"]
 			self.URL = "%s/%s" % (self.documentsURL, self._id)
@@ -46,9 +50,9 @@ class Document(object) :
 			self._store.update(fieldDict)
 
 	def save(self, **docArgs) :
-		"""Either performs a POST (for a new document) or a PUT (complete document overwrite).
+		"""Saves the document to the database by either performing a POST (for a new document) or a PUT (complete document overwrite).
 		If you want to only update the modified fields use the .path() function.
-		Use docArgs to put things such as 'waitForSync = True'.
+		Use docArgs to put things such as 'waitForSync = True' (for a full list cf ArangoDB's doc).
 		It will only trigger a saving of the document if it has been modified since the last save. If you want to force the saving you can use forceSave()"""
 
 		if self.modified :
@@ -98,7 +102,7 @@ class Document(object) :
 		return (old_key, self._key)
 
 	def patch(self, keepNull = True, **docArgs) :
-		"""Updates only the modified fields.
+		"""Saves the document by only updating the modified fields.
 		The default behaviour concening the keepNull parameter is the opposite of ArangoDB's default, Null values won't be ignored
 		Use docArgs for things such as waitForSync = True"""
 
@@ -158,6 +162,8 @@ class Document(object) :
 			raise AttributeError("%s does not seem to be a valid Edges object" % edges)
 
 	def __getitem__(self, k) :
+		"""Document fields are accessed in a dictionary like fashion: doc[fieldName]. With the exceptions of private fiels (starting with '_')
+		that are accessed as object fields: doc._key"""
 		if self.collection._validation['allow_foreign_fields'] or self.collection.hasField(k) :
 			return self._store.get(k)
 
@@ -167,6 +173,9 @@ class Document(object) :
 			raise KeyError("Document of collection '%s' has no field '%s', for a permissive behaviour set 'allow_foreign_fields' to True" % (self.collection.name, k))
 
 	def __setitem__(self, k, v) :
+		"""Documents work just like dictionaries doc[fieldName] = value. With the exceptions of private fiels (starting with '_')
+		that are accessed as object fields: doc._key"""	
+		
 		if self.collection._validation['on_set'] :
 			self.collection.validateField(k, v)
 
@@ -186,7 +195,7 @@ class Document(object) :
 		return "%s '%s': %s" % (self.typeName, self._id, repr(self._store))
 
 class Edge(Document) :
-
+	"""An Edge document"""
 	def __init__(self, edgeCollection, jsonFieldInit = {}) :
 		self.reset(edgeCollection, jsonFieldInit)
 

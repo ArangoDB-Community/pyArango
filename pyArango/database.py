@@ -70,9 +70,9 @@ class Database(object) :
 		self.reloadGraphs()
 	
 	def createCollection(self, className = 'GenericCollection', **colArgs) :
-		""" Must be a string representing the name of a class inheriting from Collection or Egdes. Use colArgs to put things such as 'isVolatile = True'.
-		The 'name' parameter will be ignored if className != 'GenericCollection' since it is already specified by className.
-		The 'type' parameter is always ignored since it alreday defined by the class of inheritence"""
+		"""Creeats a collection and returns it.
+		ClassName the name of a class inheriting from Collection or Egdes. Use colArgs to put things such as 'isVolatile = True' (see ArangoDB's doc
+		for a full list of possible arugments)."""
 		
 		if className != 'GenericCollection' :
 			colArgs['name'] = className
@@ -100,18 +100,16 @@ class Database(object) :
 		else :
 			raise CreationError(data["errorMessage"], data)
 
-	# def createEdges(self, className, **colArgs) :
-	# 	"an alias of createCollection"
-	# 	self.createCollection(className, **colArgs)
 	def fetchDocument(self, _id) :
-		"fetchs a document according to it's _id"
+		"fetchs a document using it's _id"
 		sid = _id.split("/")
 		return self[sid[0]][sid[1]]
 
 	def createGraph(self, name, createCollections = True) :
-		"""Creates a graph and returns it. You can decide weither or not you want non existing collections to be created by setting the value of 'createCollections'.
-		  If the value if 'false' checks will be performed to make sure that every collection mentionned in the edges definition exist. Raises a value error in case of
-		  a non-existing collection."""
+		"""Creates a graph and returns it. 'name' must be the name of a class inheriting from Graph.
+		You can decide weither or not you want non existing collections to be created by setting the value of 'createCollections'.
+		If the value if 'false' checks will be performed to make sure that every collection mentionned in the edges definition exist. Raises a ValueError in case of
+		a non-existing collection."""
 
 		def _checkCollectionList(lst) :
 			for colName in lst :
@@ -149,19 +147,19 @@ class Database(object) :
 			raise CreationError(data["errorMessage"], data)		
 		return self.graphs[name]
 
-	def _checkGraphCollections(self, edgeDefinitions, orphanCollections) :
-
-		for ed in edgeDefinitions :
-			
-			checkList(ed["from"])
-			checkList(ed["to"])
+	# def _checkGraphCollections(self, edgeDefinitions, orphanCollections) :
+	# 	for ed in edgeDefinitions :	
+	# 		checkList(ed["from"])
+	# 		checkList(ed["to"])
 		
-		checkList(orphanCollections)
+	# 	checkList(orphanCollections)
 
 	def hasCollection(self, name) :
+		"""returns true if the databse has a collection by the name of 'name'"""
 		return name in self.collections
 
 	def hasGraph(name):
+		"""returns true if the databse has a graph by the name of 'name'"""
 		return name in self.graphs
 	
 	def AQLQuery(self, query, rawResults, batchSize, bindVars = {}, options = {}, count = False, fullCount = False) :
@@ -182,6 +180,7 @@ class Database(object) :
 		return "ArangoDB database: %s" % self.name
 
 	def __getitem__(self, collectionName) :
+		"""use database[collectionName] to get a collection from the database"""
 		try :
 			return self.collections[collectionName]
 		except KeyError :
@@ -193,7 +192,7 @@ class Database(object) :
 
 
 class DBHandle(Database) :
-	"As the loading of a DB triggers the loading of collections and graphs within. Only handles are loaded first. The full database is loaded on demand."
+	"As the loading of a DB triggers the loading of collections and graphs within. Only handles are loaded first. The full database are loaded on demand."
 	def __init__(self, connection, name) :
 		self.connection = connection
 		self.name = name

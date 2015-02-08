@@ -5,7 +5,7 @@ from database import Database, DBHandle
 from theExceptions import SchemaViolation, CreationError, ConnectionError
 
 class Connection(object) :
-	"""Handles databases. Can't create db's and has no conception of users for now"""
+	"""This is the entry point in pyArango and direcltt handles databases."""
 	def __init__(self, arangoURL = 'http://localhost:8529') :
 		self.databases = {}
 		if arangoURL[-1] == "/" :
@@ -19,8 +19,9 @@ class Connection(object) :
 		self.reload()
 	
 	def reload(self) :
-		"""reloads the database list
-		As the loading of a DB triggers the loading of collections and graphs within. Only handles are loaded when this function is called. The full database is loaded on demand.
+		"""Reloads the database list.
+		Because loading a database triggers the loading of all collections and graphs within,
+		only handles are loaded when this function is called. The full databases are loaded on demand when accessed
 		"""
 		r = requests.get(self.databasesURL)
 		data = r.json()
@@ -33,8 +34,7 @@ class Connection(object) :
 			raise ConnectionError(data["errorMessage"], self.databasesURL, data)
 
 	def createDatabase(self, name, **dbArgs) :
-		"use dbArgs for arguments other than name"
-
+		"use dbArgs for arguments other than name. for a full list of arguments please have a look at arangoDB's doc"
 		dbArgs['name'] = name
 		payload = json.dumps(dbArgs)
 		r = requests.post(self.databasesURL, data = payload)
@@ -47,9 +47,11 @@ class Connection(object) :
 			raise CreationError(data["errorMessage"], data)
 
 	def hasDatabase(self, name) :
+		"""returns true/false wether the connection has a database by the name of 'name'"""
 		return name in self.databases
 
 	def __getitem__(self, dbName) :
+		"""Collection[dbName] returns a database by the name of 'dbName', raises a KeyError if not found"""
 		try :
 			return self.databases[dbName]
 		except KeyError :

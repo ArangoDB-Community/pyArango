@@ -53,7 +53,7 @@ class Query(object) :
 		raise NotImplemented("Must be implemented in child")
 
 	def _developDoc(self, i) :
-
+		"""private function that transforms a json returned by ArangoDB into a pyArango Document or Edge"""
 		docJson = self.result[i]
 		try :
 			collection = self.database[docJson["_id"].split("/")[0]]
@@ -79,6 +79,7 @@ class Query(object) :
 		requests.delete(self.cursor)
 
 	def next(self) :
+		"""returns the next element of the query result. Automatomatically calls for new batches if needed"""
 		try :
 			v = self[self.currI]
 		except IndexError :
@@ -88,6 +89,10 @@ class Query(object) :
 		return v
 			
 	def __iter__(self) :
+		"""Returns an itererator so you can do::
+		
+			for doc in query : print doc
+		"""
 		return self
 
 	def __getitem__(self, i) :
@@ -97,6 +102,7 @@ class Query(object) :
 		return self.result[i]
 
 	def __len__(self) :
+		"""Returns the number of elements in the query results"""
 		return len(self.result)
 
 	def __getattr__(self, k) :
@@ -124,7 +130,7 @@ class AQLQuery(Query) :
 		raise AQLQueryError(data["errorMessage"], self.query, data)
 
 class Cursor(Query) :
-	"Cursor queries are attached to a database, use them to continue where you left"
+	"Cursor queries are attached to a database, use them to continue from where you left"
 	def __init__(self, database, cursorId, rawResults) :
 		self.rawResults = rawResults
 		self._developed = set()

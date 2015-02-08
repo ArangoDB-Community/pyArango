@@ -23,7 +23,7 @@ class CachedDoc(object) :
 		self.key = document.key
 
 class DocumentCache(object) :
-	"Doument cache for collection with insert, deletes and updates in O(1)"
+	"Document cache for collection, with insert, deletes and updates in O(1)"
 
 	def __init__(self, cacheSize) :
 		self.cacheSize = cacheSize
@@ -58,6 +58,7 @@ class DocumentCache(object) :
 				self.cacheStore[doc.key] = ret
 
 	def delete(self, key) :
+		"removes a document from the cache"
 		try :
 			doc = self.cacheStore[key]
 			doc.prev.next = doc.next
@@ -97,11 +98,13 @@ class DocumentCache(object) :
 		return "[DocumentCache, size: %d, full: %d]" %(self.cacheSize, len(self.cacheStore))
 
 class Field(object) :
-
+	"""The class for defining pyArango fields."""
 	def __init__(self, validators = []) :
+		"validators must be a list of validators"
 		self.validators = validators
 
 	def validate(self, value) :
+		"checks the validity of 'value' given the lits of validators"
 		for v in self.validators :
 			v.validate(value)
 		return True
@@ -113,7 +116,7 @@ class Field(object) :
 		return "<Field, validators: '%s'>" % ', '.join(strv) 
 
 class Collection_metaclass(type) :
-	
+	"""The metaclass that takes care of keeping a register of all collection types"""
 	collectionClasses = {}
 	
 	_validationDefault = {
@@ -148,6 +151,7 @@ class Collection_metaclass(type) :
 
 	@classmethod
 	def getCollectionClass(cls, name) :
+		"""Return the class object of a collection given its 'name'"""
 		try :
 			return cls.collectionClasses[name]
 		except KeyError :
@@ -155,10 +159,12 @@ class Collection_metaclass(type) :
 
 	@classmethod
 	def isCollection(cls, name) :
+		"""return true or false wether 'name' is the name of collection."""
 		return name in cls.collectionClasses
 
 	@classmethod
 	def isDocumentCollection(cls, name) :
+		"""return true or false wether 'name' is the name of a document collection."""
 		try :
 			col = cls.getCollectionClass(name)
 			return issubclass(col, Collection)
@@ -167,6 +173,7 @@ class Collection_metaclass(type) :
 
 	@classmethod
 	def isEdgeCollection(cls, name) :
+		"""return true or false wether 'name' is the name of an edge collection."""
 		try :
 			col = cls.getCollectionClass(name)
 			return issubclass(col, Edges)
@@ -174,15 +181,19 @@ class Collection_metaclass(type) :
 			return False
 
 def getCollectionClass(name) :
+	"""return true or false wether 'name' is the name of collection."""
 	return Collection_metaclass.getCollectionClass(name)
 
 def isCollection(name) :
+	"""return true or false wether 'name' is the name of a document collection."""
 	return Collection_metaclass.isCollection(name)
 
 def isDocumentCollection(name) :
+	"""return true or false wether 'name' is the name of a document collection."""
 	return Collection_metaclass.isDocumentCollection(name)
 
 def isEdgeCollection(name) :
+	"""return true or false wether 'name' is the name of an edge collection."""
 	return Collection_metaclass.isEdgeCollection(name)
 
 def getCollectionClasses() :
@@ -228,6 +239,7 @@ class Collection(object) :
 		self.documentCache = None
 
 	def delete(self) :
+		"deletes the collection from the database"
 		r = requests.delete(self.URL)
 		data = r.json()
 		if not r.status_code == 200 or data["error"] :
@@ -239,6 +251,7 @@ class Collection(object) :
 
 	@classmethod
 	def validateField(cls, fieldName, value) :
+		"checks if 'value' is a valid for field 'fieldName'. If the validation is unsuccefull, raises a SchemaViolation or a ValidationError"
 		if not cls._validation["allow_foreign_fields"] and (fieldName not in cls._fields) :
 			raise SchemaViolation(cls, fieldName)
 		
@@ -249,7 +262,7 @@ class Collection(object) :
 
 	@classmethod
 	def validateDct(cls, dct) :
-		"validates a dictionary"
+		"validates a dictionary. The dictionary must be defined such as {field: value}. If the validation is unsuccefull, raises an InvalidDocument"
 		res = {}
 		for k, v in dct.iteritems() :
 			try :
@@ -264,11 +277,12 @@ class Collection(object) :
 
 	@classmethod
 	def hasField(cls, k) :
-		"returns True/False wether the collection as field K in it's schema"
+		"returns True/False wether the collection has field K in it's schema"
 		return k in cls._fields
 
 	def fetchDocument(self, key, rawResults = False, rev = None) :
-		"Fetches a document from the collection given it's key. This function always goes straight to the db and bypasses the cache"
+		"""Fetches a document from the collection given it's key. This function always goes straight to the db and bypasses the cache. If you
+		want to take advantage of the cache use the __getitem__ interface: collection[key]"""
 		url = "%s/%s/%s" % (self.documentsURL, self.name, key)
 		if rev is not None :
 			r = requests.get(url, params = {'rev' : rev})
@@ -316,6 +330,7 @@ class Collection(object) :
 		return r.json()
 
 	def truncate(self) :
+		"deletes every document in the collection"
 		return self.action('PUT', 'truncate')
 
 	def empty(self) :
@@ -331,15 +346,19 @@ class Collection(object) :
 		return self.action('PUT', 'unload')
 
 	def revision(self) :
+		"""returns the current revision"""
 		return self.action('GET', 'revision')["revision"]
 
 	def properties(self) :
+		"""returns the current properties"""
 		return self.action('GET', 'properties')
 
 	def checksum(self) :
+		"""returns the current checksum"""
 		return self.action('GET', 'checksum')["checksum"]
 
 	def count(self) :
+		"""returns the number of documents in the collection"""
 		return self.action('GET', 'count')["count"]
 
 	def figures(self) :
@@ -351,7 +370,7 @@ class Collection(object) :
 	# 	self.createCollection(className, **colArgs)
 
 	def getType(self) :
-		"returns a word describing the type instead of a number, if you prefer the number it's in self.type"
+		"returns a word describing the type of the collection (edges or ducments) instead of a number, if you prefer the number it's in self.type"
 		if self.type == COLLECTION_DOCUMENT_TYPE :
 			return "document"
 		elif self.type == COLLECTION_EDGE_TYPE :
@@ -360,7 +379,7 @@ class Collection(object) :
 			raise ValueError("The collection is of Unknown type %s" % self.type)
 
 	def getStatus(self) :
-		"returns a word describing the status instead of a number, if you prefer the number it's in self.status"
+		"returns a word describing the status of the collection (loaded, loading, deleted, unloaded, newborn) instead of a number, if you prefer the number it's in self.status"
 		if self.status == COLLECTION_LOADING_STATUS :
 			return "loading"
 		elif self.status == COLLECTION_LOADED_STATUS :
@@ -390,20 +409,19 @@ class Collection(object) :
 
 class SystemCollection(Collection) :
 	"for all collections with isSystem = True"
-	
 	def __init__(self, database, jsonData) :
 		Collection.__init__(self, database, jsonData)
 
 class GenericCollection(Collection) :
-	"The default collection. Can store anything"
-	
+	"The default collection. It does not do any validation and can store anything"
 	def __init__(self, database, jsonData) :
 		Collection.__init__(self, database, jsonData)
 
 class Edges(Collection) :
-	"The default edge collection. your edge Collections must inherit from it"
+	"The default edge collection. All edge Collections must inherit from it"
 
 	def __init__(self, database, jsonData) :
+		"This one is meant to be called by the database"
 		Collection.__init__(self, database, jsonData)
 		self.documentClass = Edge
 		self.documentsURL = "%s/edge" % (self.database.URL)
