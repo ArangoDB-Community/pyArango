@@ -41,7 +41,7 @@ For the latest version:
 Full documentation
 -------------------
 
-This is the quickstaet guide, you can find the full documentation here_.
+This is the quickstart guide, you can find the full documentation here_.
 
 .. _here: http://pyArango.tariqdaouda.com
 
