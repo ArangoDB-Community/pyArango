@@ -38,6 +38,13 @@ For the latest version:
  cd pyArango
  python setup.py develop
 
+Full documentation
+-------------------
+
+This is the quickstaet guide, you can find the full documentation here_.
+
+.. _here: http://pyArango.tariqdaouda.com
+
 Initiatilisation and document saving
 -------------------------------------
 
