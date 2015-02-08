@@ -28,7 +28,7 @@ From PyPi:
 
 .. code:: shell
 
- pip install --pre pyArango
+ pip install pyArango
 
 For the latest version:
 
@@ -43,7 +43,7 @@ Initiatilisation and document saving
 
 .. code:: python
   
-  from pyArango.Connection import *
+  from pyArango.connection import *
   
   conn = Connection()
   conn.createDatabase(name = "test_db")

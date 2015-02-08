@@ -28,6 +28,8 @@ class Query(object) :
 
 		self.rawResults = rawResults
 		self.response = request.json()
+		if self.response["error"] :
+			raise AQLQueryError(self.response["errorMessage"], self.query, self.response)
 		self.database = database
 		self.currI = 0
 		if request.status_code == 201 or request.status_code == 200:
@@ -69,9 +71,12 @@ class Query(object) :
 		"become the next batch. raises a StopIteration if there is None"
 		self.batchNumber += 1
 		self.currI = 0
-		if not self.response["hasMore"] or self.cursor is None :
-			raise StopIteration("That was the last batch")
-
+		try :
+			if not self.response["hasMore"] or self.cursor is None :
+				raise StopIteration("That was the last batch")
+		except KeyError :
+			raise AQLQueryError(self.response["errorMessage"], self.query, self.response)
+	
 		self.response = self.cursor.next()
 
 	def delete(self) :
