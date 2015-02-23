@@ -63,6 +63,11 @@ class SimpleQueryError(ArrangocityException) :
 	def __init__(self, message, errors = {}) :
 		ArrangocityException.__init__(self, message, errors)
 
+class QueryError(ArrangocityException) :
+	"""Something went wrong with an aql query"""
+	def __init__(self, message, errors = {}) :
+		ArrangocityException.__init__(self, message, errors)
+
 class AQLQueryError(ArrangocityException) :
 	"""Something went wrong with an aql query"""
 	def __init__(self, message, query, errors = {}) :
