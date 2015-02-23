@@ -28,9 +28,9 @@ class Query(object) :
 
 		self.rawResults = rawResults
 		self.response = request.json()
-		if self.response["error"] :
+		if self.response["error"] and self.response["errorMessage"] != "no match" :
 			raise QueryError(self.response["errorMessage"], self.response)
-		
+			
 		self.database = database
 		self.currI = 0
 		if request.status_code == 201 or request.status_code == 200:
