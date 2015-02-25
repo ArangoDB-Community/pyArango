@@ -2,7 +2,7 @@ import requests
 import json
 
 from document import Document, Edge
-from theExceptions import AQLQueryError, SimpleQueryError
+from theExceptions import QueryError, AQLQueryError, SimpleQueryError
 import collection as COL
 
 class RawCursor(object) :
@@ -28,8 +28,9 @@ class Query(object) :
 
 		self.rawResults = rawResults
 		self.response = request.json()
-		if self.response["error"] :
-			raise AQLQueryError(self.response["errorMessage"], self.query, self.response)
+		if self.response["error"] and self.response["errorMessage"] != "no match" :
+			raise QueryError(self.response["errorMessage"], self.response)
+			
 		self.database = database
 		self.currI = 0
 		if request.status_code == 201 or request.status_code == 200:
