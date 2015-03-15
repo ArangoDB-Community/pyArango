@@ -256,7 +256,14 @@ class Collection(object) :
 			raise SchemaViolation(cls, fieldName)
 		
 		try : #if foreign field
-			return cls._fields[fieldName].validate(value)
+			v = cls._fields[fieldName]
+			if type(v) is types.DictType :
+				for kk, vv in v.iteritems() :
+					if not vv.validate(value) :
+						return False
+				return True
+			else :
+				return cls._fields[fieldName].validate(value)
 		except KeyError :
 			pass
 
