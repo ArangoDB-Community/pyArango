@@ -158,7 +158,7 @@ class SimpleQuery(Query) :
 		payload.update(queryArgs)
 		payload = json.dumps(payload)
 		URL = "%s/simple/%s" % (collection.database.URL, queryType)
-		
+		# print payload
 		request = requests.put(URL, data = payload)
 		Query.__init__(self, request, collection.database, rawResults)
 
