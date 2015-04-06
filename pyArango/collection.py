@@ -403,6 +403,10 @@ class Collection(object) :
 		else :
 			raise ValueError("The collection has an Unknown status %s" % self.status)
 
+	def __len__(self) :
+		"""returns the number of documents in the collection"""
+		return self.count()
+
 	def __repr__(self) :
 		return "ArangoDB collection name: %s, id: %s, type: %s, status: %s" % (self.name, self.id, self.getType(), self.getStatus())
 

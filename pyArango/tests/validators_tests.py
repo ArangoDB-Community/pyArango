@@ -1,6 +1,6 @@
 import unittest, copy
-from validation import *
-from theExceptions import ValidationError
+from pyArango.validation import *
+from pyArango.theExceptions import ValidationError
 
 class ValidatorTests(unittest.TestCase):
 

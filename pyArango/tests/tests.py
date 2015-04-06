@@ -1,12 +1,12 @@
 import unittest, copy
 
-from connection import *
-from database import *
-from collection import *
-from document import *
-from query import *
-from graph import *
-from theExceptions import *
+from pyArango.connection import *
+from pyArango.database import *
+from pyArango.collection import *
+from pyArango.document import *
+from pyArango.query import *
+from pyArango.graph import *
+from pyArango.theExceptions import *
 
 class ArangocityTests(unittest.TestCase):
 
@@ -209,7 +209,7 @@ class ArangocityTests(unittest.TestCase):
 		self.assertEqual(q.count, nbUsers)
 
 	def test_fields_on_set(self) :
-		import Validator as VAL
+		import pyArango.validation as VAL
 
 		class Col_on_set(Collection) :
 			_validation = {
@@ -230,7 +230,7 @@ class ArangocityTests(unittest.TestCase):
 		self.assertRaises(SchemaViolation, doc.__setitem__, 'foreigner', None)
 
 	def test_fields_on_save(self) :
-		import Validator as VAL
+		import pyArango.validation as VAL
 		import types
 		class String_val(VAL.Validator) :
 
