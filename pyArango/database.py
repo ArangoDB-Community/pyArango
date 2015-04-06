@@ -173,7 +173,7 @@ class Database(object) :
 		"""Returns an explanation of the query. Setting allPlans to True will result in ArangoDB returning all possible plans. False returns only the optimal plan"""
 		payload = {'query' : query, 'allPlans' : allPlans}
 		request = requests.post(self.explainURL, data = json.dumps(payload))
-		return request.json
+		return request.json()
 
 	def validateAQLQuery(self, query, bindVars = {}, options = {}) :
 		"returns the server answer is the query is valid. Raises an AQLQueryError if not"
