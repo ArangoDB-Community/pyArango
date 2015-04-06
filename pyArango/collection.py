@@ -307,13 +307,11 @@ class Collection(object) :
 		return self.simpleQuery('by-example', rawResults, example = exampleDict, batchSize = batchSize, **queryArgs)
 
 	def fetchFirst(self, count, rawResults = False) :
-		"""exampleDict should be something like {'age' : 28}. returns only a single element but still in a SimpleQuery object.
-		returns count examples ordered by insert/update date, the last one being the first on the list"""
+		"""Returns the first document inserted in a collection"""
 		return self.simpleQuery('first', rawResults = rawResults, count = count)
 
 	def fetchLast(self, count, rawResults = False) :
-		"""exampleDict should be something like {'age' : 28}. returns only a single element but still in a SimpleQuery object.
-		returns count examples ordered by insert/update date, the last one being the first on the list"""
+		"""Returns the last document inserted in a collection"""
 		return self.simpleQuery('last', rawResults = rawResults, count = count)
 
 	def fetchFirstExample(self, exampleDict, rawResults = False) :

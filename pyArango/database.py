@@ -22,6 +22,7 @@ class Database(object) :
 		self.URL = '%s/_db/%s/_api' % (self.connection.arangoURL, self.name)
 		self.collectionsURL = '%s/collection' % (self.URL)
 		self.cursorsURL = '%s/cursor' % (self.URL)
+		self.explainURL = '%s/explain' % (self.URL)
 		self.graphsURL = "%s/gharial" % self.URL
 
 		self.collections = {}
@@ -69,7 +70,7 @@ class Database(object) :
 		self.reloadCollections()
 		self.reloadGraphs()
 	
-	def createCollection(self, className = 'GenericCollection', **colArgs) :
+	def createCollection(self, className = 'GenericCollection', waitForSync = False, **colArgs) :
 		"""Creeats a collection and returns it.
 		ClassName the name of a class inheriting from Collection or Egdes. Use colArgs to put things such as 'isVolatile = True' (see ArangoDB's doc
 		for a full list of possible arugments)."""
@@ -89,7 +90,9 @@ class Database(object) :
 			colArgs["type"] = COL.COLLECTION_EDGE_TYPE
 		else :
 			colArgs["type"] = COL.COLLECTION_DOCUMENT_TYPE
-				
+		
+		colArgs["waitForSync"] = waitForSync
+
 		payload = json.dumps(colArgs)
 		r = requests.post(self.collectionsURL, data = payload)
 		data = r.json()
@@ -162,9 +165,15 @@ class Database(object) :
 		"""returns true if the databse has a graph by the name of 'name'"""
 		return name in self.graphs
 	
-	def AQLQuery(self, query, rawResults = False, batchSize = 0, bindVars = {}, options = {}, count = False, fullCount = False) :
+	def AQLQuery(self, query, batchSize = 0, rawResults = False, bindVars = {}, options = {}, count = False, fullCount = False) :
 		"Set rawResults = True if you want the query to return dictionnaries instead of Document objects"
-		return AQLQuery(self, query, rawResults, batchSize, bindVars, options, count, fullCount)
+		return AQLQuery(self, query, rawResults = rawResults, batchSize = batchSize, bindVars  = bindVars, options = options, count = count, fullCount = fullCount)
+
+	def explainAQLQuery(self, query, allPlans = False) :
+		"""Returns an explanation of the query. Setting allPlans to True will result in ArangoDB returning all possible plans. False returns only the optimal plan"""
+		payload = {'query' : query, 'allPlans' : allPlans}
+		request = requests.post(self.explainURL, data = json.dumps(payload))
+		return request.json()
 
 	def validateAQLQuery(self, query, bindVars = {}, options = {}) :
 		"returns the server answer is the query is valid. Raises an AQLQueryError if not"

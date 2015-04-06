@@ -49,7 +49,7 @@ class Document(object) :
 		else :
 			self._store.update(fieldDict)
 
-	def save(self, **docArgs) :
+	def save(self, waitForSync = False, **docArgs) :
 		"""Saves the document to the database by either performing a POST (for a new document) or a PUT (complete document overwrite).
 		If you want to only update the modified fields use the .path() function.
 		Use docArgs to put things such as 'waitForSync = True' (for a full list cf ArangoDB's doc).
@@ -60,7 +60,7 @@ class Document(object) :
 				self.validate(patch = False)
 
 			params = dict(docArgs)
-			params.update({'collection': self.collection.name })
+			params.update({'collection': self.collection.name, "waitForSync" : waitForSync })
 			payload = {} 
 			payload.update(self._store)
 			
