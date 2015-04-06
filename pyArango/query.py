@@ -123,7 +123,7 @@ class Query(object) :
 
 class AQLQuery(Query) :
 	"AQL queries are attached to a database"
-	def __init__(self, database, query, rawResults, batchSize, bindVars, options, count, fullCount) :
+	def __init__(self, database, query, batchSize, bindVars, options, count, fullCount, rawResults = True) :
 		payload = {'query' : query, 'batchSize' : batchSize, 'bindVars' : bindVars, 'options' : options, 'count' : count, 'fullCount' : fullCount}
 		
 		self.query = query
@@ -158,8 +158,8 @@ class SimpleQuery(Query) :
 		payload.update(queryArgs)
 		payload = json.dumps(payload)
 		URL = "%s/simple/%s" % (collection.database.URL, queryType)
-		# print payload
 		request = requests.put(URL, data = payload)
+		
 		Query.__init__(self, request, collection.database, rawResults)
 
 	def _raiseInitFailed(self, request) :

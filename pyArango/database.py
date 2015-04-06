@@ -69,7 +69,7 @@ class Database(object) :
 		self.reloadCollections()
 		self.reloadGraphs()
 	
-	def createCollection(self, className = 'GenericCollection', **colArgs) :
+	def createCollection(self, className = 'GenericCollection', waitForSync = False, **colArgs) :
 		"""Creeats a collection and returns it.
 		ClassName the name of a class inheriting from Collection or Egdes. Use colArgs to put things such as 'isVolatile = True' (see ArangoDB's doc
 		for a full list of possible arugments)."""
