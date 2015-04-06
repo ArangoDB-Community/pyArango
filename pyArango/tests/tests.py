@@ -14,11 +14,11 @@ class pyArangoTests(unittest.TestCase):
 		self.conn = Connection()
 
 		try :
-			self.conn.createDatabase(name = "test_db")
+			self.conn.createDatabase(name = "test_db_2")
 		except CreationError :
 			pass
 
-		self.db = self.conn["test_db"]
+		self.db = self.conn["test_db_2"]
 		self._reset()
 
 	def _reset(self) :
@@ -138,7 +138,7 @@ class pyArangoTests(unittest.TestCase):
 	def test_aql_query_rawResults_false(self) :
 		self.createManyUsers(100)
 
-		aql = "FOR c IN users FILTER c.name == Tesla LIMIT 10 RETURN c"
+		aql = "FOR c IN users FILTER c.name == @name LIMIT 10 RETURN c"
 		bindVars = {'name' : 'Tesla-3'}
 		q = self.db.AQLQuery(aql, rawResults = False, batchSize = 10, bindVars = bindVars)
 		self.assertEqual(len(q.result), 1)
@@ -492,7 +492,7 @@ class pyArangoTests(unittest.TestCase):
 			_orphanedCollections = []
 		
 		conn = Connection(arangoURL = "http://localhost:8529")
-		db = conn["test_db"]
+		db = conn["test_db_2"]
 
 		pers = db.createCollection("persons")
 		rels = db.createCollection("knows")

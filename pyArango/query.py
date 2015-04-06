@@ -131,6 +131,10 @@ class AQLQuery(Query) :
 		request = requests.post(database.cursorsURL, data = json.dumps(payload))
 		Query.__init__(self, request, database, rawResults)
 
+	def explain(self, allPlans = False) :
+		"""Returns an explanation of the query. Setting allPlans to True will result in ArangoDB returning all possible plans. False returns only the optimal plan"""
+		return self.database.explainAQLQuery(self.query, allPlans)
+
 	def _raiseInitFailed(self, request) :
 		data = request.json()
 		raise AQLQueryError(data["errorMessage"], self.query, data)
