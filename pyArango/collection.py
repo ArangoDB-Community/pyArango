@@ -211,6 +211,8 @@ class Collection(object) :
 		'allow_foreign_fields' : True
 	}
 
+	arangoPrivates = ["_id", "_key"]
+
 	__metaclass__ = Collection_metaclass
 
 	def __init__(self, database, jsonData) :
@@ -227,7 +229,7 @@ class Collection(object) :
 		self.URL = "%s/collection/%s" % (self.database.URL, self.name)
 		self.documentsURL = "%s/document" % (self.database.URL)
 		self.documentCache = None
-		
+
 		self.documentClass = Document
 
 	def activateCache(self, cacheSize) :
@@ -272,10 +274,11 @@ class Collection(object) :
 		"validates a dictionary. The dictionary must be defined such as {field: value}. If the validation is unsuccefull, raises an InvalidDocument"
 		res = {}
 		for k, v in dct.iteritems() :
-			try :
-				cls.validateField(k, v)
-			except (ValidationError, SchemaViolation) as e:
-				res[k] = str(e)
+			if k not in cls.arangoPrivates :
+				try :
+					cls.validateField(k, v)
+				except (ValidationError, SchemaViolation) as e:
+					res[k] = str(e)
 
 		if len(res) > 0 :
 			raise InvalidDocument(res)
@@ -432,9 +435,12 @@ class GenericCollection(Collection) :
 class Edges(Collection) :
 	"The default edge collection. All edge Collections must inherit from it"
 
+	arangoPrivates = ["_id", "_key", "_to", "_from"]
+
 	def __init__(self, database, jsonData) :
 		"This one is meant to be called by the database"
 		Collection.__init__(self, database, jsonData)
+		self.arangoPrivates.extend(["_to", "_from"])
 		self.documentClass = Edge
 		self.documentsURL = "%s/edge" % (self.database.URL)
 		self.edgesURL = "%ss/%s" % (self.documentsURL, self.name)
