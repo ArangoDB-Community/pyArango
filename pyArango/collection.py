@@ -1,4 +1,3 @@
-import requests
 import json
 import types
 
@@ -222,6 +221,7 @@ class Collection(object) :
 			raise AbstractInstanciationError(self.__class__)
 
 		self.database = database
+		self.connection = self.database.connection
 		self.name = self.__class__.__name__
 		for k in jsonData :
 			setattr(self, k, jsonData[k])
@@ -242,7 +242,7 @@ class Collection(object) :
 
 	def delete(self) :
 		"deletes the collection from the database"
-		r = requests.delete(self.URL)
+		r = self.connection.session.delete(self.URL)
 		data = r.json()
 		if not r.status_code == 200 or data["error"] :
 			raise DeletionError(data["errorMessage"], data)
@@ -295,9 +295,9 @@ class Collection(object) :
 		want to take advantage of the cache use the __getitem__ interface: collection[key]"""
 		url = "%s/%s/%s" % (self.documentsURL, self.name, key)
 		if rev is not None :
-			r = requests.get(url, params = {'rev' : rev})
+			r = self.connection.session.get(url, params = {'rev' : rev})
 		else :
-			r = requests.get(url)
+			r = self.connection.session.get(url)
 		if (r.status_code - 400) < 0 :
 			if rawResults :
 				return r.json()
@@ -336,7 +336,7 @@ class Collection(object) :
 
 	def action(self, method, action, **params) :
 		"a generic fct for interacting everything that doesn't have an assigned fct"
-		fct = getattr(requests, method.lower())
+		fct = getattr(self.connection.session, method.lower())
 		r = fct(self.URL + "/" + action, params = params)
 		return r.json()
 
@@ -477,7 +477,7 @@ class Edges(Collection) :
 		else :
 			raise ValueError("inEdges, outEdges or both must have a boolean value")
 		
-		r = requests.get(self.edgesURL, params = params)
+		r = self.connection.session.get(self.edgesURL, params = params)
 		data = r.json()
 		if r.status_code == 200 :
 			if not rawResults :

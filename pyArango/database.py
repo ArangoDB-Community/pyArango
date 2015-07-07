@@ -1,4 +1,3 @@
-import requests
 import json
 import types
 
@@ -32,7 +31,7 @@ class Database(object) :
 	
 	def reloadCollections(self) :
 		"reloads the collection list."
-		r = requests.get(self.collectionsURL)
+		r = self.connection.session.get(self.collectionsURL)
 		data = r.json()
 		if r.status_code == 200 :
 			self.collections = {}
@@ -53,7 +52,7 @@ class Database(object) :
 
 	def reloadGraphs(self) :
 		"reloads the graph list"
-		r = requests.get(self.graphsURL)
+		r = self.connection.session.get(self.graphsURL)
 		data = r.json()
 		if r.status_code == 200 :
 			self.graphs = {}
@@ -94,7 +93,7 @@ class Database(object) :
 		colArgs["waitForSync"] = waitForSync
 
 		payload = json.dumps(colArgs)
-		r = requests.post(self.collectionsURL, data = payload)
+		r = self.connection.session.post(self.collectionsURL, data = payload)
 		data = r.json()
 		if r.status_code == 200 and not data["error"] :
 			col = colClass(self, data)
@@ -142,7 +141,7 @@ class Database(object) :
 		
 
 		payload = json.dumps(payload)
-		r = requests.post(self.graphsURL, data = payload)
+		r = self.connection.session.post(self.graphsURL, data = payload)
 		data = r.json()
 		if r.status_code == 201 :
 			self.graphs[name] = graphClass(self, data["graph"])
@@ -172,13 +171,13 @@ class Database(object) :
 	def explainAQLQuery(self, query, allPlans = False) :
 		"""Returns an explanation of the query. Setting allPlans to True will result in ArangoDB returning all possible plans. False returns only the optimal plan"""
 		payload = {'query' : query, 'allPlans' : allPlans}
-		request = requests.post(self.explainURL, data = json.dumps(payload))
+		request = self.connection.session.post(self.explainURL, data = json.dumps(payload))
 		return request.json()
 
 	def validateAQLQuery(self, query, bindVars = {}, options = {}) :
 		"returns the server answer is the query is valid. Raises an AQLQueryError if not"
 		payload = {'query' : query, 'bindVars' : bindVars, 'options' : options}
-		r = requests.post(self.cursorsURL, data = json.dumps(payload))
+		r = self.connection.session.post(self.cursorsURL, data = json.dumps(payload))
 		data = r.json()
 		if r.status_code == 201 and not data["error"] :
 			return data

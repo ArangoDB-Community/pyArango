@@ -1,4 +1,3 @@
-import requests
 import json
 
 from document import Document, Edge
@@ -9,12 +8,13 @@ class RawCursor(object) :
 	"a raw interface to cursors that returns json"
 	def __init__(self, database, cursorId) :
 		self.database = database
+		self.connection = self.database.connection
 		self.id = cursorId
 		self.URL = "%s/cursor/%s" % (self.database.URL, self.id)
 
 	def next(self) :
 		"returns the next batch"
-		r = requests.put(self.URL)
+		r = self.connection.session.put(self.URL)
 		data = r.json()
 		if r.status_code == 400 :
 			raise CursorError(data["errorMessage"], self.id, data)
@@ -32,6 +32,7 @@ class Query(object) :
 			raise QueryError(self.response["errorMessage"], self.response)
 			
 		self.database = database
+		self.connection = self.database.connection
 		self.currI = 0
 		if request.status_code == 201 or request.status_code == 200:
 			self.batchNumber = 1
@@ -82,7 +83,7 @@ class Query(object) :
 
 	def delete(self) :
 		"kills the cursor"
-		requests.delete(self.cursor)
+		self.connection.session.delete(self.cursor)
 
 	def next(self) :
 		"""returns the next element of the query result. Automatomatically calls for new batches if needed"""
@@ -128,7 +129,7 @@ class AQLQuery(Query) :
 		
 		self.query = query
 		self.database = database
-		request = requests.post(database.cursorsURL, data = json.dumps(payload))
+		request = self.connection.session.post(database.cursorsURL, data = json.dumps(payload))
 		Query.__init__(self, request, database, rawResults)
 
 	def explain(self, allPlans = False) :
@@ -162,7 +163,7 @@ class SimpleQuery(Query) :
 		payload.update(queryArgs)
 		payload = json.dumps(payload)
 		URL = "%s/simple/%s" % (collection.database.URL, queryType)
-		request = requests.put(URL, data = payload)
+		request = self.connection.session.put(URL, data = payload)
 		
 		Query.__init__(self, request, collection.database, rawResults)
 
