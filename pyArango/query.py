@@ -2,7 +2,7 @@ import requests
 import json
 
 from document import Document, Edge
-from theExceptions import QueryError, AQLQueryError, SimpleQueryError
+from theExceptions import QueryError, AQLQueryError, SimpleQueryError, CreationError
 import collection as COL
 
 class RawCursor(object) :
