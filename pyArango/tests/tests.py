@@ -202,6 +202,13 @@ class pyArangoTests(unittest.TestCase):
 		self.assertEqual(lstRes, range(nbUsers))
 		self.assertEqual(q.count, nbUsers)
 
+	def test_nonRaw_creation_error(self):
+		col = self.createManyUsers(1)
+		docs = self.db.AQLQuery("for x in users return { name : x.name }", batchSize = 1);
+
+		with self.assertRaises(CreationError):
+			doc0 = docs[0]
+
 	# @unittest.skip("stand by")
 	def test_empty_query(self) :
 		col = self.createManyUsers(1)
