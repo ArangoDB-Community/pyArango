@@ -129,6 +129,7 @@ class AQLQuery(Query) :
 		
 		self.query = query
 		self.database = database
+		self.connection = self.database.connection
 		request = self.connection.session.post(database.cursorsURL, data = json.dumps(payload))
 		Query.__init__(self, request, database, rawResults)
 
@@ -159,6 +160,8 @@ class SimpleQuery(Query) :
 	def __init__(self, collection, queryType, rawResults, **queryArgs) :
 
 		self.collection = collection
+		self.connection = self.collection.database.connection
+
 		payload = {'collection' : collection.name}
 		payload.update(queryArgs)
 		payload = json.dumps(payload)
