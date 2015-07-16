@@ -11,7 +11,7 @@ with open(path.join(here, 'DESCRIPTION.rst'), encoding='utf-8') as f:
 setup(
     name='pyArango',
 
-    version='1.0.1',
+    version='1.0.2',
 
     description='An easy to use python driver for ArangoDB with built-in validation',
     long_description=long_description,

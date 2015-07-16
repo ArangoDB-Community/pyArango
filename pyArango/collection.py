@@ -232,6 +232,22 @@ class Collection(object) :
 		self.documentCache = None
 
 		self.documentClass = Document
+		self.indexes = {
+			"primary" : {},
+			"capConstraint" : {},
+			"hash" : {},
+			"skiplist" : {},
+			"geo" : {},
+			"fulltext" : {},
+		}
+
+	def getIndexes(self) :
+		"""Fills self.indexes with all the indexes associates with the collection and returns it"""
+		url = "%s/index" % self.database.url
+		r = self.connection.session.get(url, params = {"collection": self.name})
+		data = r.json()
+		for ind in data["indexes"] :
+			self.indexes[ind["type"]][ind["id"]] = getIndexClass(ind["type"])(ind)
 
 	def activateCache(self, cacheSize) :
 		"Activate the caching system. Cached documents are only available through the __getitem__ interface"
@@ -254,7 +270,7 @@ class Collection(object) :
 
 	def createCapConstraint(self) :
 		ind = CapConstraint()
-		self.indexes["capConstraints"][ind["id"]] = ind
+		self.indexes["capConstraint"][ind["id"]] = ind
 		return CapConstraint()
 
 	def createHashIndex(self) :
@@ -264,7 +280,7 @@ class Collection(object) :
 
 	def createSkiplistIndex(self) :
 		ind = SkiplistIndex()
-		self.indexes["skiplists"][ind["id"]] = ind
+		self.indexes["skiplist"][ind["id"]] = ind
 		return SkiplistIndex()
 
 	def createGeoIndex(self) :
