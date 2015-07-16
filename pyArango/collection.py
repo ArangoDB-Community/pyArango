@@ -5,6 +5,7 @@ import types
 from document import Document, Edge
 from theExceptions import ValidationError, SchemaViolation, CreationError, UpdateError, DeletionError, InvalidDocument, AbstractInstanciationError
 from query import SimpleQuery
+from index import Index
 
 COLLECTION_DOCUMENT_TYPE = 2
 COLLECTION_EDGE_TYPE = 3
@@ -250,6 +251,31 @@ class Collection(object) :
 	def createDocument(self, initValues = {}) :
 		"create and returns a document"
 		return self.documentClass(self, initValues)
+
+	def createCapConstraint(self) :
+		ind = CapConstraint()
+		self.indexes["capConstraints"][ind["id"]] = ind
+		return CapConstraint()
+
+	def createHashIndex(self) :
+		ind = HashIndex()
+		self.indexes["hash"][ind["id"]] = ind
+		return HashIndex()
+
+	def createSkiplistIndex(self) :
+		ind = SkiplistIndex()
+		self.indexes["skiplists"][ind["id"]] = ind
+		return SkiplistIndex()
+
+	def createGeoIndex(self) :
+		ind = GeoIndex()
+		self.indexes["geo"][ind["id"]] = ind
+		return GeoIndex()
+
+	def createFulltextIndex(self) :
+		ind = FulltextIndex()
+		self.indexes["fulltext"][ind["id"]] = ind
+		return FulltextIndex()
 
 	@classmethod
 	def validateField(cls, fieldName, value) :

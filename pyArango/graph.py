@@ -127,7 +127,8 @@ class Graph(object) :
 		data = r.json()
 		if r.status_code == 200 or r.status_code == 202 :
 			return True
-		raise DeletionError("Unable to delete vertice, %s" % document._key, data)
+
+		raise DeletionError("Unable to delete vertice, %s" % document._id, data)
 
 	def createEdge(self, collectionName, _fromId, _toId, edgeAttributes, waitForSync = False) :
 		"""creates an edge between two documents"""
