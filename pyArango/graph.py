@@ -1,4 +1,3 @@
-import requests
 import json
 
 from theExceptions import (CreationError, DeletionError, UpdateError, TraversalError)
@@ -73,6 +72,7 @@ class Graph(object) :
 
 	def __init__(self, database, jsonInit) :
 		self.database = database
+		self.connection = self.database.connection
 		try :
 			self._key = jsonInit["_key"]
 		except KeyError :
@@ -111,7 +111,7 @@ class Graph(object) :
 		url = "%s/vertex/%s" % (self.URL, collectionName)
 		self.database[collectionName].validateDct(docAttributes)
 
-		r = requests.post(url, data = json.dumps(docAttributes), params = {'waitForSync' : waitForSync})
+		r = self.connection.session.post(url, data = json.dumps(docAttributes), params = {'waitForSync' : waitForSync})
 		
 		data = r.json()
 		if r.status_code == 201 or r.status_code == 202 :
@@ -123,7 +123,7 @@ class Graph(object) :
 		"""deletes a vertex from the graph as well as al linked edges"""
 		url = "%s/vertex/%s" % (self.URL, document._id)
 		
-		r = requests.delete(url, params = {'waitForSync' : waitForSync})
+		r = self.connection.session.delete(url, params = {'waitForSync' : waitForSync})
 		data = r.json()
 		if r.status_code == 200 or r.status_code == 202 :
 			return True
@@ -141,7 +141,7 @@ class Graph(object) :
 		payload = edgeAttributes
 		payload.update({'_from' : _fromId, '_to' : _toId})
 
-		r = requests.post(url, data = json.dumps(payload), params = {'waitForSync' : waitForSync})
+		r = self.connection.session.post(url, data = json.dumps(payload), params = {'waitForSync' : waitForSync})
 		data = r.json()
 		if r.status_code == 201 or r.status_code == 202 :
 			return self.database[collectionName][data["edge"]["_key"]]
@@ -160,14 +160,14 @@ class Graph(object) :
 	def deleteEdge(self, edge, waitForSync = False) :
 		"""removes an edge from the graph"""
 		url = "%s/edge/%s" % (self.URL, edge._id)
-		r = requests.delete(url, params = {'waitForSync' : waitForSync})
+		r = self.connection.session.delete(url, params = {'waitForSync' : waitForSync})
 		if r.status_code == 200 or r.status_code == 202 :
 			return True
 		raise DeletionError("Unable to delete edge, %s" % edge._id, r.json())
 
 	def delete(self) :
 		"""deletes the graph"""
-		r = requests.delete(self.URL)
+		r = self.connection.session.delete(self.URL)
 		data = r.json()
 		if not r.status_code == 200 or data["error"] :
 			raise DeletionError(data["errorMessage"], data)
@@ -188,7 +188,7 @@ class Graph(object) :
 
 		payload.update(kwargs)
 
-		r = requests.post(url, data = json.dumps(payload))
+		r = self.connection.session.post(url, data = json.dumps(payload))
 		data = r.json()
 		if not r.status_code == 200 or data["error"] :
 			raise TraversalError(data["errorMessage"], data)

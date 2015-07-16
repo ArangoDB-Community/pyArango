@@ -1,4 +1,3 @@
-import requests
 import json
 
 from theExceptions import (CreationError, DeletionError, UpdateError)
@@ -13,6 +12,7 @@ class Document(object) :
 	def reset(self, collection, jsonFieldInit = {}) :
 		"""replaces the current values in the document by those in jsonFieldInit"""
 		self.collection = collection
+		self.connection = self.collection.connection
 		self.documentsURL = self.collection.documentsURL
 		
 		self._store = {}
@@ -68,11 +68,11 @@ class Document(object) :
 				if self._key is not None :
 					payload["_key"] = self._key
 				payload = json.dumps(payload)
-				r = requests.post(self.documentsURL, params = params, data = payload)
+				r = self.connection.session.post(self.documentsURL, params = params, data = payload)
 				update = False
 			else :
 				payload = json.dumps(payload)
-				r = requests.put(self.URL, params = params, data = payload)
+				r = self.connection.session.put(self.URL, params = params, data = payload)
 				update = True
 
 			data = r.json()
@@ -117,7 +117,7 @@ class Document(object) :
 			params.update({'collection': self.collection.name, 'keepNull' : keepNull})
 			payload = json.dumps(self._patchStore)
 			
-			r = requests.patch(self.URL, params = params, data = payload)
+			r = self.connection.session.patch(self.URL, params = params, data = payload)
 			data = r.json()
 			if (r.status_code == 201 or r.status_code == 202) and not data['error'] :
 				self._rev = data['_rev']
@@ -130,7 +130,7 @@ class Document(object) :
 		"deletes the document from the database"
 		if self.URL is None :
 			raise DeletionError("Can't delete a document that was not saved") 
-		r = requests.delete(self.URL)
+		r = self.connection.session.delete(self.URL)
 		data = r.json()
 		if (r.status_code != 200 and r.status_code != 202) or data['error'] :
 			raise DeletionError(data['errorMessage'], data)
