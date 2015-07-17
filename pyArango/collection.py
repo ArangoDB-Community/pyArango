@@ -271,6 +271,7 @@ class Collection(object) :
 		return self.documentClass(self, initValues)
 
 	def ensureCapConstraint(self, size, byteSize = None) :
+		"""Ensures that there's a cap constraint in the collection, and returns it"""
 		data = { 
 			"type" : "cap",
 			"size" : size,
@@ -283,6 +284,7 @@ class Collection(object) :
 		return ind
 
 	def ensureHashIndex(self, fields, unique = False, sparse = True) :
+		"""Creates a hash index if it does not already exist, and returns it"""
 		data = { 
 			"type" : "hash",
 			"fields" : fields,
@@ -294,6 +296,7 @@ class Collection(object) :
 		return ind
 
 	def ensureSkiplistIndex(self, fields, unique = False, sparse = True) :
+		"""Creates a skiplist index if it does not already exist, and returns it"""
 		data = { 
 			"type" : "skiplist",
 			"fields" : fields,
@@ -305,6 +308,7 @@ class Collection(object) :
 		return ind
 
 	def ensureGeoIndex(self, fields) :
+		"""Creates a geo index if it does not already exist, and returns it"""
 		data = { 
 			"type" : "geo",
 			"fields" : fields,
@@ -314,6 +318,7 @@ class Collection(object) :
 		return ind
 
 	def ensureFulltextIndex(self, fields, minLength = None) :
+		"""Creates a fulltext index if it does not already exist, and returns it"""
 		data = { 
 			"type" : "geo",
 			"fields" : fields,
