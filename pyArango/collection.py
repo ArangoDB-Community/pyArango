@@ -247,7 +247,9 @@ class Collection(object) :
 		r = self.connection.session.get(url, params = {"collection": self.name})
 		data = r.json()
 		for ind in data["indexes"] :
-			self.indexes[ind["type"]][ind["id"]] = getIndexClass(ind["type"])(ind)
+			self.indexes[ind["type"]][ind["id"]] = Index(collection = self, infos = ind)
+
+		return self.indexes
 
 	def activateCache(self, cacheSize) :
 		"Activate the caching system. Cached documents are only available through the __getitem__ interface"
@@ -268,30 +270,41 @@ class Collection(object) :
 		"create and returns a document"
 		return self.documentClass(self, initValues)
 
-	def createCapConstraint(self) :
-		ind = CapConstraint()
-		self.indexes["capConstraint"][ind["id"]] = ind
-		return CapConstraint()
+	def createHashIndex(self, fields, unique = False, sparse = True) :
+		data = { 
+			"type" : "hash",
+			"fields" : fields
+			# "unique" : unique,
+			# "sparse" : sparse,
+		}
+		ind = Index(self, creationData = data)
+		self.indexes["hash"][ind.infos["id"]] = ind
+		return ind
 
-	def createHashIndex(self) :
-		ind = HashIndex()
-		self.indexes["hash"][ind["id"]] = ind
-		return HashIndex()
+	# def createCapConstraint(self) :
+	# 	ind = CapConstraint()
+	# 	self.indexes["capConstraint"][ind["id"]] = ind
+	# 	return CapConstraint()
 
-	def createSkiplistIndex(self) :
-		ind = SkiplistIndex()
-		self.indexes["skiplist"][ind["id"]] = ind
-		return SkiplistIndex()
+	# def createHashIndex(self) :
+	# 	ind = HashIndex()
+	# 	self.indexes["hash"][ind["id"]] = ind
+	# 	return HashIndex()
 
-	def createGeoIndex(self) :
-		ind = GeoIndex()
-		self.indexes["geo"][ind["id"]] = ind
-		return GeoIndex()
+	# def createSkiplistIndex(self) :
+	# 	ind = SkiplistIndex()
+	# 	self.indexes["skiplist"][ind["id"]] = ind
+	# 	return SkiplistIndex()
 
-	def createFulltextIndex(self) :
-		ind = FulltextIndex()
-		self.indexes["fulltext"][ind["id"]] = ind
-		return FulltextIndex()
+	# def createGeoIndex(self) :
+	# 	ind = GeoIndex()
+	# 	self.indexes["geo"][ind["id"]] = ind
+	# 	return GeoIndex()
+
+	# def createFulltextIndex(self) :
+	# 	ind = FulltextIndex()
+	# 	self.indexes["fulltext"][ind["id"]] = ind
+	# 	return FulltextIndex()
 
 	@classmethod
 	def validateField(cls, fieldName, value) :
