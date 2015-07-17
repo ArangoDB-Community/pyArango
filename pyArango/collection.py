@@ -234,7 +234,7 @@ class Collection(object) :
 		self.documentClass = Document
 		self.indexes = {
 			"primary" : {},
-			"capConstraint" : {},
+			"cap" : {},
 			"hash" : {},
 			"skiplist" : {},
 			"geo" : {},
@@ -270,41 +270,60 @@ class Collection(object) :
 		"create and returns a document"
 		return self.documentClass(self, initValues)
 
-	def createHashIndex(self, fields, unique = False, sparse = True) :
+	def ensureCapConstraint(self, size, byteSize = None) :
+		data = { 
+			"type" : "cap",
+			"size" : size,
+		}
+		if byteSize is not None :
+			data["byteSize"] = byteSize
+
+		ind = Index(self, creationData = data)
+		self.indexes["cap"][ind.infos["id"]] = ind
+		return ind
+
+	def ensureHashIndex(self, fields, unique = False, sparse = True) :
 		data = { 
 			"type" : "hash",
-			"fields" : fields
-			# "unique" : unique,
-			# "sparse" : sparse,
+			"fields" : fields,
+			"unique" : unique,
+			"sparse" : sparse,
 		}
 		ind = Index(self, creationData = data)
 		self.indexes["hash"][ind.infos["id"]] = ind
 		return ind
 
-	# def createCapConstraint(self) :
-	# 	ind = CapConstraint()
-	# 	self.indexes["capConstraint"][ind["id"]] = ind
-	# 	return CapConstraint()
+	def ensureSkiplistIndex(self, fields, unique = False, sparse = True) :
+		data = { 
+			"type" : "skiplist",
+			"fields" : fields,
+			"unique" : unique,
+			"sparse" : sparse,
+		}
+		ind = Index(self, creationData = data)
+		self.indexes["skiplist"][ind.infos["id"]] = ind
+		return ind
 
-	# def createHashIndex(self) :
-	# 	ind = HashIndex()
-	# 	self.indexes["hash"][ind["id"]] = ind
-	# 	return HashIndex()
+	def ensureGeoIndex(self, fields) :
+		data = { 
+			"type" : "geo",
+			"fields" : fields,
+		}
+		ind = Index(self, creationData = data)
+		self.indexes["geo"][ind.infos["id"]] = ind
+		return ind
 
-	# def createSkiplistIndex(self) :
-	# 	ind = SkiplistIndex()
-	# 	self.indexes["skiplist"][ind["id"]] = ind
-	# 	return SkiplistIndex()
+	def ensureFulltextIndex(self, fields, minLength = None) :
+		data = { 
+			"type" : "geo",
+			"fields" : fields,
+		}
+		if minLength is not None :
+			data["minLength"] =  minLength
 
-	# def createGeoIndex(self) :
-	# 	ind = GeoIndex()
-	# 	self.indexes["geo"][ind["id"]] = ind
-	# 	return GeoIndex()
-
-	# def createFulltextIndex(self) :
-	# 	ind = FulltextIndex()
-	# 	self.indexes["fulltext"][ind["id"]] = ind
-	# 	return FulltextIndex()
+		ind = Index(self, creationData = data)
+		self.indexes["fulltext"][ind.infos["id"]] = ind
+		return ind
 
 	@classmethod
 	def validateField(cls, fieldName, value) :
