@@ -20,4 +20,7 @@ If you have any issue with it, please file a github issue.
 Changelog
 ===========
 
-* 1.0.2: Added support for all types of indexes
+1.0.2
+-------
+* Added support for all types of indexes
+* Connections are now managed into sessions that the user can restart if necessary. This allows for a much more stable interaction with ArangoDB when a lot of queries are involved
