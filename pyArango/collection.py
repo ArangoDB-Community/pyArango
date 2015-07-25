@@ -201,7 +201,7 @@ def getCollectionClasses() :
 	return Collection_metaclass.collectionClasses
 
 class Collection(object) :
-
+	"""A document collection"""
 	#here you specify the fields that you want for the documents in your collection
 	_fields = {}
 	
@@ -320,7 +320,7 @@ class Collection(object) :
 	def ensureFulltextIndex(self, fields, minLength = None) :
 		"""Creates a fulltext index if it does not already exist, and returns it"""
 		data = { 
-			"type" : "geo",
+			"type" : "fulltext",
 			"fields" : fields,
 		}
 		if minLength is not None :

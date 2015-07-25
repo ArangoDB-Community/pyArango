@@ -63,6 +63,7 @@ Contents:
    connection
    database
    collection
+   indexes
    document
    query
    graph
