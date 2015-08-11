@@ -4,6 +4,8 @@ from document import Document, Edge
 from theExceptions import QueryError, AQLQueryError, SimpleQueryError, CreationError
 import collection as COL
 
+__all__ = ["Query", "AQLQuery", "SimpleQuery", "Cursor", "RawCursor"]
+
 class RawCursor(object) :
 	"a raw interface to cursors that returns json"
 	def __init__(self, database, cursorId) :
@@ -21,10 +23,10 @@ class RawCursor(object) :
 		return r.json()
 
 class Query(object) :
-	"This class abstract and should not be instanciated"
+	"This class is abstract and should not be instanciated. All query classes derive from it"
 
 	def __init__(self, request, database, rawResults) :
-		"if rawResults = True, will always return the json representation of the results and not a Document object. queryPost contains a dictionnary representation of the initial POST payload sent to the database"
+		"If rawResults = True, the results will be returned as dictionaries instead of Document objects."
 
 		self.rawResults = rawResults
 		self.response = request.json()
@@ -123,7 +125,7 @@ class Query(object) :
 		return str(self.result)
 
 class AQLQuery(Query) :
-	"AQL queries are attached to a database"
+	"AQL queries are attached to and instanciated by a database"
 	def __init__(self, database, query, batchSize, bindVars, options, count, fullCount, rawResults = True) :
 		payload = {'query' : query, 'batchSize' : batchSize, 'bindVars' : bindVars, 'options' : options, 'count' : count, 'fullCount' : fullCount}
 		
@@ -142,7 +144,7 @@ class AQLQuery(Query) :
 		raise AQLQueryError(data["errorMessage"], self.query, data)
 
 class Cursor(Query) :
-	"Cursor queries are attached to a database, use them to continue from where you left"
+	"Cursor queries are attached to and instanciated by a database, use them to continue from where you left"
 	def __init__(self, database, cursorId, rawResults) :
 		self.rawResults = rawResults
 		self._developed = set()
@@ -156,7 +158,7 @@ class Cursor(Query) :
 
 
 class SimpleQuery(Query) :
-	"Simple queries are attached to a single collection"
+	"Simple queries are attached to and instanciated by a collection"
 	def __init__(self, collection, queryType, rawResults, **queryArgs) :
 
 		self.collection = collection

@@ -3,6 +3,8 @@ import json
 from theExceptions import (CreationError, DeletionError, UpdateError, TraversalError)
 import collection as COL
 
+__all__ = ["Graph", "getGraphClass", "isGraph", "getGraphClasses", "Graph_metaclass"]
+
 class Graph_metaclass(type) :
 	"""Keeps track of all graph classes and does basic validations on fields"""
 	graphClasses = {}
@@ -63,7 +65,7 @@ class EdgeDefinition(object) :
 		return str(self)
 	
 class Graph(object) :
-	"""The superclass from witch all your graph types must derive"""
+	"""The class from witch all your graph types must derive"""
 
 	__metaclass__ = Graph_metaclass
 

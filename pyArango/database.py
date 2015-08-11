@@ -9,11 +9,13 @@ from graph import Graph
 from query import AQLQuery
 from theExceptions import CreationError, UpdateError
 
+__all__ = ["Database", "DBHandle"]
+
 class Database(object) :
+	"""Databases are meant to be instanciated by connections"""
 	
 	def __init__(self, connection, name) :
-		"meant to be called by the connection only"
-
+	
 		self.name = name
 		self.connection = connection
 		self.collections = {}
@@ -200,7 +202,7 @@ class Database(object) :
 
 
 class DBHandle(Database) :
-	"As the loading of a DB triggers the loading of collections and graphs within. Only handles are loaded first. The full database are loaded on demand."
+	"As the loading of a Database also triggers the loading of collections and graphs within. Only handles are loaded first. The full database are loaded on demand in a fully transparent manner."
 	def __init__(self, connection, name) :
 		self.connection = connection
 		self.name = name

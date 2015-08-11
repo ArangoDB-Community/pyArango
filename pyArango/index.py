@@ -2,9 +2,10 @@ import json
 from theExceptions import (CreationError, DeletionError, UpdateError)
 
 class Index(object) :
+	"""An index on a collection's fields. Indexes are meant to de created by ensureXXX functions of Collections. 
+Indexes have a .infos dictionary that stores all the infos about the index"""
 
 	def __init__(self, collection, infos = None, creationData = None) :
-		"""An index on a collection's fields. Indexes have a .infos dictionnary that stores all the infos about the index"""
 		
 		self.collection = collection
 		self.connection = self.collection.database.connection

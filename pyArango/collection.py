@@ -6,6 +6,8 @@ from theExceptions import ValidationError, SchemaViolation, CreationError, Updat
 from query import SimpleQuery
 from index import Index
 
+__all__ = ["Collection", "Edges", "Field", "DocumentCache", "CachedDoc", "Collection_metaclass", "getCollectionClass", "isCollection", "isDocumentCollection", "isEdgeCollection", "getCollectionClasses"]
+  
 COLLECTION_DOCUMENT_TYPE = 2
 COLLECTION_EDGE_TYPE = 3
 
@@ -16,6 +18,7 @@ COLLECTION_LOADING_STATUS = 4
 COLLECTION_DELETED_STATUS = 5
 
 class CachedDoc(object) :
+	"""A cached document"""
 	def __init__(self, document, prev, next) :
 		self.prev = prev
 		self.document = document
@@ -201,7 +204,7 @@ def getCollectionClasses() :
 	return Collection_metaclass.collectionClasses
 
 class Collection(object) :
-	"""A document collection"""
+	"""A document collection. Collections are meant to be instanciated by databases"""
 	#here you specify the fields that you want for the documents in your collection
 	_fields = {}
 	
@@ -216,7 +219,6 @@ class Collection(object) :
 	__metaclass__ = Collection_metaclass
 
 	def __init__(self, database, jsonData) :
-		"meant to be called by the database only"
 		
 		if self.__class__ is Collection :
 			raise AbstractInstanciationError(self.__class__)

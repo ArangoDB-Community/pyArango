@@ -2,8 +2,10 @@ import json
 
 from theExceptions import (CreationError, DeletionError, UpdateError)
 
+__all__ = ["Document", "Edge"]
+
 class Document(object) :
-	"""The class that represents a document"""
+	"""The class that represents a document. Documents are meant to be instanciated by collections"""
 
 	def __init__(self, collection, jsonFieldInit = {}) :
 		self.reset(collection, jsonFieldInit)

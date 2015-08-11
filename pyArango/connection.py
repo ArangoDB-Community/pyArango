@@ -21,6 +21,7 @@ class Connection(object) :
 		self.reload()
 
 	def resetSession(self) :
+		"""resets the session"""
 		self.session = requests.Session()
 
 	def reload(self) :
