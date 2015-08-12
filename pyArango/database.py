@@ -162,7 +162,7 @@ class Database(object) :
 		"""returns true if the databse has a collection by the name of 'name'"""
 		return name in self.collections
 
-	def hasGraph(name):
+	def hasGraph(self, name):
 		"""returns true if the databse has a graph by the name of 'name'"""
 		return name in self.graphs
 	
