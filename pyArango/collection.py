@@ -466,7 +466,7 @@ class Collection(object) :
 		if self.type == COLLECTION_DOCUMENT_TYPE :
 			return "document"
 		elif self.type == COLLECTION_EDGE_TYPE :
-			return "egde"
+			return "edge"
 		else :
 			raise ValueError("The collection is of Unknown type %s" % self.type)
 
