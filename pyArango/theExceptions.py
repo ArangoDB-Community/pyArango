@@ -80,6 +80,11 @@ class CursorError(ArrangocityException) :
 		message = "Unable to retreive data for cursor %s: %s" % (cursorId, message)
 		ArrangocityException.__init__(self, message, errors)
 
+class TransactionError(ArrangocityException) :
+	"""Something went wrong with a transaction"""
+	def __init__(self, message, errors = {}) :
+		ArrangocityException.__init__(self, message, errors)
+
 class AbstractInstanciationError(Exception) :
 	"""Raised when someone tries to instanciate an abstract class"""
 	def __init__(self, cls) :

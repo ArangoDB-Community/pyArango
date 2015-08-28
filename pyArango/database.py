@@ -7,7 +7,7 @@ import graph as GR
 from document import Document
 from graph import Graph
 from query import AQLQuery
-from theExceptions import CreationError, UpdateError
+from theExceptions import CreationError, UpdateError, AQLQueryError, TransactionError
 
 __all__ = ["Database", "DBHandle"]
 
@@ -25,6 +25,7 @@ class Database(object) :
 		self.cursorsURL = '%s/cursor' % (self.URL)
 		self.explainURL = '%s/explain' % (self.URL)
 		self.graphsURL = "%s/gharial" % self.URL
+                self.transactionURL = "%s/transaction" % self.URL
 
 		self.collections = {}
 		self.graphs = {}
@@ -185,6 +186,26 @@ class Database(object) :
 			return data
 		else :
 			raise AQLQueryError(data["errorMessage"], query, data)
+
+        def transaction(self, collections, action, waitForSync = False, lockTimeout = None, params = None) :
+                """Execute a server-side transaction"""
+                payload = {
+                        "collections": collections,
+                        "action": action,
+                        "waitForSync": waitForSync}
+                if lockTimeout is not None:
+                        payload["lockTimeout"] = lockTimeout
+                if params is not None:
+                    payload["params"] = params
+
+                r = self.connection.session.post(self.transactionURL, data = json.dumps(payload))
+
+                data = r.json()
+
+                if r.status_code == 200 and not data["error"] :
+                    return data
+                else :
+                    raise TransactionError(data["errorMessage"], action, data)
 
 	def __repr__(self) :
 		return "ArangoDB database: %s" % self.name
