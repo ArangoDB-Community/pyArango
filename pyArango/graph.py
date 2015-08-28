@@ -3,7 +3,7 @@ import json
 from theExceptions import (CreationError, DeletionError, UpdateError, TraversalError)
 import collection as COL
 
-__all__ = ["Graph", "getGraphClass", "isGraph", "getGraphClasses", "Graph_metaclass"]
+__all__ = ["Graph", "getGraphClass", "isGraph", "getGraphClasses", "Graph_metaclass", "EdgeDefinition"]
 
 class Graph_metaclass(type) :
 	"""Keeps track of all graph classes and does basic validations on fields"""

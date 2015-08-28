@@ -6,7 +6,7 @@ from theExceptions import ValidationError, SchemaViolation, CreationError, Updat
 from query import SimpleQuery
 from index import Index
 
-__all__ = ["Collection", "Edges", "Field", "DocumentCache", "CachedDoc", "Collection_metaclass", "getCollectionClass", "isCollection", "isDocumentCollection", "isEdgeCollection", "getCollectionClasses"]
+__all__ = ["Collection", "Edges", "Field", "DocumentCache", "CachedDoc", "Collection_metaclass", "getCollectionClass", "isCollection", "isDocumentCollection", "isEdgeCollection", "getCollectionClasses", "COLLECTION_DOCUMENT_TYPE", "COLLECTION_EDGE_TYPE"]
   
 COLLECTION_DOCUMENT_TYPE = 2
 COLLECTION_EDGE_TYPE = 3
