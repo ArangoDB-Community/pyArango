@@ -215,7 +215,7 @@ class pyArangoTests(unittest.TestCase):
 		example = {'species' : "rat"}
 		q = col.fetchByExample(example, batchSize = 1, count = True)
 		self.assertEqual(q.result, [])
-	
+
 	# @unittest.skip("stand by")
 	def test_cursor(self) :
 		nbUsers = 2
@@ -584,6 +584,13 @@ class pyArangoTests(unittest.TestCase):
 		geoInd.delete()
 		geoInd2 = pers.ensureFulltextIndex(["geo"])
 		self.assertTrue(geoInd.infos["id"] != geoInd2.infos["id"])
+
+        def test_transaction(self) :
+                transaction = self.db.transaction(
+                        collections = {},
+                        action = "function (params) {return params['some_param'];}",
+                        params = {"some_param": "lala param"})
+                self.assertEqual(transaction, {"code": 200, "result": "lala param", "error": False})
 
 
 if __name__ == "__main__" :
