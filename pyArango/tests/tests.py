@@ -592,6 +592,8 @@ class pyArangoTests(unittest.TestCase):
                         params = {"some_param": "lala param"})
                 self.assertEqual(transaction, {"code": 200, "result": "lala param", "error": False})
 
+        def test_transaction_exception(self) :
+                self.assertRaises(TransactionError, self.db.transaction, collections = {}, action = "function () { return value; }")
 
 if __name__ == "__main__" :
 	unittest.main()
