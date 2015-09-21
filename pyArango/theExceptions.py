@@ -82,7 +82,8 @@ class CursorError(ArrangocityException) :
 
 class TransactionError(ArrangocityException) :
 	"""Something went wrong with a transaction"""
-	def __init__(self, message, errors = {}) :
+	def __init__(self, message, action, errors = {}) :
+                message = "Error in: %s.\n->%s" % (action, message)
 		ArrangocityException.__init__(self, message, errors)
 
 class AbstractInstanciationError(Exception) :
