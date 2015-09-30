@@ -119,7 +119,7 @@ class Query(object) :
 			resp = object.__getattribute__(self, "response")
 			return resp[k]
 		except (KeyError, AttributeError) :
-			raise  AttributeError("There's not attribute %s" %(k))
+			raise  AttributeError("There's no attribute %s" %(k))
 
 	def __str__(self) :
 		return str(self.result)
