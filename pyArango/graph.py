@@ -1,14 +1,14 @@
 import json
 
-from theExceptions import (CreationError, DeletionError, UpdateError, TraversalError)
-import collection as COL
+from .theExceptions import (CreationError, DeletionError, UpdateError, TraversalError)
+from . import collection as COL
 
 __all__ = ["Graph", "getGraphClass", "isGraph", "getGraphClasses", "Graph_metaclass", "EdgeDefinition"]
 
 class Graph_metaclass(type) :
 	"""Keeps track of all graph classes and does basic validations on fields"""
 	graphClasses = {}
-	
+
 	def __new__(cls, name, bases, attrs) :
 		clsObj = type.__new__(cls, name, bases, attrs)
 		if name != 'Graph' :
@@ -63,7 +63,7 @@ class EdgeDefinition(object) :
 
 	def __repr__(self) :
 		return str(self)
-	
+
 class Graph(object) :
 	"""The class from witch all your graph types must derive"""
 
@@ -85,27 +85,27 @@ class Graph(object) :
 		self.name = self._key
 		self._rev = jsonInit["_rev"]
 		self._id = jsonInit["_id"]
-	
+
 		self.definitions = {}
 		for de in self._edgeDefinitions :
 			if de.name not in self.database.collections and not COL.isEdgeCollection(de.name) :
 				raise KeyError("'%s' is not a valid edge collection" % de.name)
 			self.definitions[de.name] = de
-		
-		# for e in jsonInit["edgeDefinitions"] :
-		# 	if e["collection"] not in self._edgeDefinitions :
-		# 		raise CreationError("Collection '%s' is not mentioned in the definition of graph '%s'" % (e["collection"], self.__class__,__name__))
-		# 	if e["from"] != self._edgeDefinitions[e["collection"]]["from"] :
-		# 		vals = (e["collection"], self.__class__,__name__, self._edgeDefinitions[e["collection"]]["from"], e["from"])
-		# 		raise CreationError("Edge definition '%s' of graph '%s' mismatch for 'from':\npython:%s\narangoDB:%s" % vals)
-		# 	if e["to"] != self._edgeDefinitions[e["collection"]]["to"] :
-		# 		vals = (e["collection"], self.__class__,__name__, self._edgeDefinitions[e["collection"]]["to"], e["to"])
-		# 		raise CreationError("Edge definition '%s' of graph '%s' mismatch for 'to':\npython:%s\narangoDB:%s" % vals )
-		# 	defs.append(e["collection"])
 
-		# if jsonInit["orphanCollections"] != self._orphanCollections :
-		# 	raise CreationError("Orphan collection '%s' of graph '%s' mismatch:\npython:%s\narangoDB:%s" (e["collection"], self.__class__,__name__, self._orphanCollections, jsonInit["orphanCollections"]))
-			
+		#	for e in jsonInit["edgeDefinitions"] :
+		#		if e["collection"] not in self._edgeDefinitions :
+		#			raise CreationError("Collection '%s' is not mentioned in the definition of graph '%s'" % (e["collection"], self.__class__,__name__))
+		#		if e["from"] != self._edgeDefinitions[e["collection"]]["from"] :
+		#			vals = (e["collection"], self.__class__,__name__, self._edgeDefinitions[e["collection"]]["from"], e["from"])
+		#			raise CreationError("Edge definition '%s' of graph '%s' mismatch for 'from':\npython:%s\narangoDB:%s" % vals)
+		#		if e["to"] != self._edgeDefinitions[e["collection"]]["to"] :
+		#			vals = (e["collection"], self.__class__,__name__, self._edgeDefinitions[e["collection"]]["to"], e["to"])
+		#			raise CreationError("Edge definition '%s' of graph '%s' mismatch for 'to':\npython:%s\narangoDB:%s" % vals )
+		#		defs.append(e["collection"])
+
+		#	if jsonInit["orphanCollections"] != self._orphanCollections :
+		#	raise CreationError("Orphan collection '%s' of graph '%s' mismatch:\npython:%s\narangoDB:%s" (e["collection"], self.__class__,__name__, self._orphanCollections, jsonInit["orphanCollections"]))
+
 		self.URL = "%s/%s" % (self.database.graphsURL, self._key)
 
 	def createVertex(self, collectionName, docAttributes, waitForSync = False) :
@@ -114,17 +114,17 @@ class Graph(object) :
 		self.database[collectionName].validateDct(docAttributes)
 
 		r = self.connection.session.post(url, data = json.dumps(docAttributes), params = {'waitForSync' : waitForSync})
-		
+
 		data = r.json()
 		if r.status_code == 201 or r.status_code == 202 :
 			return self.database[collectionName][data["vertex"]["_key"]]
-		
+
 		raise CreationError("Unable to create vertice, %s" % data["errorMessage"], data)
 
 	def deleteVertex(self, document, waitForSync = False) :
 		"""deletes a vertex from the graph as well as al linked edges"""
 		url = "%s/vertex/%s" % (self.URL, document._id)
-		
+
 		r = self.connection.session.delete(url, params = {'waitForSync' : waitForSync})
 		data = r.json()
 		if r.status_code == 200 or r.status_code == 202 :
@@ -134,10 +134,10 @@ class Graph(object) :
 
 	def createEdge(self, collectionName, _fromId, _toId, edgeAttributes, waitForSync = False) :
 		"""creates an edge between two documents"""
-		
+
 		if collectionName not in self.definitions :
 			raise KeyError("'%s' is not among the edge definitions" % collectionName)
-		
+
 		url = "%s/edge/%s" % (self.URL, collectionName)
 		self.database[collectionName].validateDct(edgeAttributes)
 		payload = edgeAttributes

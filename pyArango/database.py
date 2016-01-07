@@ -1,44 +1,44 @@
 import json
 import types
 
-import collection as COL
-import graph as GR
+from . import collection as COL
+from . import graph as GR
 
-from document import Document
-from graph import Graph
-from query import AQLQuery
-from theExceptions import CreationError, UpdateError, AQLQueryError, TransactionError
+from .document import Document
+from .graph import Graph
+from .query import AQLQuery
+from .theExceptions import CreationError, UpdateError, AQLQueryError, TransactionError
 
 __all__ = ["Database", "DBHandle"]
 
 class Database(object) :
 	"""Databases are meant to be instanciated by connections"""
-	
+
 	def __init__(self, connection, name) :
-	
+
 		self.name = name
 		self.connection = connection
 		self.collections = {}
-		
+
 		self.URL = '%s/_db/%s/_api' % (self.connection.arangoURL, self.name)
 		self.collectionsURL = '%s/collection' % (self.URL)
 		self.cursorsURL = '%s/cursor' % (self.URL)
 		self.explainURL = '%s/explain' % (self.URL)
 		self.graphsURL = "%s/gharial" % self.URL
-                self.transactionURL = "%s/transaction" % self.URL
+		self.transactionURL = "%s/transaction" % self.URL
 
 		self.collections = {}
 		self.graphs = {}
 
 		self.reload()
-	
+
 	def reloadCollections(self) :
 		"reloads the collection list."
 		r = self.connection.session.get(self.collectionsURL)
 		data = r.json()
 		if r.status_code == 200 :
 			self.collections = {}
-			
+
 			for colData in data["collections"] :
 				colName = colData['name']
 				if colData['isSystem'] :
@@ -66,23 +66,23 @@ class Database(object) :
 					self.graphs[graphData["_key"]] = Graph(self, graphData)
 		else :
 			raise UpdateError(data["errorMessage"], data)
-	
+
 	def reload(self) :
 		"reloads collections and graphs"
 		self.reloadCollections()
 		self.reloadGraphs()
-	
+
 	def createCollection(self, className = 'GenericCollection', waitForSync = False, **colArgs) :
 		"""Creeats a collection and returns it.
 		ClassName the name of a class inheriting from Collection or Egdes. Use colArgs to put things such as 'isVolatile = True' (see ArangoDB's doc
 		for a full list of possible arugments)."""
-		
+
 		if className != 'GenericCollection' :
 			colArgs['name'] = className
 		else :
 			if 'name' not in colArgs :
 				raise ValueError("a 'name' argument mush be supplied if you want to create a generic collection")
-					
+
 		colClass = COL.getCollectionClass(className)
 
 		if colArgs['name'] in self.collections :
@@ -92,7 +92,7 @@ class Database(object) :
 			colArgs["type"] = COL.COLLECTION_EDGE_TYPE
 		else :
 			colArgs["type"] = COL.COLLECTION_DOCUMENT_TYPE
-		
+
 		colArgs["waitForSync"] = waitForSync
 
 		payload = json.dumps(colArgs)
@@ -132,7 +132,7 @@ class Database(object) :
 				_checkCollectionList(e.toCollections)
 
 			ed.append(e.toJson())
-		
+
 		if not createCollections :
 			_checkCollectionList(graphClass._orphanedCollections)
 
@@ -141,7 +141,6 @@ class Database(object) :
 				"edgeDefinitions": ed,
 				"orphanCollections": graphClass._orphanedCollections
 			}
-		
 
 		payload = json.dumps(payload)
 		r = self.connection.session.post(self.graphsURL, data = payload)
@@ -149,15 +148,15 @@ class Database(object) :
 		if r.status_code == 201 :
 			self.graphs[name] = graphClass(self, data["graph"])
 		else :
-			raise CreationError(data["errorMessage"], data)		
+			raise CreationError(data["errorMessage"], data)
 		return self.graphs[name]
 
-	# def _checkGraphCollections(self, edgeDefinitions, orphanCollections) :
-	# 	for ed in edgeDefinitions :	
-	# 		checkList(ed["from"])
-	# 		checkList(ed["to"])
-		
-	# 	checkList(orphanCollections)
+	#def _checkGraphCollections(self, edgeDefinitions, orphanCollections) :
+	#	for ed in edgeDefinitions :	
+	#		checkList(ed["from"])
+	#		checkList(ed["to"])
+
+	#	checkList(orphanCollections)
 
 	def hasCollection(self, name) :
 		"""returns true if the databse has a collection by the name of 'name'"""
@@ -187,25 +186,25 @@ class Database(object) :
 		else :
 			raise AQLQueryError(data["errorMessage"], query, data)
 
-        def transaction(self, collections, action, waitForSync = False, lockTimeout = None, params = None) :
-                """Execute a server-side transaction"""
-                payload = {
-                        "collections": collections,
-                        "action": action,
-                        "waitForSync": waitForSync}
-                if lockTimeout is not None:
-                        payload["lockTimeout"] = lockTimeout
-                if params is not None:
-                    payload["params"] = params
+	def transaction(self, collections, action, waitForSync = False, lockTimeout = None, params = None) :
+		"""Execute a server-side transaction"""
+		payload = {
+			"collections": collections,
+			"action": action,
+			"waitForSync": waitForSync}
+		if lockTimeout is not None:
+			payload["lockTimeout"] = lockTimeout
+		if params is not None:
+			payload["params"] = params
 
-                r = self.connection.session.post(self.transactionURL, data = json.dumps(payload))
+		r = self.connection.session.post(self.transactionURL, data = json.dumps(payload))
 
-                data = r.json()
+		data = r.json()
 
-                if r.status_code == 200 and not data["error"] :
-                    return data
-                else :
-                    raise TransactionError(data["errorMessage"], action, data)
+		if r.status_code == 200 and not data["error"] :
+			return data
+		else :
+			raise TransactionError(data["errorMessage"], action, data)
 
 	def __repr__(self) :
 		return "ArangoDB database: %s" % self.name

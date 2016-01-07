@@ -1,21 +1,33 @@
 import json
 import types
 
-from document import Document, Edge
-from theExceptions import ValidationError, SchemaViolation, CreationError, UpdateError, DeletionError, InvalidDocument, AbstractInstanciationError
-from query import SimpleQuery
-from index import Index
+from .document import Document, Edge
+from .theExceptions import ValidationError, SchemaViolation, CreationError, UpdateError, DeletionError, InvalidDocument, AbstractInstanciationError
+from .query import SimpleQuery
+from .index import Index
+from . import collectionTypes as COL
 
-__all__ = ["Collection", "Edges", "Field", "DocumentCache", "CachedDoc", "Collection_metaclass", "getCollectionClass", "isCollection", "isDocumentCollection", "isEdgeCollection", "getCollectionClasses", "COLLECTION_DOCUMENT_TYPE", "COLLECTION_EDGE_TYPE"]
-  
-COLLECTION_DOCUMENT_TYPE = 2
-COLLECTION_EDGE_TYPE = 3
+__all__ = ["Collection",
+	"Edges",
+	"Field",
+	"DocumentCache",
+	"CachedDoc",
+	"Collection_metaclass",
+	"getCollectionClass",
+	"isCollection",
+	"isDocumentCollection",
+	"isEdgeCollection",
+	"getCollectionClasses",
+	"COLLECTION_DOCUMENT_TYPE",
+	"COLLECTION_EDGE_TYPE"]
+
 
 COLLECTION_NEWBORN_STATUS = 1
 COLLECTION_UNLOADED_STATUS = 2
 COLLECTION_LOADED_STATUS = 3
 COLLECTION_LOADING_STATUS = 4
 COLLECTION_DELETED_STATUS = 5
+
 
 class CachedDoc(object) :
 	"""A cached document"""
@@ -69,7 +81,7 @@ class DocumentCache(object) :
 			del(self.cacheStore[key])
 		except KeyError :
 			raise KeyError("Document with key %s is not available in cache" % key)
-	
+
 	def getChain(self) :
 		"returns a list of keys representing the chain of documents"
 		l = []
@@ -121,7 +133,7 @@ class Field(object) :
 class Collection_metaclass(type) :
 	"""The metaclass that takes care of keeping a register of all collection types"""
 	collectionClasses = {}
-	
+
 	_validationDefault = {
 			'on_save' : False,
 			'on_set' : False,
@@ -149,7 +161,7 @@ class Collection_metaclass(type) :
 		clsObj = type.__new__(cls, name, bases, attrs)
 		if name != "Collection" and name != "Edges" :
 			Collection_metaclass.collectionClasses[name] = clsObj
-	
+
 		return clsObj
 
 	@classmethod
@@ -207,7 +219,7 @@ class Collection(object) :
 	"""A document collection. Collections are meant to be instanciated by databases"""
 	#here you specify the fields that you want for the documents in your collection
 	_fields = {}
-	
+
 	_validation = {
 		'on_save' : False,
 		'on_set' : False,
@@ -219,7 +231,7 @@ class Collection(object) :
 	__metaclass__ = Collection_metaclass
 
 	def __init__(self, database, jsonData) :
-		
+
 		if self.__class__ is Collection :
 			raise AbstractInstanciationError(self.__class__)
 
@@ -228,7 +240,7 @@ class Collection(object) :
 		self.name = self.__class__.__name__
 		for k in jsonData :
 			setattr(self, k, jsonData[k])
-		
+
 		self.URL = "%s/collection/%s" % (self.database.URL, self.name)
 		self.documentsURL = "%s/document" % (self.database.URL)
 		self.documentCache = None
@@ -256,7 +268,7 @@ class Collection(object) :
 	def activateCache(self, cacheSize) :
 		"Activate the caching system. Cached documents are only available through the __getitem__ interface"
 		self.documentCache = DocumentCache(cacheSize)
-	
+
 	def deactivateCache(self) :
 		"deactivate the caching system"
 		self.documentCache = None
@@ -274,7 +286,7 @@ class Collection(object) :
 
 	def ensureCapConstraint(self, size, byteSize = None) :
 		"""Ensures that there's a cap constraint in the collection, and returns it"""
-		data = { 
+		data = {
 			"type" : "cap",
 			"size" : size,
 		}
@@ -287,7 +299,7 @@ class Collection(object) :
 
 	def ensureHashIndex(self, fields, unique = False, sparse = True) :
 		"""Creates a hash index if it does not already exist, and returns it"""
-		data = { 
+		data = {
 			"type" : "hash",
 			"fields" : fields,
 			"unique" : unique,
@@ -299,7 +311,7 @@ class Collection(object) :
 
 	def ensureSkiplistIndex(self, fields, unique = False, sparse = True) :
 		"""Creates a skiplist index if it does not already exist, and returns it"""
-		data = { 
+		data = {
 			"type" : "skiplist",
 			"fields" : fields,
 			"unique" : unique,
@@ -311,7 +323,7 @@ class Collection(object) :
 
 	def ensureGeoIndex(self, fields) :
 		"""Creates a geo index if it does not already exist, and returns it"""
-		data = { 
+		data = {
 			"type" : "geo",
 			"fields" : fields,
 		}
@@ -321,7 +333,7 @@ class Collection(object) :
 
 	def ensureFulltextIndex(self, fields, minLength = None) :
 		"""Creates a fulltext index if it does not already exist, and returns it"""
-		data = { 
+		data = {
 			"type" : "fulltext",
 			"fields" : fields,
 		}
@@ -337,7 +349,7 @@ class Collection(object) :
 		"checks if 'value' is a valid for field 'fieldName'. If the validation is unsuccefull, raises a SchemaViolation or a ValidationError"
 		if not cls._validation["allow_foreign_fields"] and (fieldName not in cls._fields) :
 			raise SchemaViolation(cls, fieldName)
-		
+
 		try : #if foreign field
 			v = cls._fields[fieldName]
 			if type(v) is types.DictType :
@@ -405,7 +417,7 @@ class Collection(object) :
 
 	def fetchAll(self, rawResults = False, **queryArgs) :
 		"""Returns all the documents in the collection. You can use the optinal arguments 'skip' and 'limit'::
-	
+
 			fetchAlll(limit = 3, shik = 10)"""
 		return self.simpleQuery('all', rawResults = rawResults, **queryArgs)
 
@@ -432,7 +444,7 @@ class Collection(object) :
 	def load(self) :
 		"loads collection in memory"
 		return self.action('PUT', 'load')
-	
+
 	def unload(self) :
 		"unloads collection from memory"
 		return self.action('PUT', 'unload')
@@ -456,16 +468,16 @@ class Collection(object) :
 	def figures(self) :
 		"a more elaborate version of count, see arangodb docs for more infos"
 		return self.action('GET', 'figures')
-	
-	# def createEdges(self, className, **colArgs) :
-	# 	"an alias of createCollection"
-	# 	self.createCollection(className, **colArgs)
+
+	#def createEdges(self, className, **colArgs) :
+	#	"an alias of createCollection"
+	#	self.createCollection(className, **colArgs)
 
 	def getType(self) :
 		"returns a word describing the type of the collection (edges or ducments) instead of a number, if you prefer the number it's in self.type"
-		if self.type == COLLECTION_DOCUMENT_TYPE :
+		if self.type == COL.COLLECTION_DOCUMENT_TYPE :
 			return "document"
-		elif self.type == COLLECTION_EDGE_TYPE :
+		elif self.type == COL.COLLECTION_EDGE_TYPE :
 			return "edge"
 		else :
 			raise ValueError("The collection is of Unknown type %s" % self.type)
@@ -495,21 +507,21 @@ class Collection(object) :
 	def __getitem__(self, key) :
 		"returns a document from the cache. If it's not there, fetches it from the db and caches it first. If the cache is not activated this is equivalent to fetchDocument( rawResults = False)"
 		if self.documentCache is None :
-			return self.fetchDocument(key, rawResults = False) 
+			return self.fetchDocument(key, rawResults = False)
 		try :
-			return self.documentCache[key] 
+			return self.documentCache[key]
 		except KeyError :
 			doc = self.fetchDocument(key, rawResults = False)
 			self.documentCache.cache(doc)
 		return doc
 
-class SystemCollection(Collection) :
-	"for all collections with isSystem = True"
+class GenericCollection(Collection) :
+	"The default collection. It does not do any validation and can store anything"
 	def __init__(self, database, jsonData) :
 		Collection.__init__(self, database, jsonData)
 
-class GenericCollection(Collection) :
-	"The default collection. It does not do any validation and can store anything"
+class SystemCollection(Collection) :
+	"for all collections with isSystem = True"
 	def __init__(self, database, jsonData) :
 		Collection.__init__(self, database, jsonData)
 
@@ -533,7 +545,7 @@ class Edges(Collection) :
 	def getInEdges(self, vertex, rawResults = False) :
 		"An alias for getEdges() that returns only the in Edges"
 		return self.getEdges(vertex, inEdges = True, outEdges = False, rawResults = rawResults)
-		
+
 	def getOutEdges(self, vertex, rawResults = False) :
 		"An alias for getEdges() that returns only the out Edges"
 		return self.getEdges(vertex, inEdges = False, outEdges = True, rawResults = rawResults)
@@ -557,7 +569,7 @@ class Edges(Collection) :
 			params["direction"] = "out"
 		else :
 			raise ValueError("inEdges, outEdges or both must have a boolean value")
-		
+
 		r = self.connection.session.get(self.edgesURL, params = params)
 		data = r.json()
 		if r.status_code == 200 :

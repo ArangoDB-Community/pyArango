@@ -1,4 +1,4 @@
-from theExceptions import ValidationError
+from .theExceptions import ValidationError
 
 class Validator(object) :
 	"""All validators must inherit from this class"""
@@ -28,7 +28,7 @@ class Email(Validator) :
 		if re.match(pat, value) is None :
 			raise ValidationError("The email address: %s is invalid" % value)
 		return True
-		
+
 class Length(Validator) :
 	"""validates that the value length is between given bounds"""
 	def __init__(self, minLen, maxLen) :

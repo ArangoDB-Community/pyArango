@@ -1,12 +1,12 @@
 import json
-from theExceptions import (CreationError, DeletionError, UpdateError)
+from .theExceptions import (CreationError, DeletionError, UpdateError)
 
 class Index(object) :
 	"""An index on a collection's fields. Indexes are meant to de created by ensureXXX functions of Collections. 
 Indexes have a .infos dictionary that stores all the infos about the index"""
 
 	def __init__(self, collection, infos = None, creationData = None) :
-		
+
 		self.collection = collection
 		self.connection = self.collection.database.connection
 		self.indexesURL = "%s/index" % self.collection.database.URL
@@ -15,10 +15,10 @@ Indexes have a .infos dictionary that stores all the infos about the index"""
 			self.infos = infos
 		elif creationData :
 			self._create(creationData)
-		
+
 		if self.infos :
 			self.URL = "%s/%s" % (self.indexesURL, self.infos["id"])
-		
+
 	def _create(self, postData) :
 		"""Creates an index of any type according to postData"""
 		if self.infos is None :

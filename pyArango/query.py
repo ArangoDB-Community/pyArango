@@ -1,8 +1,8 @@
 import json
 
-from document import Document, Edge
-from theExceptions import QueryError, AQLQueryError, SimpleQueryError, CreationError
-import collection as COL
+from .document import Document, Edge
+from .theExceptions import QueryError, AQLQueryError, SimpleQueryError, CreationError
+from . import collectionTypes as COL
 
 __all__ = ["Query", "AQLQuery", "SimpleQuery", "Cursor", "RawCursor"]
 
@@ -32,7 +32,7 @@ class Query(object) :
 		self.response = request.json()
 		if self.response["error"] and self.response["errorMessage"] != "no match" :
 			raise QueryError(self.response["errorMessage"], self.response)
-			
+
 		self.database = database
 		self.connection = self.database.connection
 		self.currI = 0
@@ -43,7 +43,7 @@ class Query(object) :
 				del(self.response["document"])
 			except KeyError :
 				pass
-			
+
 			if "hasMore" in self.response and self.response["hasMore"] :
 				self.cursor = RawCursor(self.database, self.id)
 			else :
@@ -53,7 +53,7 @@ class Query(object) :
 			self.result = []
 		else :
 			self._raiseInitFailed(request)
-	
+
 	def _raiseInitFailed(self, request) :
 		"must be implemented in child, this called if the __init__ fails"
 		raise NotImplemented("Must be implemented in child")
@@ -68,8 +68,8 @@ class Query(object) :
 
 		if collection.type == COL.COLLECTION_EDGE_TYPE :
 			self.result[i] = Edge(collection, docJson)
- 		else :
- 			self.result[i] = Document(collection, docJson)
+		else :
+			self.result[i] = Document(collection, docJson)
 
 	def nextBatch(self) :
 		"become the next batch. raises a StopIteration if there is None"
@@ -80,7 +80,7 @@ class Query(object) :
 				raise StopIteration("That was the last batch")
 		except KeyError :
 			raise AQLQueryError(self.response["errorMessage"], self.query, self.response)
-	
+
 		self.response = self.cursor.next()
 
 	def delete(self) :
@@ -96,10 +96,10 @@ class Query(object) :
 		v = self[self.currI]
 		self.currI += 1
 		return v
-			
+
 	def __iter__(self) :
 		"""Returns an itererator so you can do::
-		
+
 			for doc in query : print doc
 		"""
 		return self
@@ -128,7 +128,7 @@ class AQLQuery(Query) :
 	"AQL queries are attached to and instanciated by a database"
 	def __init__(self, database, query, batchSize, bindVars, options, count, fullCount, rawResults = True) :
 		payload = {'query' : query, 'batchSize' : batchSize, 'bindVars' : bindVars, 'options' : options, 'count' : count, 'fullCount' : fullCount}
-		
+
 		self.query = query
 		self.database = database
 		self.connection = self.database.connection
@@ -169,7 +169,7 @@ class SimpleQuery(Query) :
 		payload = json.dumps(payload)
 		URL = "%s/simple/%s" % (collection.database.URL, queryType)
 		request = self.connection.session.put(URL, data = payload)
-		
+
 		Query.__init__(self, request, collection.database, rawResults)
 
 	def _raiseInitFailed(self, request) :
@@ -180,5 +180,5 @@ class SimpleQuery(Query) :
 		docJson = self.result[i]
 		if self.collection.type == COL.COLLECTION_EDGE_TYPE :
 			self.result[i] = Edge(self.collection, docJson)
- 		else :
- 			self.result[i] = Document(self.collection, docJson)
+		else :
+			self.result[i] = Document(self.collection, docJson)

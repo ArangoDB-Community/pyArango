@@ -1,8 +1,8 @@
 import requests
 import json
 
-from database import Database, DBHandle
-from theExceptions import SchemaViolation, CreationError, ConnectionError
+from .database import Database, DBHandle
+from .theExceptions import SchemaViolation, CreationError, ConnectionError
 
 class Connection(object) :
 	"""This is the entry point in pyArango and direcltt handles databases."""
@@ -12,7 +12,7 @@ class Connection(object) :
 			self.arangoURL = url[:-1]
 		else :
 			self.arangoURL = arangoURL
-		
+
 		self.URL = '%s/_api' % self.arangoURL
 		self.databasesURL = '%s/database' % self.URL
 

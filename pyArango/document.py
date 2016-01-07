@@ -1,6 +1,6 @@
 import json
 
-from theExceptions import (CreationError, DeletionError, UpdateError)
+from .theExceptions import (CreationError, DeletionError, UpdateError)
 
 __all__ = ["Document", "Edge"]
 
