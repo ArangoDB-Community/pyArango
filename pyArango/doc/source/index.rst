@@ -10,10 +10,10 @@ pyArango is a python driver for the NoSQL database ArangoDB_ written by `Tariq D
 
 Key Features
 ------------
-pyArango, is geared toward the developer. It's here to help to you develop really cool apps using ArangoDB, really fast.
+pyArango is geared toward the developer. It's here to help to you develop really cool apps using ArangoDB, really fast.
 
  - Light and Simple interface
- - Built-in Validation of fields on seting or on saving
+ - Built-in Validation of fields on setting or on saving
  - Support for all index types
  - Supports graphs, traversals and all types of queries
  - Caching of documents with Insertions and Lookups in O(1)
@@ -21,8 +21,8 @@ pyArango, is geared toward the developer. It's here to help to you develop reall
 Collections are treated as types that apply to the documents within. That means that you can define
 a Collection and then create instances of this Collection in several databases. The same goes for graphs
 
-In other words, you can have two databases **cache_db** and **real_db** each of them with an instance of a 
-**Users** Collection. You can then be assured that documents of both collections will be subjected to the same 
+In other words, you can have two databases **cache_db** and **real_db** each of them with an instance of a
+**Users** Collection. You can then be assured that documents of both collections will be subjected to the same
 validation rules. Ain't that cool?
 
 You can be 100% permissive or enforce schemas and validate fields, on set, on save or both.
