@@ -167,7 +167,7 @@ class Database(object) :
 		"""returns true if the databse has a graph by the name of 'name'"""
 		return name in self.graphs
 	
-	def AQLQuery(self, query, batchSize = 0, rawResults = False, bindVars = {}, options = {}, count = False, fullCount = False) :
+	def AQLQuery(self, query, batchSize = 100, rawResults = False, bindVars = {}, options = {}, count = False, fullCount = False) :
 		"Set rawResults = True if you want the query to return dictionnaries instead of Document objects"
 		return AQLQuery(self, query, rawResults = rawResults, batchSize = batchSize, bindVars  = bindVars, options = options, count = count, fullCount = fullCount)
 
