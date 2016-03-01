@@ -2,7 +2,7 @@ import json
 import types
 
 from document import Document, Edge
-from theExceptions import ValidationError, SchemaViolation, CreationError, UpdateError, DeletionError, InvalidDocument, AbstractInstanciationError
+from theExceptions import ValidationError, SchemaViolation, CreationError, UpdateError, DeletionError, InvalidDocument
 from query import SimpleQuery
 from index import Index
 
@@ -147,8 +147,7 @@ class Collection_metaclass(type) :
 
 		check_set_ConfigDict('_validation')
 		clsObj = type.__new__(cls, name, bases, attrs)
-		if name != "Collection" and name != "Edges" :
-			Collection_metaclass.collectionClasses[name] = clsObj
+		Collection_metaclass.collectionClasses[name] = clsObj
 	
 		return clsObj
 
@@ -219,9 +218,6 @@ class Collection(object) :
 	__metaclass__ = Collection_metaclass
 
 	def __init__(self, database, jsonData) :
-		
-		if self.__class__ is Collection :
-			raise AbstractInstanciationError(self.__class__)
 
 		self.database = database
 		self.connection = self.database.connection
@@ -505,11 +501,6 @@ class Collection(object) :
 
 class SystemCollection(Collection) :
 	"for all collections with isSystem = True"
-	def __init__(self, database, jsonData) :
-		Collection.__init__(self, database, jsonData)
-
-class GenericCollection(Collection) :
-	"The default collection. It does not do any validation and can store anything"
 	def __init__(self, database, jsonData) :
 		Collection.__init__(self, database, jsonData)
 

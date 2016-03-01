@@ -51,6 +51,13 @@ class pyArangoTests(unittest.TestCase):
 		self.assertRaises(DeletionError, self.db["to_be_erased"].delete)
 	
 	# @unittest.skip("stand by")
+	def test_edges_create_delete(self) :
+		col = self.db.createCollection(className = "Edges", name = "to_be_erased")
+		self.db["to_be_erased"].delete()
+
+		self.assertRaises(DeletionError, self.db["to_be_erased"].delete)
+
+	# @unittest.skip("stand by")
 	def test_collection_count_truncate(self) :
 		collection = self.db.createCollection(name = "lala")
 		collection.truncate()

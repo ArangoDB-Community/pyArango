@@ -48,7 +48,7 @@ class Database(object) :
 						colClass = COL.getCollectionClass(colName)
 						colObj = colClass(self, colData)
 					except KeyError :
-						colObj = COL.GenericCollection(self, colData)
+						colObj = COL.Collection(self, colData)
 				self.collections[colName] = colObj
 		else :
 			raise updateError(data["errorMessage"], data)
@@ -72,12 +72,13 @@ class Database(object) :
 		self.reloadCollections()
 		self.reloadGraphs()
 	
-	def createCollection(self, className = 'GenericCollection', waitForSync = False, **colArgs) :
-		"""Creeats a collection and returns it.
-		ClassName the name of a class inheriting from Collection or Egdes. Use colArgs to put things such as 'isVolatile = True' (see ArangoDB's doc
+	def createCollection(self, className = 'Collection', waitForSync = False, **colArgs) :
+		"""Creates a collection and returns it.
+		ClassName the name of a class inheriting from Collection or Egdes, it can also be set to 'Collection' or 'Edges' in order to create untyped collections of documents or edges.
+		Use colArgs to put things such as 'isVolatile = True' (see ArangoDB's doc
 		for a full list of possible arugments)."""
 		
-		if className != 'GenericCollection' :
+		if className != 'Collection' and className != 'Edges' :
 			colArgs['name'] = className
 		else :
 			if 'name' not in colArgs :
@@ -88,7 +89,7 @@ class Database(object) :
 		if colArgs['name'] in self.collections :
 			raise CreationError("Database %s already has a collection named %s" % (self.name, colArgs['name']) )
 
-		if issubclass(colClass, COL.Edges) :
+		if issubclass(colClass, COL.Edges) or colClass.__class__ is COL.Edges:
 			colArgs["type"] = COL.COLLECTION_EDGE_TYPE
 		else :
 			colArgs["type"] = COL.COLLECTION_DOCUMENT_TYPE
@@ -98,6 +99,7 @@ class Database(object) :
 		payload = json.dumps(colArgs)
 		r = self.connection.session.post(self.collectionsURL, data = payload)
 		data = r.json()
+		
 		if r.status_code == 200 and not data["error"] :
 			col = colClass(self, data)
 			self.collections[col.name] = col
