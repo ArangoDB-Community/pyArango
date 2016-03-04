@@ -228,6 +228,8 @@ class Edge(Document) :
 	def save(self, fromVertice = None, toVertice = None, **edgeArgs) :
 		"""Works like Document's except that the first time you save an Edge you must specify the 'from' and 'to' vertices.
 		There's also a links() function especially for first saves"""
+		import types
+
 		if self.URL is None and (fromVertice is None or toVertice is None) :
 			raise ValueError("The first time you save an Edge you must specify the 'from' and 'to' vertices")
 
@@ -236,7 +238,7 @@ class Edge(Document) :
 		elif (type(fromVertice) is types.StringType) or (type(fromVertice) is types.UnicodeType) :
 			fromId = fromVertice
 		else :
-			raise ValueError("fromVertice must be either a Document or a String")
+			raise ValueError("fromVertice must be either a Document or a String, got: %s" % fromVertice)
 		
 		if toVertice.__class__ is Document :
 			toId = toVertice._id

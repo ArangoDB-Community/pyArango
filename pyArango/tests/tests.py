@@ -46,15 +46,29 @@ class pyArangoTests(unittest.TestCase):
 	# @unittest.skip("stand by")
 	def test_collection_create_delete(self) :
 		col = self.db.createCollection(name = "to_be_erased")
+		d1 = col.createDocument()
+		d1["name"] = "tesla"
+		d1.save()
+		self.assertEqual(1, col.count())
+		
 		self.db["to_be_erased"].delete()
-
 		self.assertRaises(DeletionError, self.db["to_be_erased"].delete)
 	
 	# @unittest.skip("stand by")
 	def test_edges_create_delete(self) :
-		col = self.db.createCollection(className = "Edges", name = "to_be_erased")
-		self.db["to_be_erased"].delete()
+		ed = self.db.createCollection(className = "Edges", name = "to_be_erased")
+		col = self.db.createCollection(name = "to_be_erased_to")
+		d1 = col.createDocument()
+		d1["name"] = "tesla"
+		d1.save()
 
+		e1 = ed.createEdge({"name": 'tesla'})
+		e1.links(d1, d1)
+		e2 = ed.createEdge()
+		e2.links(d1, d1)
+		self.assertEqual(2, ed.count())
+	
+		self.db["to_be_erased"].delete()
 		self.assertRaises(DeletionError, self.db["to_be_erased"].delete)
 
 	# @unittest.skip("stand by")
