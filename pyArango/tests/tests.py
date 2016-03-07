@@ -58,16 +58,19 @@ class pyArangoTests(unittest.TestCase):
 	def test_edges_create_delete(self) :
 		ed = self.db.createCollection(className = "Edges", name = "to_be_erased")
 		col = self.db.createCollection(name = "to_be_erased_to")
+
+
 		d1 = col.createDocument()
 		d1["name"] = "tesla"
 		d1.save()
 
+		self.db.reloadCollections()
+		ed = self.db.collections["to_be_erased"]
 		e1 = ed.createEdge({"name": 'tesla'})
 		e1.links(d1, d1)
 		e2 = ed.createEdge()
 		e2.links(d1, d1)
 		self.assertEqual(2, ed.count())
-	
 		self.db["to_be_erased"].delete()
 		self.assertRaises(DeletionError, self.db["to_be_erased"].delete)
 

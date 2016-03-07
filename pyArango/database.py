@@ -25,7 +25,7 @@ class Database(object) :
 		self.cursorsURL = '%s/cursor' % (self.URL)
 		self.explainURL = '%s/explain' % (self.URL)
 		self.graphsURL = "%s/gharial" % self.URL
-                self.transactionURL = "%s/transaction" % self.URL
+		self.transactionURL = "%s/transaction" % self.URL
 
 		self.collections = {}
 		self.graphs = {}
@@ -46,9 +46,17 @@ class Database(object) :
 				else :
 					try :
 						colClass = COL.getCollectionClass(colName)
+						# if colName[0] != "_" :
 						colObj = colClass(self, colData)
 					except KeyError :
-						colObj = COL.Collection(self, colData)
+						if colData["type"] == COL.COLLECTION_EDGE_TYPE :
+							colObj = COL.Edges(self, colData)
+						elif colData["type"] == COL.COLLECTION_DOCUMENT_TYPE :
+							colObj = COL.Collection(self, colData)
+						else :
+							print("Warning!! Collection of unknown type: %d, trying to load it as Collection nonetheless." % colData["type"])
+							colObj = COL.Collection(self, colData)
+
 				self.collections[colName] = colObj
 		else :
 			raise updateError(data["errorMessage"], data)

@@ -234,22 +234,23 @@ class Edge(Document) :
 			raise ValueError("The first time you save an Edge you must specify the 'from' and 'to' vertices")
 
 		if fromVertice.__class__ is Document :
-			fromId = fromVertice._id
+			edgeArgs["from"] = fromVertice._id
+			self._from = edgeArgs["from"]
 		elif (type(fromVertice) is types.StringType) or (type(fromVertice) is types.UnicodeType) :
-			fromId = fromVertice
+			edgeArgs["from"] = fromVertice
+			self._from = edgeArgs["from"]
 		else :
-			raise ValueError("fromVertice must be either a Document or a String, got: %s" % fromVertice)
+			if not self._from :
+				raise ValueError("fromVertice must be either a Document or a String, got: %s" % fromVertice)
 		
 		if toVertice.__class__ is Document :
-			toId = toVertice._id
+			edgeArgs["to"] = toVertice._id
+			self._to = edgeArgs["to"]
 		elif (type(toVertice) is types.StringType) or (type(toVertice) is types.UnicodeType) :
-			toId = toVertice
+			edgeArgs["to"] = toVertice
+			self._to = edgeArgs["to"]
 		else :
-			raise ValueError("toVertice must be either a Document or a String")
+			if not self._to :
+				raise ValueError("toVertice must be either a Document or a String, got: %s" % fromVertice)
 
-		edgeArgs["from"] = fromId
-		edgeArgs["to"] = toId
-		
-		self._from = fromId
-		self._to = toId
 		Document.save(self, **edgeArgs)
