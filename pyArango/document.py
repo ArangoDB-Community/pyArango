@@ -40,10 +40,10 @@ class Document(object) :
 			self._id, self._rev, self._key = None, None, None
 			self.URL = None
 
-	def set(self, fieldDict) :
+	def set(self, fieldDict = None) :
 		"""Sets the document according to values contained in the dictinnary fieldDict. This will also set self._id/_rev/_key"""
-
-		self.setPrivates(fieldDict)
+		if fieldDict :
+			self.setPrivates(fieldDict)
 
 		if self.collection._validation['on_set']:
 			for k in fieldDict.keys() :
