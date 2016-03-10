@@ -42,8 +42,7 @@ class Document(object) :
 
 	def set(self, fieldDict = None) :
 		"""Sets the document according to values contained in the dictinnary fieldDict. This will also set self._id/_rev/_key"""
-		if fieldDict or self._id is None :
-			self.setPrivates(fieldDict)
+		self.setPrivates(fieldDict)
 
 		if self.collection._validation['on_set']:
 			for k in fieldDict.keys() :
