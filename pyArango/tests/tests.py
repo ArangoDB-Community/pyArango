@@ -266,12 +266,16 @@ class pyArangoTests(unittest.TestCase):
 			
 			_fields = {
 				"str" : Field(validators = [VAL.Length(50, 51)]),
-				"notNull" : Field(validators = [VAL.NotNull()])
+				"notNull" : Field(validators = [VAL.NotNull()]),
+				"nestedStr": {
+					"str": Field(validators = [VAL.Length(50, 51)])
+				}
 			}
 			
 		myCol = self.db.createCollection('Col_on_set')
 		doc = myCol.createDocument()
 		self.assertRaises(ValidationError, doc.__setitem__, 'str', "qwer")
+		self.assertRaises(ValidationError, doc.__setitem__, 'nestedStr.str', "qwer")
 		self.assertRaises(ValidationError, doc.__setitem__, 'notNull', None)
 		self.assertRaises(SchemaViolation, doc.__setitem__, 'foreigner', None)
 
@@ -296,16 +300,31 @@ class pyArangoTests(unittest.TestCase):
 
 			_fields = {
 				"str" : Field(validators = [String_val()]),
-				"notNull" : Field(validators = [VAL.NotNull()])
+				"nestedStr": {
+					"str": Field(validators = [VAL.Length(50, 51)])
+				}
 			}
 			
 		myCol = self.db.createCollection('Col_on_set')
 		doc = myCol.createDocument()
 		doc["str"] = 3
 		self.assertRaises(InvalidDocument, doc.save)
+		
+		doc = myCol.createDocument()
 		doc["str"] = "string"
 		doc["foreigner"] = "string"
-		self.assertRaises(InvalidDocument,  doc.save)	
+		self.assertRaises(InvalidDocument,  doc.save)
+
+		doc = myCol.createDocument()
+		doc["nestedStr"] = {}
+		doc["nestedStr"]["str"] = 3
+		doc["str"] = "string"
+		self.assertRaises(InvalidDocument,  doc.save)
+
+		doc = myCol.createDocument()
+		doc["nestedStr"] = {}
+		doc["nestedStr"]["str"] = "string"
+		doc["str"] = "string"
 
 	# @unittest.skip("stand by")
 	def test_document_cache(self) :

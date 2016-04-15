@@ -330,33 +330,43 @@ class Collection(object) :
 
 	@classmethod
 	def validateField(cls, fieldName, value) :
-		"checks if 'value' is a valid for field 'fieldName'. If the validation is unsuccefull, raises a SchemaViolation or a ValidationError"
-		if not cls._validation["allow_foreign_fields"] and (fieldName not in cls._fields) :
-			raise SchemaViolation(cls, fieldName)
+		"""checks if 'value' is valid for field 'fieldName'. If the validation is unsuccessful, raises a SchemaViolation or a ValidationError.
+		for nested dicts ex: {address : { street: xxx} }, fieldName can take the form address.street
+		"""
 		
-		try : #if foreign field
-			v = cls._fields[fieldName]
-			if type(v) is types.DictType :
-				for kk, vv in v.iteritems() :
-					if not vv.validate(value) :
-						return False
-				return True
-			else :
-				return cls._fields[fieldName].validate(value)
-		except KeyError :
-			pass
+		def _getValidators(cls, fieldName) :
+			path = fieldName.split(".")
+			v = cls._fields
+			for k in path :
+				try :
+					v = v[k]
+				except KeyError :
+					return None
+			return v
+
+		validators = _getValidators(cls, fieldName)
+
+		if validators is None :
+			if not cls._validation["allow_foreign_fields"] :
+				raise SchemaViolation(cls, fieldName)
+		else :
+			return validators.validate(value)
 
 	@classmethod
 	def validateDct(cls, dct) :
 		"validates a dictionary. The dictionary must be defined such as {field: value}. If the validation is unsuccefull, raises an InvalidDocument"
-		res = {}
-		for k, v in dct.iteritems() :
-			if k not in cls.arangoPrivates :
-				try :
-					cls.validateField(k, v)
-				except (ValidationError, SchemaViolation) as e:
-					res[k] = str(e)
+		def _validate(dct, res) :
+			for k, v in dct.iteritems() :
+				if type(v) is types.DictType :
+					_validate(v, res)
+				elif k not in cls.arangoPrivates :
+					try :
+						cls.validateField(k, v)
+					except (ValidationError, SchemaViolation) as e:
+						res[k] = str(e)
 
+		res = {}
+		_validate(dct, res)
 		if len(res) > 0 :
 			raise InvalidDocument(res)
 
