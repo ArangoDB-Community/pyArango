@@ -1,4 +1,4 @@
-import json
+import json, types
 
 from theExceptions import (CreationError, DeletionError, UpdateError)
 
@@ -182,8 +182,17 @@ class Document(object) :
 		"""Documents work just like dictionaries doc[fieldName] = value. With the exceptions of private fiels (starting with '_')
 		that are accessed as object fields: doc._key"""	
 		
+		def _recValidate(k, v) :
+			if type(v) is types.DictType :
+				for kk, vv in v.iteritems() :
+					newk = "%s.%s" % (k, kk) 
+					_recValidate(newk, vv)	
+			else :
+				self.collection.validateField(k, v)
+
+		
 		if self.collection._validation['on_set'] :
-			self.collection.validateField(k, v)
+			_recValidate(k, v)
 
 		self._store[k] = v
 		if self.URL is not None :
