@@ -373,9 +373,16 @@ class Collection(object) :
 		return True
 
 	@classmethod
-	def hasField(cls, k) :
-		"returns True/False wether the collection has field K in it's schema"
-		return k in cls._fields
+	def hasField(cls, fieldName) :
+		"returns True/False wether the collection has field K in it's schema. Use the dot notation for the nested fields: address.street"
+		path = fieldName.split(".")
+		v = cls._fields
+		for k in path :
+			try :
+				v = v[k]
+			except KeyError :
+				return False
+		return True
 
 	def fetchDocument(self, key, rawResults = False, rev = None) :
 		"""Fetches a document from the collection given it's key. This function always goes straight to the db and bypasses the cache. If you

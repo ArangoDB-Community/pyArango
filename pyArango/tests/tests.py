@@ -43,7 +43,7 @@ class pyArangoTests(unittest.TestCase):
 			doc.save()
 		return collection
 	
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_collection_create_delete(self) :
 		col = self.db.createCollection(name = "to_be_erased")
 		d1 = col.createDocument()
@@ -54,11 +54,10 @@ class pyArangoTests(unittest.TestCase):
 		self.db["to_be_erased"].delete()
 		self.assertRaises(DeletionError, self.db["to_be_erased"].delete)
 	
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_edges_create_delete(self) :
 		ed = self.db.createCollection(className = "Edges", name = "to_be_erased")
 		col = self.db.createCollection(name = "to_be_erased_to")
-
 
 		d1 = col.createDocument()
 		d1["name"] = "tesla"
@@ -74,7 +73,7 @@ class pyArangoTests(unittest.TestCase):
 		self.db["to_be_erased"].delete()
 		self.assertRaises(DeletionError, self.db["to_be_erased"].delete)
 
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_collection_count_truncate(self) :
 		collection = self.db.createCollection(name = "lala")
 		collection.truncate()
@@ -86,7 +85,7 @@ class pyArangoTests(unittest.TestCase):
 		collection.truncate()
 		self.assertEqual(0, collection.count())
 
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_document_create_update_delete(self) :
 		collection = self.db.createCollection(name = "lala")
 		doc = collection.createDocument()
@@ -101,7 +100,7 @@ class pyArangoTests(unittest.TestCase):
 		doc.delete()
 		self.assertTrue(doc.URL is None)
 
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_document_fetch_by_key(self) :
 		collection = self.db.createCollection(name = "lala")
 		doc = collection.createDocument()
@@ -111,6 +110,22 @@ class pyArangoTests(unittest.TestCase):
 		self.assertEqual(doc._id, doc2._id)
 
 	# @unittest.skip("stand by")
+	def test_document_has_field(self) :
+		class theCol(Collection) :
+			_fields = {
+				'address' : {
+					'street' : Field(),
+					}
+			}
+
+		col = self.db.createCollection("theCol")
+		self.assertTrue(db['theCol'].hasField('address'))
+		self.assertTrue(db['theCol'].hasField('address.street'))
+		self.assertFalse(db['theCol'].hasField('street'))
+		self.assertFalse(db['theCol'].hasField('banana'))
+		self.assertFalse(db['theCol'].hasField('address.banana'))
+		
+	@unittest.skip("stand by")
 	def test_document_fetch_first_last_examples(self) :
 		import time
 		collection = self.db.createCollection(name = "lala")
@@ -129,7 +144,7 @@ class pyArangoTests(unittest.TestCase):
 		for i in xrange(10) :
 			self.assertEqual(res[i]['i'], 10 - i - 1)
 
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_document_create_patch(self) :
 		collection = self.db.createCollection(name = "lala")
 		doc = collection.createDocument()
@@ -138,7 +153,7 @@ class pyArangoTests(unittest.TestCase):
 		doc.save()
 		doc.patch()
 	
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_aql_validation(self) :
 	 	collection = self.db.createCollection(name = "users")
 		doc = collection.createDocument()
@@ -148,7 +163,7 @@ class pyArangoTests(unittest.TestCase):
 		aql = "FOR c IN users FILTER c.name == @name LIMIT 2 RETURN c.name"
 		bindVars = {'name' : 'Tesla-3'}
 
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_aql_query_rawResults_true(self) :
 		self.createManyUsers(100)
 		
@@ -158,7 +173,7 @@ class pyArangoTests(unittest.TestCase):
 		self.assertEqual(len(q.result), 1)
 		self.assertEqual(q[0], 'Tesla-3')
 
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_aql_query_rawResults_false(self) :
 		self.createManyUsers(100)
 
@@ -169,7 +184,7 @@ class pyArangoTests(unittest.TestCase):
 		self.assertEqual(q[0]['name'], 'Tesla-3')		
 		self.assertTrue(isinstance(q[0], Document))		
 	
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_aql_query_batch(self) :
 		nbUsers = 100
 		self.createManyUsers(nbUsers)
@@ -188,7 +203,7 @@ class pyArangoTests(unittest.TestCase):
 		self.assertEqual(lstRes, range(nbUsers))
 		self.assertEqual(q.count, nbUsers)
 
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_simple_query_example_batch(self) :
 		nbUsers = 100
 		col = self.createManyUsers(nbUsers)
@@ -208,7 +223,7 @@ class pyArangoTests(unittest.TestCase):
 		self.assertEqual(lstRes, range(nbUsers))
 		self.assertEqual(q.count, nbUsers)
 
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_simple_query_all_batch(self) :
 		nbUsers = 100
 		col = self.createManyUsers(nbUsers)
@@ -233,14 +248,14 @@ class pyArangoTests(unittest.TestCase):
 		with self.assertRaises(CreationError):
 			doc0 = docs[0]
 
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_empty_query(self) :
 		col = self.createManyUsers(1)
 		example = {'species' : "rat"}
 		q = col.fetchByExample(example, batchSize = 1, count = True)
 		self.assertEqual(q.result, [])
 
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_cursor(self) :
 		nbUsers = 2
 		col = self.createManyUsers(nbUsers)
@@ -253,7 +268,7 @@ class pyArangoTests(unittest.TestCase):
 		self.assertEqual(lstRes, range(nbUsers))
 		self.assertEqual(q.count, nbUsers)
 
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_fields_on_set(self) :
 		import pyArango.validation as VAL
 
@@ -279,7 +294,7 @@ class pyArangoTests(unittest.TestCase):
 		self.assertRaises(ValidationError, doc.__setitem__, 'notNull', None)
 		self.assertRaises(SchemaViolation, doc.__setitem__, 'foreigner', None)
 
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_fields_on_save(self) :
 		import pyArango.validation as VAL
 		import types
@@ -326,7 +341,7 @@ class pyArangoTests(unittest.TestCase):
 		doc["nestedStr"]["str"] = "string"
 		doc["str"] = "string"
 
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_document_cache(self) :
 		class DummyDoc(object) :
 			def __init__(self, key) :
@@ -349,7 +364,7 @@ class pyArangoTests(unittest.TestCase):
 		self.assertEqual(cache.head.key, doc.key)
 		self.assertEqual(cache.getChain(), [5, 9, 8, 7, 6])
 
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_validation_default_settings(self) :
 
 		class Col_empty(Collection) :
@@ -366,7 +381,7 @@ class pyArangoTests(unittest.TestCase):
 		c = Col_empty2
 		self.assertEqual(c._validation, Collection_metaclass._validationDefault)
 
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_validation_default_inlavid_key(self) :
 
 		def keyTest() :
@@ -377,7 +392,7 @@ class pyArangoTests(unittest.TestCase):
 
 		self.assertRaises(KeyError, keyTest)
 		
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_validation_default_inlavid_value(self) :
 
 		def keyTest() :
@@ -388,7 +403,7 @@ class pyArangoTests(unittest.TestCase):
 
 		self.assertRaises(ValueError, keyTest)
 	
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_collection_type_creation(self) :
 		class Edgy(Edges) :
 			pass
@@ -401,7 +416,7 @@ class pyArangoTests(unittest.TestCase):
 		coly = self.db.createCollection("Coly")
 		self.assertEqual(coly.type, COLLECTION_DOCUMENT_TYPE)
 
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_save_edge(self) :
 		class Human(Collection) :
 			_fields = {
@@ -432,7 +447,7 @@ class pyArangoTests(unittest.TestCase):
 		self.assertEqual(sameLink._from, tete._id)
 		self.assertEqual(sameLink._to, toto._id)
 
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_get_edges(self) :
 		class Human(Collection) :
 			_fields = {
@@ -472,7 +487,7 @@ class pyArangoTests(unittest.TestCase):
 		for i in ins :
 			self.assertEqual(i["number"] % 2, 0)
 
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_graph(self) :
 		class Humans(Collection) :
 			_fields = {
@@ -523,7 +538,7 @@ class pyArangoTests(unittest.TestCase):
 
 		# g.deleteEdge()
 
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def test_traversal(self) :
 
 		class persons(Collection) :
@@ -589,7 +604,7 @@ class pyArangoTests(unittest.TestCase):
 		for p in pers :
 			self.assertTrue(p._key in _keys)
 
-	# @unittest.skip("stand by")
+	@unittest.skip("stand by")
 	def testIndexes(self) :
 		class persons(Collection) :
 			_fields = {
