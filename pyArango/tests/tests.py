@@ -212,13 +212,14 @@ class pyArangoTests(unittest.TestCase):
 
 		q = col.fetchByExample(example, batchSize = 1, count = True)
 		lstRes = []
-		for i in xrange(nbUsers) :	
+		for i in xrange(nbUsers+5) :	
 			lstRes.append(q[0]["number"])
 			try :
 				q.nextBatch()
-			except StopIteration :
+			except StopIteration as e :
 				self.assertEqual(i, nbUsers-1)
-		
+				break
+
 		lstRes.sort()
 		self.assertEqual(lstRes, range(nbUsers))
 		self.assertEqual(q.count, nbUsers)
