@@ -32,7 +32,8 @@ class Query(object) :
 		self.response = request.json()
 		if self.response["error"] and self.response["errorMessage"] != "no match" :
 			raise QueryError(self.response["errorMessage"], self.response)
-			
+		
+		self.request = request
 		self.database = database
 		self.connection = self.database.connection
 		self.currI = 0

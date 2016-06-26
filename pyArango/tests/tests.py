@@ -109,7 +109,7 @@ class pyArangoTests(unittest.TestCase):
 		doc2 = collection.fetchDocument(doc._key)
 		self.assertEqual(doc._id, doc2._id)
 
-	# @unittest.skip("stand by")
+	#@unittest.skip("stand by")
 	def test_document_has_field(self) :
 		class theCol(Collection) :
 			_fields = {
@@ -204,7 +204,7 @@ class pyArangoTests(unittest.TestCase):
 		self.assertEqual(q.count, nbUsers)
 
 	#@unittest.skip("stand by")
-	def test_simple_query_example_batch(self) :
+	def test_simple_query_by_example_batch(self) :
 		nbUsers = 100
 		col = self.createManyUsers(nbUsers)
 		
