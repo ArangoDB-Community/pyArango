@@ -241,7 +241,7 @@ class Collection(object) :
 
 	def getIndexes(self) :
 		"""Fills self.indexes with all the indexes associates with the collection and returns it"""
-		url = "%s/index" % self.database.url
+		url = "%s/index" % self.database.URL
 		r = self.connection.session.get(url, params = {"collection": self.name})
 		data = r.json()
 		for ind in data["indexes"] :
