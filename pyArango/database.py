@@ -39,7 +39,7 @@ class Database(object) :
 		if r.status_code == 200 :
 			self.collections = {}
 			
-			for colData in data["collections"] :
+			for colData in data["result"] :
 				colName = colData['name']
 				if colData['isSystem'] :
 					colObj = COL.SystemCollection(self, colData)
