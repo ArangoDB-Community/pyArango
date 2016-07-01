@@ -82,7 +82,7 @@ class Document(object) :
 				update = True
 
 			data = r.json()
-			if (r.status_code == 201 or r.status_code == 202) and not data['error'] :
+			if (r.status_code == 201 or r.status_code == 202) and "error" not in data.keys() :
 				if update :
 					self._rev = data['_rev']
 				else :
