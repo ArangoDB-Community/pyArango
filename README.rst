@@ -3,6 +3,11 @@ pyArango
 
 NoSQL is really cool, but in this harsh world it is impossible to live without field validation.
 
+WARNING
+-------
+
+pyArango does not support ArangoDB V 3.x, but i'm working on it, and it should be available very soon.
+
 Key Features
 ------------
 pyArango, is geared toward the developer. It's here to help to you develop really cool apps using ArangoDB, really fast.
