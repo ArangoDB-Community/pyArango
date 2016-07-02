@@ -3,7 +3,9 @@ pyArango
 
 NoSQL is really cool, but in this harsh world it is impossible to live without field validation.
 
-**WARNING**: pyArango does not support ArangoDB V 3.x yet, but i'm working on it, and it should be available very soon.
+**WARNING**: This version is only compatible with ArangoDB 2.x yet. For ArangoDB 3.X checkout the last master_ branch.
+
+.. _master: https://github.com/tariqdaouda/pyArango/tree/master
 
 Key Features
 ------------
