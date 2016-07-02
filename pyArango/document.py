@@ -82,7 +82,8 @@ class Document(object) :
 				update = True
 
 			data = r.json()
-			if (r.status_code == 201 or r.status_code == 202) and not data['error'] :
+			
+			if (r.status_code == 201 or r.status_code == 202) and "error" not in data :
 				if update :
 					self._rev = data['_rev']
 				else :
@@ -94,6 +95,8 @@ class Document(object) :
 					raise CreationError(data['errorMessage'], data)
 
 			self.modified = False
+
+		self._patchStore = {}
 
 	def forceSave(self, **docArgs) :
 		"saves even if the document has not been modified since the last save"
@@ -125,20 +128,23 @@ class Document(object) :
 			
 			r = self.connection.session.patch(self.URL, params = params, data = payload)
 			data = r.json()
-			if (r.status_code == 201 or r.status_code == 202) and not data['error'] :
+			if (r.status_code == 201 or r.status_code == 202) and "error" not in data :
 				self._rev = data['_rev']
 			else :
 				raise UpdateError(data['errorMessage'], data)
 
 			self.modified = False
 
+		self._patchStore = {}
+	
 	def delete(self) :
 		"deletes the document from the database"
 		if self.URL is None :
 			raise DeletionError("Can't delete a document that was not saved") 
 		r = self.connection.session.delete(self.URL)
 		data = r.json()
-		if (r.status_code != 200 and r.status_code != 202) or data['error'] :
+
+		if (r.status_code != 200 and r.status_code != 202) or 'error' in data :
 			raise DeletionError(data['errorMessage'], data)
 		self.reset(self.collection)
 
@@ -218,52 +224,37 @@ class Edge(Document) :
 		Document.reset(self, edgeCollection, jsonFieldInit)
 		self.typeName = "ArangoEdge"
 
-	def setPrivates(self, jsonFieldInit) :
-		try :
-			self._from = jsonFieldInit["_from"]
-			del(jsonFieldInit["_from"])
-			self._to = jsonFieldInit["_to"]
-			del(jsonFieldInit["_to"])
-		except KeyError :
-			self._from, self._to = None, None
-		Document.setPrivates(self, jsonFieldInit)
-
 	def links(self, fromVertice, toVertice, **edgeArgs) :
-		"An alias of save that works only for first saves. It will also trigger the saving of fromVertice and toVertice"
-		if self.URL is not None :
-			raise AttributeError("It appears that the edge has already been saved. You can now use save() and patch()")
-		
-		fromVertice.save()
-		toVertice.save()
-
-		self.save(fromVertice, toVertice, **edgeArgs)
-
-	def save(self, fromVertice = None, toVertice = None, **edgeArgs) :
-		"""Works like Document's except that the first time you save an Edge you must specify the 'from' and 'to' vertices.
-		There's also a links() function especially for first saves"""
-		import types
-
-		if self.URL is None and (fromVertice is None or toVertice is None) :
-			raise ValueError("The first time you save an Edge you must specify the 'from' and 'to' vertices")
+		"""
+		An alias to save that updates the _from and _to attributes.
+		fromVertice and toVertice, can be either strings or documents. It they are unsaved documents, they will be automatically saved.
+		"""
 
 		if fromVertice.__class__ is Document :
-			edgeArgs["from"] = fromVertice._id
-			self._from = edgeArgs["from"]
+			if not fromVertice._id :
+				fromVertice._id.save()
+
+			self["_from"] = fromVertice._id
 		elif (type(fromVertice) is types.StringType) or (type(fromVertice) is types.UnicodeType) :
-			edgeArgs["from"] = fromVertice
-			self._from = edgeArgs["from"]
-		else :
-			if not self._from :
-				raise ValueError("fromVertice must be either a Document or a String, got: %s" % fromVertice)
+			self["_from"] = fromVertice
 		
 		if toVertice.__class__ is Document :
-			edgeArgs["to"] = toVertice._id
-			self._to = edgeArgs["to"]
+			if not toVertice._id :
+				toVertice._id.save()
+
+			self["_to"] = toVertice._id
 		elif (type(toVertice) is types.StringType) or (type(toVertice) is types.UnicodeType) :
-			edgeArgs["to"] = toVertice
-			self._to = edgeArgs["to"]
-		else :
-			if not self._to :
-				raise ValueError("toVertice must be either a Document or a String, got: %s" % fromVertice)
+			self["_to"] = toVertice
+
+		self.save(**edgeArgs)
+
+	def save(self, **edgeArgs) :
+		"""Works like Document's except that you must specify '_from' and '_to' vertices before.
+		There's also a links() function especially for first saves."""
+		
+		import types
+
+		if "_from" not in self._store or "_to" not in self._store :
+			raise AttributeError("You must specify '_from' and '_to' attributes before saving. You can also use the function 'links()'")
 
 		Document.save(self, **edgeArgs)

@@ -4,9 +4,51 @@ import json
 from database import Database, DBHandle
 from theExceptions import SchemaViolation, CreationError, ConnectionError
 
+class AikidoSession(object) :
+	"""Magical Aikido being that you probably do not need to access directly that deflects every http request to requests in the most graceful way.
+	It will also save basic stats on requests in it's attribute '.log'.
+	"""
+
+	class Holder(object) :
+		def __init__(self, session, fct) :
+			self.session = session
+			self.fct = fct
+
+		def __call__(self, *args, **kwargs) :
+			if self.session.auth :
+				kwargs["auth"] = self.session.auth
+			return self.fct(*args, **kwargs)
+
+	def __init__(self, username, password) :
+		if username and password :
+			self.auth = (username, password)
+		else :
+			self.auth = None
+
+		self.session = requests.Session()
+		self.log = {}
+		self.log["nb_request"] = 0
+		self.log["requests"] = {}
+
+	def __getattr__(self, k) :
+		try :
+			reqFct = getattr(object.__getattribute__(self, "session"), k)
+		except :
+			raise AttributeError("Attribute '%s' not found (no Aikido move available)" % k)
+		
+		holdClass = object.__getattribute__(self, "Holder")
+		log = object.__getattribute__(self, "log")
+		log["nb_request"] += 1
+		try :
+			log["requests"][reqFct.__name__] += 1
+		except :
+			log["requests"][reqFct.__name__] = 1
+
+		return holdClass(self, reqFct)
+
 class Connection(object) :
 	"""This is the entry point in pyArango and direcltt handles databases."""
-	def __init__(self, arangoURL = 'http://localhost:8529') :
+	def __init__(self, arangoURL = 'http://localhost:8529', username=None, password=None) :
 		self.databases = {}
 		if arangoURL[-1] == "/" :
 			self.arangoURL = url[:-1]
@@ -17,19 +59,21 @@ class Connection(object) :
 		self.databasesURL = '%s/database' % self.URL
 
 		self.session = None
-		self.resetSession()
+		self.resetSession(username, password)
 		self.reload()
 
-	def resetSession(self) :
+	def resetSession(self, username=None, password=None) :
 		"""resets the session"""
-		self.session = requests.Session()
+		self.session = AikidoSession(username, password)
 
 	def reload(self) :
 		"""Reloads the database list.
 		Because loading a database triggers the loading of all collections and graphs within,
 		only handles are loaded when this function is called. The full databases are loaded on demand when accessed
 		"""
+
 		r = self.session.get(self.databasesURL)
+
 		data = r.json()
 		if r.status_code == 200  and not data["error"] :
 			self.databases = {}

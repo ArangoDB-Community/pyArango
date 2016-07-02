@@ -39,14 +39,13 @@ class Database(object) :
 		if r.status_code == 200 :
 			self.collections = {}
 			
-			for colData in data["collections"] :
+			for colData in data["result"] :
 				colName = colData['name']
 				if colData['isSystem'] :
 					colObj = COL.SystemCollection(self, colData)
 				else :
 					try :
 						colClass = COL.getCollectionClass(colName)
-						# if colName[0] != "_" :
 						colObj = colClass(self, colData)
 					except KeyError :
 						if colData["type"] == COL.COLLECTION_EDGE_TYPE :
@@ -156,18 +155,12 @@ class Database(object) :
 		payload = json.dumps(payload)
 		r = self.connection.session.post(self.graphsURL, data = payload)
 		data = r.json()
-		if r.status_code == 201 :
+
+		if r.status_code == 201 or r.status_code == 202 :
 			self.graphs[name] = graphClass(self, data["graph"])
 		else :
 			raise CreationError(data["errorMessage"], data)		
 		return self.graphs[name]
-
-	# def _checkGraphCollections(self, edgeDefinitions, orphanCollections) :
-	# 	for ed in edgeDefinitions :	
-	# 		checkList(ed["from"])
-	# 		checkList(ed["to"])
-		
-	# 	checkList(orphanCollections)
 
 	def hasCollection(self, name) :
 		"""returns true if the databse has a collection by the name of 'name'"""
