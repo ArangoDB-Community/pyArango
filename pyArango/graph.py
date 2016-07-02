@@ -171,7 +171,7 @@ class Graph(object) :
 		"""deletes the graph"""
 		r = self.connection.session.delete(self.URL)
 		data = r.json()
-		if not r.status_code == 200 or data["error"] :
+		if r.status_code < 200 or r.status_code > 202 or data["error"] :
 			raise DeletionError(data["errorMessage"], data)
 
 	def traverse(self, startVertex, **kwargs) :
@@ -192,7 +192,7 @@ class Graph(object) :
 
 		r = self.connection.session.post(url, data = json.dumps(payload))
 		data = r.json()
-		if not r.status_code == 200 or data["error"] :
+		if r.status_code < 200 or r.status_code > 202 or data["error"] :
 			raise TraversalError(data["errorMessage"], data)
 
 		return data["result"]

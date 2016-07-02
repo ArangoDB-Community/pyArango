@@ -156,7 +156,8 @@ class Database(object) :
 		payload = json.dumps(payload)
 		r = self.connection.session.post(self.graphsURL, data = payload)
 		data = r.json()
-		if r.status_code == 201 :
+
+		if r.status_code == 201 or r.status_code == 202 :
 			self.graphs[name] = graphClass(self, data["graph"])
 		else :
 			raise CreationError(data["errorMessage"], data)		

@@ -232,7 +232,6 @@ class Collection(object) :
 		self.documentClass = Document
 		self.indexes = {
 			"primary" : {},
-			"cap" : {},
 			"hash" : {},
 			"skiplist" : {},
 			"geo" : {},
@@ -267,19 +266,6 @@ class Collection(object) :
 	def createDocument(self, initValues = {}) :
 		"create and returns a document"
 		return self.documentClass(self, initValues)
-
-	def ensureCapConstraint(self, size, byteSize = None) :
-		"""Ensures that there's a cap constraint in the collection, and returns it"""
-		data = { 
-			"type" : "cap",
-			"size" : size,
-		}
-		if byteSize is not None :
-			data["byteSize"] = byteSize
-
-		ind = Index(self, creationData = data)
-		self.indexes["cap"][ind.infos["id"]] = ind
-		return ind
 
 	def ensureHashIndex(self, fields, unique = False, sparse = True) :
 		"""Creates a hash index if it does not already exist, and returns it"""
@@ -403,14 +389,6 @@ class Collection(object) :
 		"exampleDict should be something like {'age' : 28}"
 		return self.simpleQuery('by-example', rawResults, example = exampleDict, batchSize = batchSize, **queryArgs)
 
-	def fetchFirst(self, count, rawResults = False) :
-		"""Returns the first document inserted in a collection"""
-		return self.simpleQuery('first', rawResults = rawResults, count = count)
-
-	def fetchLast(self, count, rawResults = False) :
-		"""Returns the last document inserted in a collection"""
-		return self.simpleQuery('last', rawResults = rawResults, count = count)
-
 	def fetchFirstExample(self, exampleDict, rawResults = False) :
 		"""exampleDict should be something like {'age' : 28}. returns only a single element but still in a SimpleQuery object.
 		returns the first example found that matches the example"""
@@ -529,11 +507,9 @@ class Edges(Collection) :
 	def __init__(self, database, jsonData) :
 		"This one is meant to be called by the database"
 		Collection.__init__(self, database, jsonData)
-		self.arangoPrivates.extend(["_to", "_from"])
 		self.documentClass = Edge
-		self.documentsURL = "%s/edge" % (self.database.URL)
-		self.edgesURL = "%ss/%s" % (self.documentsURL, self.name)
-
+		self.edgesURL = "%s/edges/%s" % (self.database.URL, self.name)
+		
 	def createEdge(self, initValues = {}) :
 		"alias for createDocument, both functions create an edge"
 		return self.createDocument(initValues)
