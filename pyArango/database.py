@@ -46,7 +46,6 @@ class Database(object) :
 				else :
 					try :
 						colClass = COL.getCollectionClass(colName)
-						# if colName[0] != "_" :
 						colObj = colClass(self, colData)
 					except KeyError :
 						if colData["type"] == COL.COLLECTION_EDGE_TYPE :
@@ -162,13 +161,6 @@ class Database(object) :
 		else :
 			raise CreationError(data["errorMessage"], data)		
 		return self.graphs[name]
-
-	# def _checkGraphCollections(self, edgeDefinitions, orphanCollections) :
-	# 	for ed in edgeDefinitions :	
-	# 		checkList(ed["from"])
-	# 		checkList(ed["to"])
-		
-	# 	checkList(orphanCollections)
 
 	def hasCollection(self, name) :
 		"""returns true if the databse has a collection by the name of 'name'"""

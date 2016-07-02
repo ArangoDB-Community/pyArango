@@ -92,20 +92,6 @@ class Graph(object) :
 				raise KeyError("'%s' is not a valid edge collection" % de.name)
 			self.definitions[de.name] = de
 		
-		# for e in jsonInit["edgeDefinitions"] :
-		# 	if e["collection"] not in self._edgeDefinitions :
-		# 		raise CreationError("Collection '%s' is not mentioned in the definition of graph '%s'" % (e["collection"], self.__class__,__name__))
-		# 	if e["from"] != self._edgeDefinitions[e["collection"]]["from"] :
-		# 		vals = (e["collection"], self.__class__,__name__, self._edgeDefinitions[e["collection"]]["from"], e["from"])
-		# 		raise CreationError("Edge definition '%s' of graph '%s' mismatch for 'from':\npython:%s\narangoDB:%s" % vals)
-		# 	if e["to"] != self._edgeDefinitions[e["collection"]]["to"] :
-		# 		vals = (e["collection"], self.__class__,__name__, self._edgeDefinitions[e["collection"]]["to"], e["to"])
-		# 		raise CreationError("Edge definition '%s' of graph '%s' mismatch for 'to':\npython:%s\narangoDB:%s" % vals )
-		# 	defs.append(e["collection"])
-
-		# if jsonInit["orphanCollections"] != self._orphanCollections :
-		# 	raise CreationError("Orphan collection '%s' of graph '%s' mismatch:\npython:%s\narangoDB:%s" (e["collection"], self.__class__,__name__, self._orphanCollections, jsonInit["orphanCollections"]))
-			
 		self.URL = "%s/%s" % (self.database.graphsURL, self._key)
 
 	def createVertex(self, collectionName, docAttributes, waitForSync = False) :
