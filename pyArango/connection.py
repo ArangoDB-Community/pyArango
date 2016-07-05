@@ -17,7 +17,17 @@ class AikidoSession(object) :
 		def __call__(self, *args, **kwargs) :
 			if self.session.auth :
 				kwargs["auth"] = self.session.auth
-			return self.fct(*args, **kwargs)
+
+			try :
+				ret = self.fct(*args, **kwargs)
+			except :
+				print ("===\nUnable to establish connection, perhaps arango is not running.\n===")
+				raise
+
+			if ret.status_code == 401 :
+				raise ConnectionError("Unauthorized access, you must supply a username and a password", ret.url, ret.status_code, ret.content)
+
+			return ret
 
 	def __init__(self, username, password) :
 		if username and password :
