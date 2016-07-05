@@ -47,7 +47,7 @@ class AikidoSession(object) :
 		return holdClass(self, reqFct)
 
 class Connection(object) :
-	"""This is the entry point in pyArango and direcltt handles databases."""
+	"""This is the entry point in pyArango and direclty handles databases."""
 	def __init__(self, arangoURL = 'http://localhost:8529', username=None, password=None) :
 		self.databases = {}
 		if arangoURL[-1] == "/" :
