@@ -1,5 +1,5 @@
-pyArango
-=========
+pyArango (Work in progress: porting to python3)
+=======================================================
 
 NoSQL is really cool, but in this harsh world it is impossible to live without field validation.
 
