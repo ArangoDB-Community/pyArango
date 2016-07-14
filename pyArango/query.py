@@ -127,9 +127,10 @@ class Query(object) :
 
 class AQLQuery(Query) :
 	"AQL queries are attached to and instanciated by a database"
-	def __init__(self, database, query, batchSize, bindVars, options, count, fullCount, rawResults = True) :
+	def __init__(self, database, query, batchSize, bindVars, options, count, fullCount, rawResults = True, **moreArgs) :
 		payload = {'query' : query, 'batchSize' : batchSize, 'bindVars' : bindVars, 'options' : options, 'count' : count, 'fullCount' : fullCount}
-		
+		payload.update(moreArgs)
+
 		self.query = query
 		self.database = database
 		self.connection = self.database.connection
