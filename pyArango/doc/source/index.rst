@@ -68,6 +68,7 @@ Contents:
    document
    query
    graph
+   users
    exceptions
    validation
 
