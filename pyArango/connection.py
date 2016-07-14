@@ -3,6 +3,7 @@ import json
 
 from database import Database, DBHandle
 from theExceptions import SchemaViolation, CreationError, ConnectionError
+from users import Users
 
 class AikidoSession(object) :
 	"""Magical Aikido being that you probably do not need to access directly that deflects every http request to requests in the most graceful way.
@@ -17,10 +18,20 @@ class AikidoSession(object) :
 		def __call__(self, *args, **kwargs) :
 			if self.session.auth :
 				kwargs["auth"] = self.session.auth
-			return self.fct(*args, **kwargs)
+
+			try :
+				ret = self.fct(*args, **kwargs)
+			except :
+				print ("===\nUnable to establish connection, perhaps arango is not running.\n===")
+				raise
+
+			if ret.status_code == 401 :
+				raise ConnectionError("Unauthorized access, you must supply a (username, password) with the correct credentials", ret.url, ret.status_code, ret.content)
+
+			return ret
 
 	def __init__(self, username, password) :
-		if username and password :
+		if username :
 			self.auth = (username, password)
 		else :
 			self.auth = None
@@ -47,7 +58,7 @@ class AikidoSession(object) :
 		return holdClass(self, reqFct)
 
 class Connection(object) :
-	"""This is the entry point in pyArango and direcltt handles databases."""
+	"""This is the entry point in pyArango and directly handles databases."""
 	def __init__(self, arangoURL = 'http://localhost:8529', username=None, password=None) :
 		self.databases = {}
 		if arangoURL[-1] == "/" :
@@ -55,11 +66,16 @@ class Connection(object) :
 		else :
 			self.arangoURL = arangoURL
 		
-		self.URL = '%s/_api' % self.arangoURL
-		self.databasesURL = '%s/database' % self.URL
-
 		self.session = None
 		self.resetSession(username, password)
+
+		self.URL = '%s/_api' % self.arangoURL
+		if not self.session.auth :
+			self.databasesURL = '%s/database/user' % self.URL
+		else :
+			self.databasesURL = '%s/user/%s/database' % (self.URL, username)
+
+		self.users = Users(self)
 		self.reload()
 
 	def resetSession(self, username=None, password=None) :
@@ -75,13 +91,13 @@ class Connection(object) :
 		r = self.session.get(self.databasesURL)
 
 		data = r.json()
-		if r.status_code == 200  and not data["error"] :
+		if r.status_code == 200 and not data["error"] :
 			self.databases = {}
 			for dbName in data["result"] :
 				if dbName not in self.databases :
 					self.databases[dbName] = DBHandle(self, dbName)
 		else :
-			raise ConnectionError(data["errorMessage"], self.databasesURL, data)
+			raise ConnectionError(data["errorMessage"], self.databasesURL, r.status_code, r.content)
 
 	def createDatabase(self, name, **dbArgs) :
 		"use dbArgs for arguments other than name. for a full list of arguments please have a look at arangoDB's doc"
@@ -94,7 +110,7 @@ class Connection(object) :
 			self.databases[name] = db
 			return self.databases[name]
 		else :
-			raise CreationError(data["errorMessage"], data)
+			raise CreationError(data["errorMessage"], r.content)
 
 	def hasDatabase(self, name) :
 		"""returns true/false wether the connection has a database by the name of 'name'"""

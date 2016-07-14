@@ -29,7 +29,7 @@ class Database(object) :
 
 		self.collections = {}
 		self.graphs = {}
-
+		
 		self.reload()
 	
 	def reloadCollections(self) :

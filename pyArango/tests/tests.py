@@ -6,6 +6,7 @@ from pyArango.collection import *
 from pyArango.document import *
 from pyArango.query import *
 from pyArango.graph import *
+from pyArango.users import *
 from pyArango.theExceptions import *
 
 global ROOT_USERNAME
@@ -35,6 +36,10 @@ class pyArangoTests(unittest.TestCase):
 
         for graph in self.db.graphs.itervalues() :
             graph.delete()
+
+        for user in self.conn.users.fetchAllUsers() :
+            if user["username"].find("pyArangoTest") > -1 :
+                user.delete()
 
     def tearDown(self):
         self._reset()
@@ -641,7 +646,53 @@ class pyArangoTests(unittest.TestCase):
     # @unittest.skip("stand by")
     def test_transaction_exception(self) :
         self.assertRaises(TransactionError, self.db.transaction, collections = {}, action = "function () { return value; }")
+    
+    # @unittest.skip("stand by")
+    def test_users_create_delete(self) :
+        
+        nbUsers = len(self.conn.users.fetchAllUsers())
+        u = self.conn.users.createUser("pyArangoTest_tesla", "secure")
+        u.save()
+        self.assertEqual(len(self.conn.users.fetchAllUsers()), nbUsers + 1)
 
+        u2 = self.conn.users.fetchUser(u["username"])
+        self.assertEqual(u2["username"], u["username"])
+
+        u.delete()
+        self.assertRaises( KeyError, self.conn.users.fetchUser, "tesla")
+        self.assertEqual(len(self.conn.users.fetchAllUsers()), nbUsers)
+            
+    # @unittest.skip("stand by")
+    def test_users_credentials(self) :
+        
+        class persons(Collection) :
+            pass
+
+        pers = self.db.createCollection("persons")
+        
+        u = self.conn.users.createUser("pyArangoTest_tesla", "secure")
+        u.save()
+        
+        u.setPermissions("test_db_2", True)
+        conn = Connection(username="pyArangoTest_tesla", password="secure")
+        
+        self.assertRaises( KeyError, conn.__getitem__, "_system" )
+        self.assertTrue( conn.hasDatabase("test_db_2") )
+
+    # @unittest.skip("stand by")
+    def test_users_update(self) :
+        
+        u = self.conn.users.createUser("pyArangoTest_tesla", "secure")
+        u.save()
+        
+        u.setPermissions("test_db_2", True)
+        conn = Connection(username="pyArangoTest_tesla", password="secure")
+        
+        u["password"] = "newpass"
+        u.save()
+        conn = Connection(username="pyArangoTest_tesla", password="newpass")
+
+        
 if __name__ == "__main__" :
     global ROOT_USERNAME
     global ROOT_PASSWORD
@@ -653,5 +704,8 @@ if __name__ == "__main__" :
 
     ROOT_USERNAME = input("Please enter root username: ") 
     ROOT_PASSWORD = input("Please entre root password: ")
+
+    # ROOT_USERNAME = "root"
+    # ROOT_PASSWORD = "root"
 
     unittest.main()
