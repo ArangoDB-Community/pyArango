@@ -41,6 +41,7 @@ class pyArangoTests(unittest.TestCase):
         for user in self.conn.users.fetchAllUsers() :
             if user["username"].find("pyArangoTest") > -1 :
                 user.delete()
+        self.conn.disconnectSession()
 
     def tearDown(self):
         self._reset()

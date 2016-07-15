@@ -57,6 +57,10 @@ class AikidoSession(object) :
 
         return holdClass(self, reqFct)
 
+    def disconnect(self) :
+        if self.session.connection != None :
+            self.session.connection.close()
+
 class Connection(object) :
     """This is the entry point in pyArango and directly handles databases."""
     def __init__(self, arangoURL = 'http://localhost:8529', username=None, password=None) :
@@ -78,8 +82,13 @@ class Connection(object) :
         self.users = Users(self)
         self.reload()
 
+    def disconnectSession(self) :
+        if self.session != None: 
+            self.session.disconnect()
+
     def resetSession(self, username=None, password=None) :
         """resets the session"""
+        self.disconnectSession()
         self.session = AikidoSession(username, password)
 
     def reload(self) :
