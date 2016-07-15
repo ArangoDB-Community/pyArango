@@ -58,8 +58,10 @@ class AikidoSession(object) :
         return holdClass(self, reqFct)
 
     def disconnect(self) :
-        if self.session.connection != None :
+        try:
             self.session.connection.close()
+        except Exception :
+            pass
 
 class Connection(object) :
     """This is the entry point in pyArango and directly handles databases."""
