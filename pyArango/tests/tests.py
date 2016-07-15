@@ -35,7 +35,7 @@ class pyArangoTests(unittest.TestCase):
             if not self.db[colName].isSystem :
                 self.db[colName].delete()
 
-        for graph in self.db.graphs.itervalues() :
+        for graph in self.db.graphs.values() :
             graph.delete()
 
         for user in self.conn.users.fetchAllUsers() :
@@ -47,7 +47,7 @@ class pyArangoTests(unittest.TestCase):
 
     def createManyUsers(self, nbUsers) :
         collection = self.db.createCollection(name = "users")
-        for i in xrange(nbUsers) :
+        for i in range(nbUsers) :
             doc = collection.createDocument()
             doc["name"] = "Tesla-%d" % i
             doc["number"] = i
@@ -193,7 +193,7 @@ class pyArangoTests(unittest.TestCase):
         aql = "FOR c IN users LIMIT %s RETURN c" % nbUsers
         q = self.db.AQLQuery(aql, rawResults = False, batchSize = 1, count = True)
         lstRes = []
-        for i in xrange(nbUsers) :
+        for i in range(nbUsers) :
             lstRes.append(q[0]["number"])
             try :
                 q.nextBatch()
@@ -201,7 +201,7 @@ class pyArangoTests(unittest.TestCase):
                 self.assertEqual(i, nbUsers-1)
         
         lstRes.sort()
-        self.assertEqual(lstRes, range(nbUsers))
+        self.assertEqual(lstRes, list(range(nbUsers)))
         self.assertEqual(q.count, nbUsers)
 
     # @unittest.skip("stand by")
@@ -213,7 +213,7 @@ class pyArangoTests(unittest.TestCase):
 
         q = col.fetchByExample(example, batchSize = 1, count = True)
         lstRes = []
-        for i in xrange(nbUsers+5) :    
+        for i in range(nbUsers+5) :    
             lstRes.append(q[0]["number"])
             try :
                 q.nextBatch()
@@ -222,7 +222,7 @@ class pyArangoTests(unittest.TestCase):
                 break
 
         lstRes.sort()
-        self.assertEqual(lstRes, range(nbUsers))
+        self.assertEqual(lstRes, list(range(nbUsers)))
         self.assertEqual(q.count, nbUsers)
 
     # @unittest.skip("stand by")
@@ -232,7 +232,7 @@ class pyArangoTests(unittest.TestCase):
         
         q = col.fetchAll(batchSize = 1, count = True)
         lstRes = []
-        for i in xrange(nbUsers) :  
+        for i in range(nbUsers) :  
             lstRes.append(q[0]["number"])
             try :
                 q.nextBatch()
@@ -240,7 +240,7 @@ class pyArangoTests(unittest.TestCase):
                 self.assertEqual(i, nbUsers-1)
         
         lstRes.sort()
-        self.assertEqual(lstRes, range(nbUsers))
+        self.assertEqual(lstRes, list(range(nbUsers)))
         self.assertEqual(q.count, nbUsers)
 
     # @unittest.skip("stand by")
@@ -268,7 +268,7 @@ class pyArangoTests(unittest.TestCase):
 
         lstRes = [q.result[0]["number"], q2.result[0]["number"]]
         lstRes.sort()
-        self.assertEqual(lstRes, range(nbUsers))
+        self.assertEqual(lstRes, list(range(nbUsers)))
         self.assertEqual(q.count, nbUsers)
 
     # @unittest.skip("stand by")
@@ -304,7 +304,7 @@ class pyArangoTests(unittest.TestCase):
         class String_val(VAL.Validator) :
 
             def validate(self, value) :
-                if type(value) is not types.StringType :
+                if type(value) is not bytes :
                     raise ValidationError("Field value must be a string")
                 return True
 
@@ -353,7 +353,7 @@ class pyArangoTests(unittest.TestCase):
                 return repr(self.key)
 
         docs = []
-        for i in xrange(10) :
+        for i in range(10) :
             docs.append(DummyDoc(i))
 
         cache = DocumentCache(5)
@@ -361,7 +361,7 @@ class pyArangoTests(unittest.TestCase):
             cache.cache(doc)
             self.assertEqual(cache.head.key, doc.key)
         
-        self.assertEqual(cache.cacheStore.keys(), [5, 6, 7, 8, 9])  
+        self.assertEqual(list(cache.cacheStore.keys()), [5, 6, 7, 8, 9])  
         self.assertEqual(cache.getChain(), [9, 8, 7, 6, 5])
         doc = cache[5]
         self.assertEqual(cache.head.key, doc.key)
@@ -532,7 +532,7 @@ class pyArangoTests(unittest.TestCase):
 
         h5 = g.createVertex('Humans', {"name" : "simba5"})
         h6 = g.createVertex('Humans', {"name" : "simba6"})
-        for i in xrange(200) :
+        for i in range(200) :
             g.link('Friend', h5, h6, {})
 
         self.assertEqual(len(h5.getEdges(rels)), 200)
@@ -703,10 +703,10 @@ if __name__ == "__main__" :
     except NameError :
         pass
 
-    ROOT_USERNAME = input("Please enter root username: ") 
-    ROOT_PASSWORD = input("Please entre root password: ")
+    # ROOT_USERNAME = input("Please enter root username: ") 
+    # ROOT_PASSWORD = input("Please entre root password: ")
 
-    # ROOT_USERNAME = "root"
-    # ROOT_PASSWORD = "root"
+    ROOT_USERNAME = "root"
+    ROOT_PASSWORD = "root"
 
     unittest.main()
