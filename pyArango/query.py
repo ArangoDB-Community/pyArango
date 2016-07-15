@@ -32,7 +32,7 @@ class Query(object) :
         self.response = request.json()
         if self.response["error"] and self.response["errorMessage"] != "no match" :
             raise QueryError(self.response["errorMessage"], self.response)
-        
+
         self.request = request
         self.database = database
         self.connection = self.database.connection
@@ -44,7 +44,7 @@ class Query(object) :
                 del(self.response["document"])
             except KeyError :
                 pass
-            
+
             if "hasMore" in self.response and self.response["hasMore"] :
                 self.cursor = RawCursor(self.database, self.id)
             else :
@@ -54,7 +54,7 @@ class Query(object) :
             self.result = []
         else :
             self._raiseInitFailed(request)
-    
+
     def _raiseInitFailed(self, request) :
         "must be implemented in child, this called if the __init__ fails"
         raise NotImplemented("Must be implemented in child")
@@ -81,7 +81,7 @@ class Query(object) :
                 raise StopIteration("That was the last batch")
         except KeyError :
             raise AQLQueryError(self.response["errorMessage"], self.query, self.response)
-    
+
         self.response = next(self.cursor)
 
     def delete(self) :
@@ -97,10 +97,10 @@ class Query(object) :
         v = self[self.currI]
         self.currI += 1
         return v
-            
+
     def __iter__(self) :
         """Returns an itererator so you can do::
-        
+
             for doc in query : print doc
         """
         return self
@@ -171,7 +171,7 @@ class SimpleQuery(Query) :
         payload = json.dumps(payload)
         URL = "%s/simple/%s" % (collection.database.URL, queryType)
         request = self.connection.session.put(URL, data = payload)
-        
+
         Query.__init__(self, request, collection.database, rawResults)
 
     def _raiseInitFailed(self, request) :

@@ -48,14 +48,14 @@ class SchemaViolation(pyArangoException) :
 class InvalidDocument(pyArangoException) :
     """Raised when a Document does not respect schema/validation defined in its collection"""
     def __init__(self, errors) :
-        message = "Unsuccesful validation" 
+        message = "Unsuccesful validation"
         self.strErrors = []
         for k, v in errors.items() :
             self.strErrors.append("%s -> %s" % (k, v))
         self.strErrors = '\n\t'.join(self.strErrors)
 
         pyArangoException.__init__(self, message, errors)
-    
+
     def __str__(self) :
         return self.message + ":\n\t" + self.strErrors
 

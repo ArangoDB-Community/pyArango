@@ -14,13 +14,13 @@ __all__ = ["Database", "DBHandle"]
 
 class Database(object) :
     """Databases are meant to be instanciated by connections"""
-    
+
     def __init__(self, connection, name) :
-    
+
         self.name = name
         self.connection = connection
         self.collections = {}
-        
+
         self.URL = '%s/_db/%s/_api' % (self.connection.arangoURL, self.name)
         self.collectionsURL = '%s/collection' % (self.URL)
         self.cursorsURL = '%s/cursor' % (self.URL)
@@ -30,16 +30,16 @@ class Database(object) :
 
         self.collections = {}
         self.graphs = {}
-        
+
         self.reload()
-    
+
     def reloadCollections(self) :
         "reloads the collection list."
         r = self.connection.session.get(self.collectionsURL)
         data = r.json()
         if r.status_code == 200 :
             self.collections = {}
-            
+
             for colData in data["result"] :
                 colName = colData['name']
                 if colData['isSystem'] :
@@ -74,24 +74,24 @@ class Database(object) :
                     self.graphs[graphData["_key"]] = Graph(self, graphData)
         else :
             raise UpdateError(data["errorMessage"], data)
-    
+
     def reload(self) :
         "reloads collections and graphs"
         self.reloadCollections()
         self.reloadGraphs()
-    
+
     def createCollection(self, className = 'Collection', waitForSync = False, **colArgs) :
         """Creates a collection and returns it.
         ClassName the name of a class inheriting from Collection or Egdes, it can also be set to 'Collection' or 'Edges' in order to create untyped collections of documents or edges.
         Use colArgs to put things such as 'isVolatile = True' (see ArangoDB's doc
         for a full list of possible arugments)."""
-        
+
         if className != 'Collection' and className != 'Edges' :
             colArgs['name'] = className
         else :
             if 'name' not in colArgs :
                 raise ValueError("a 'name' argument mush be supplied if you want to create a generic collection")
-                    
+
         colClass = COL.getCollectionClass(className)
 
         if colArgs['name'] in self.collections :
@@ -101,13 +101,13 @@ class Database(object) :
             colArgs["type"] = CONST.COLLECTION_EDGE_TYPE
         else :
             colArgs["type"] = CONST.COLLECTION_DOCUMENT_TYPE
-        
+
         colArgs["waitForSync"] = waitForSync
 
         payload = json.dumps(colArgs)
         r = self.connection.session.post(self.collectionsURL, data = payload)
         data = r.json()
-        
+
         if r.status_code == 200 and not data["error"] :
             col = colClass(self, data)
             self.collections[col.name] = col
@@ -142,7 +142,7 @@ class Database(object) :
                 _checkCollectionList(e.toCollections)
 
             ed.append(e.toJson())
-        
+
         if not createCollections :
             _checkCollectionList(graphClass._orphanedCollections)
 
@@ -151,7 +151,6 @@ class Database(object) :
                 "edgeDefinitions": ed,
                 "orphanCollections": graphClass._orphanedCollections
             }
-        
 
         payload = json.dumps(payload)
         r = self.connection.session.post(self.graphsURL, data = payload)
@@ -160,7 +159,7 @@ class Database(object) :
         if r.status_code == 201 or r.status_code == 202 :
             self.graphs[name] = graphClass(self, data["graph"])
         else :
-            raise CreationError(data["errorMessage"], data)     
+            raise CreationError(data["errorMessage"], data)
         return self.graphs[name]
 
     def hasCollection(self, name) :
@@ -170,7 +169,7 @@ class Database(object) :
     def hasGraph(self, name):
         """returns true if the databse has a graph by the name of 'name'"""
         return name in self.graphs
-    
+
     def AQLQuery(self, query, batchSize = 100, rawResults = False, bindVars = {}, options = {}, count = False, fullCount = False, **moreArgs) :
         """Set rawResults = True if you want the query to return dictionnaries instead of Document objects.
         You can use **moreArgs to pass more arguments supported by the api, such as ttl=60 (time to live)"""
@@ -225,7 +224,6 @@ class Database(object) :
                 return self.collections[collectionName]
             except KeyError :
                 raise KeyError("Can't find any collection named : %s" % collectionName)
-
 
 class DBHandle(Database) :
     "As the loading of a Database also triggers the loading of collections and graphs within. Only handles are loaded first. The full database are loaded on demand in a fully transparent manner."
