@@ -49,7 +49,7 @@ class InvalidDocument(pyArangoException) :
 	def __init__(self, errors) :
 		message = "Unsuccesful validation" 
 		self.strErrors = []
-		for k, v in errors.iteritems() :
+		for k, v in errors.items() :
 			self.strErrors.append("%s -> %s" % (k, v))
 		self.strErrors = '\n\t'.join(self.strErrors)
 

@@ -1,13 +1,13 @@
 import json
 import types
 
-import collection as COL
-import graph as GR
+from . import collection as COL
+from . import graph as GR
 
-from document import Document
-from graph import Graph
-from query import AQLQuery
-from theExceptions import CreationError, UpdateError, AQLQueryError, TransactionError
+from .document import Document
+from .graph import Graph
+from .query import AQLQuery
+from .theExceptions import CreationError, UpdateError, AQLQueryError, TransactionError
 
 __all__ = ["Database", "DBHandle"]
 
@@ -53,7 +53,7 @@ class Database(object) :
 						elif colData["type"] == COL.COLLECTION_DOCUMENT_TYPE :
 							colObj = COL.Collection(self, colData)
 						else :
-							print("Warning!! Collection of unknown type: %d, trying to load it as Collection nonetheless." % colData["type"])
+							print(("Warning!! Collection of unknown type: %d, trying to load it as Collection nonetheless." % colData["type"]))
 							colObj = COL.Collection(self, colData)
 
 				self.collections[colName] = colObj

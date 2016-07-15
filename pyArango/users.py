@@ -1,5 +1,5 @@
 
-from theExceptions import ConnectionError, CreationError, DeletionError, UpdateError
+from .theExceptions import ConnectionError, CreationError, DeletionError, UpdateError
 
 class User(object) :
 	"""This class represents a user"""
@@ -100,8 +100,8 @@ class User(object) :
 		return "ArangoUser: %s" % (self._store)
 
 	def __setitem__(self, k, v) :
-		if k not in self._store.keys() :
-			raise KeyError("The only keys available for user are: %s" % (self._store.keys()))
+		if k not in list(self._store.keys()) :
+			raise KeyError("The only keys available for user are: %s" % (list(self._store.keys())))
 		self._store[k] = v
 
 	def __getitem__(self, k) :

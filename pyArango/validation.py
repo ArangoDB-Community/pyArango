@@ -1,4 +1,4 @@
-from theExceptions import ValidationError
+from .theExceptions import ValidationError
 
 class Validator(object) :
 	"""All validators must inherit from this class"""

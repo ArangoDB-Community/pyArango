@@ -1,28 +1,19 @@
 import json
 import types
 
-from document import Document, Edge
-from theExceptions import ValidationError, SchemaViolation, CreationError, UpdateError, DeletionError, InvalidDocument
-from query import SimpleQuery
-from index import Index
+from .document import Document, Edge
+from .theExceptions import ValidationError, SchemaViolation, CreationError, UpdateError, DeletionError, InvalidDocument
+from .query import SimpleQuery
+from .index import Index
 
-__all__ = ["Collection", "Edges", "Field", "DocumentCache", "CachedDoc", "Collection_metaclass", "getCollectionClass", "isCollection", "isDocumentCollection", "isEdgeCollection", "getCollectionClasses", "COLLECTION_DOCUMENT_TYPE", "COLLECTION_EDGE_TYPE"]
-  
-COLLECTION_DOCUMENT_TYPE = 2
-COLLECTION_EDGE_TYPE = 3
-
-COLLECTION_NEWBORN_STATUS = 1
-COLLECTION_UNLOADED_STATUS = 2
-COLLECTION_LOADED_STATUS = 3
-COLLECTION_LOADING_STATUS = 4
-COLLECTION_DELETED_STATUS = 5
-
+__all__ = ["Collection", "Edges", "Field", "DocumentCache", "CachedDoc", "Collection_metaclass", "getCollectionClass", "isCollection", "isDocumentCollection", "isEdgeCollection", "getCollectionClasses"]
+ 
 class CachedDoc(object) :
 	"""A cached document"""
-	def __init__(self, document, prev, next) :
+	def __init__(self, document, prev, nextDoc) :
 		self.prev = prev
 		self.document = document
-		self.next = next
+		self.nextDoc = nextDoc
 		self.key = document.key
 
 class DocumentCache(object) :
@@ -38,14 +29,14 @@ class DocumentCache(object) :
 		if doc.key in self.cacheStore :
 			ret = self.cacheStore[doc.key]
 			if ret.prev is not None :
-				ret.prev.next = ret.next
+				ret.prev.nextDoc = ret.nextDoc
 				self.head.prev = ret
-				ret.next = self.head
+				ret.nextDoc = self.head
 				self.head = ret
 			return self.head
 		else :
 			if len(self.cacheStore) == 0 :
-				ret = CachedDoc(doc, prev = None, next = None)
+				ret = CachedDoc(doc, prev = None, nextDoc = None)
 				self.head = ret
 				self.tail = self.head
 				self.cacheStore[doc.key] = ret
@@ -53,9 +44,9 @@ class DocumentCache(object) :
 				if len(self.cacheStore) >= self.cacheSize :
 					del(self.cacheStore[self.tail.key])
 					self.tail = self.tail.prev
-					self.tail.next = None
+					self.tail.nextDoc = None
 
-				ret = CachedDoc(doc, prev = None, next = self.head)
+				ret = CachedDoc(doc, prev = None, nextDoc = self.head)
 				self.head.prev = ret
 				self.head = self.head.prev
 				self.cacheStore[doc.key] = ret
@@ -64,8 +55,8 @@ class DocumentCache(object) :
 		"removes a document from the cache"
 		try :
 			doc = self.cacheStore[key]
-			doc.prev.next = doc.next
-			doc.next.prev = doc.prev
+			doc.prev.nextDoc = doc.nextDoc
+			doc.nextDoc.prev = doc.prev
 			del(self.cacheStore[key])
 		except KeyError :
 			raise KeyError("Document with key %s is not available in cache" % key)
@@ -76,7 +67,7 @@ class DocumentCache(object) :
 		h = self.head
 		while h :
 			l.append(h.key)
-			h = h.next
+			h = h.nextDoc
 		return l
 
 	def stringify(self) :
@@ -85,7 +76,7 @@ class DocumentCache(object) :
 		h = self.head
 		while h :
 			l.append(str(h.key))
-			h = h.next
+			h = h.nextDoc
 		return "<->".join(l)
 
 	def __getitem__(self, key) :
@@ -135,13 +126,13 @@ class Collection_metaclass(type) :
 			if dictName not in attrs :
 				attrs[dictName] = defaultDict
 			else :
-				for k, v in attrs[dictName].iteritems() :
+				for k, v in attrs[dictName].items() :
 					if k not in defaultDict :
 						raise KeyError("Unknown validation parameter '%s' for class '%s'"  %(k, name))
 					if type(v) is not type(defaultDict[k]) :
 						raise ValueError("'%s' parameter '%s' for class '%s' is of type '%s' instead of '%s'"  %(dictName, k, name, type(v), type(defaultDict[k])))
 
-				for k, v in defaultDict.iteritems() :
+				for k, v in defaultDict.items() :
 					if k not in attrs[dictName] :
 						attrs[dictName][k] = v
 
@@ -202,7 +193,7 @@ def getCollectionClasses() :
 	"returns a dictionary of all defined collection classes"
 	return Collection_metaclass.collectionClasses
 
-class Collection(object) :
+class Collection(object, metaclass=Collection_metaclass) :
 	"""A document collection. Collections are meant to be instanciated by databases"""
 	#here you specify the fields that you want for the documents in your collection
 	_fields = {}
@@ -214,8 +205,6 @@ class Collection(object) :
 	}
 
 	arangoPrivates = ["_id", "_key"]
-
-	__metaclass__ = Collection_metaclass
 
 	def __init__(self, database, jsonData) :
 
@@ -342,8 +331,8 @@ class Collection(object) :
 	def validateDct(cls, dct) :
 		"validates a dictionary. The dictionary must be defined such as {field: value}. If the validation is unsuccefull, raises an InvalidDocument"
 		def _validate(dct, res) :
-			for k, v in dct.iteritems() :
-				if type(v) is types.DictType :
+			for k, v in dct.items() :
+				if type(v) is dict :
 					_validate(v, res)
 				elif k not in cls.arangoPrivates :
 					try :
@@ -454,24 +443,24 @@ class Collection(object) :
 
 	def getType(self) :
 		"returns a word describing the type of the collection (edges or ducments) instead of a number, if you prefer the number it's in self.type"
-		if self.type == COLLECTION_DOCUMENT_TYPE :
+		if self.type == CONST.COLLECTION_DOCUMENT_TYPE :
 			return "document"
-		elif self.type == COLLECTION_EDGE_TYPE :
+		elif self.type == CONST.COLLECTION_EDGE_TYPE :
 			return "edge"
 		else :
 			raise ValueError("The collection is of Unknown type %s" % self.type)
 
 	def getStatus(self) :
 		"returns a word describing the status of the collection (loaded, loading, deleted, unloaded, newborn) instead of a number, if you prefer the number it's in self.status"
-		if self.status == COLLECTION_LOADING_STATUS :
+		if self.status == CONST.COLLECTION_LOADING_STATUS :
 			return "loading"
-		elif self.status == COLLECTION_LOADED_STATUS :
+		elif self.status == CONST.COLLECTION_LOADED_STATUS :
 			return "loaded"
-		elif self.status == COLLECTION_DELETED_STATUS :
+		elif self.status == CONST.COLLECTION_DELETED_STATUS :
 			return "deleted"
-		elif self.status == COLLECTION_UNLOADED_STATUS :
+		elif self.status == CONST.COLLECTION_UNLOADED_STATUS :
 			return "unloaded"
-		elif self.status == COLLECTION_NEWBORN_STATUS :
+		elif self.status == CONST.COLLECTION_NEWBORN_STATUS :
 			return "newborn"
 		else :
 			raise ValueError("The collection has an Unknown status %s" % self.status)
@@ -527,7 +516,7 @@ class Edges(Collection) :
 		If rawResults a arango results will be return as fetched, if false, will return a liste of Edge objects"""
 		if vertex.__class__ is Document :
 			vId = vertex._id
-		elif (type(vertex) is types.UnicodeType) or (type(vertex) is types.StringType) :
+		elif (type(vertex) is str) or (type(vertex) is bytes) :
 			vId = vertex
 		else :
 			raise ValueError("Vertex is neither a Document nor a String")

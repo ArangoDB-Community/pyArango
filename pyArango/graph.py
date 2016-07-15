@@ -1,7 +1,7 @@
 import json
 
-from theExceptions import (CreationError, DeletionError, UpdateError, TraversalError)
-import collection as COL
+from .theExceptions import (CreationError, DeletionError, UpdateError, TraversalError)
+from . import collection as COL
 
 __all__ = ["Graph", "getGraphClass", "isGraph", "getGraphClasses", "Graph_metaclass", "EdgeDefinition"]
 
@@ -64,10 +64,8 @@ class EdgeDefinition(object) :
 	def __repr__(self) :
 		return str(self)
 	
-class Graph(object) :
+class Graph(object, metaclass=Graph_metaclass) :
 	"""The class from witch all your graph types must derive"""
-
-	__metaclass__ = Graph_metaclass
 
 	_edgeDefinitions = []
 	_orphanedCollections = []

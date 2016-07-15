@@ -1,9 +1,9 @@
 import requests
 import json
 
-from database import Database, DBHandle
-from theExceptions import SchemaViolation, CreationError, ConnectionError
-from users import Users
+from .database import Database, DBHandle
+from .theExceptions import SchemaViolation, CreationError, ConnectionError
+from .users import Users
 
 class AikidoSession(object) :
 	"""Magical Aikido being that you probably do not need to access directly that deflects every http request to requests in the most graceful way.

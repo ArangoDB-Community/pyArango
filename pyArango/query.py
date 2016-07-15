@@ -1,8 +1,8 @@
 import json
 
-from document import Document, Edge
-from theExceptions import QueryError, AQLQueryError, SimpleQueryError, CreationError
-import collection as COL
+from .document import Document, Edge
+from .theExceptions import QueryError, AQLQueryError, SimpleQueryError, CreationError
+from . import consts as CONST
 
 __all__ = ["Query", "AQLQuery", "SimpleQuery", "Cursor", "RawCursor"]
 
@@ -14,7 +14,7 @@ class RawCursor(object) :
 		self.id = cursorId
 		self.URL = "%s/cursor/%s" % (self.database.URL, self.id)
 
-	def next(self) :
+	def __next__(self) :
 		"returns the next batch"
 		r = self.connection.session.put(self.URL)
 		data = r.json()
@@ -67,7 +67,7 @@ class Query(object) :
 		except KeyError :
 			raise CreationError("result %d is not a valid Document. Try setting rawResults to True" % i)
 
-		if collection.type == COL.COLLECTION_EDGE_TYPE :
+		if collection.type == CONST.COLLECTION_EDGE_TYPE :
 			self.result[i] = Edge(collection, docJson)
  		else :
  			self.result[i] = Document(collection, docJson)
@@ -82,13 +82,13 @@ class Query(object) :
 		except KeyError :
 			raise AQLQueryError(self.response["errorMessage"], self.query, self.response)
 	
-		self.response = self.cursor.next()
+		self.response = next(self.cursor)
 
 	def delete(self) :
 		"kills the cursor"
 		self.connection.session.delete(self.cursor)
 
-	def next(self) :
+	def __next__(self) :
 		"""returns the next element of the query result. Automatomatically calls for new batches if needed"""
 		try :
 			v = self[self.currI]
@@ -152,7 +152,7 @@ class Cursor(Query) :
 		self._developed = set()
 		self.batchNumber = 1
 		self.cursor = RawCursor(database, cursorId)
-		self.response = self.cursor.next()
+		self.response = next(self.cursor)
 
 	def _raiseInitFailed(self, request) :
 		data = request.json()
@@ -180,7 +180,7 @@ class SimpleQuery(Query) :
 
 	def _developDoc(self, i) :
 		docJson = self.result[i]
-		if self.collection.type == COL.COLLECTION_EDGE_TYPE :
+		if self.collection.type == CONST.COLLECTION_EDGE_TYPE :
 			self.result[i] = Edge(self.collection, docJson)
  		else :
  			self.result[i] = Document(self.collection, docJson)

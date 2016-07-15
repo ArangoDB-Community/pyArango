@@ -1,5 +1,5 @@
 import json
-from theExceptions import (CreationError, DeletionError, UpdateError)
+from .theExceptions import (CreationError, DeletionError, UpdateError)
 
 class Index(object) :
 	"""An index on a collection's fields. Indexes are meant to de created by ensureXXX functions of Collections. 

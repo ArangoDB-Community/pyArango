@@ -7,6 +7,7 @@ from pyArango.document import *
 from pyArango.query import *
 from pyArango.graph import *
 from pyArango.users import *
+from pyArango.consts import *
 from pyArango.theExceptions import *
 
 global ROOT_USERNAME

@@ -1,6 +1,6 @@
 import json, types
 
-from theExceptions import (CreationError, DeletionError, UpdateError)
+from .theExceptions import (CreationError, DeletionError, UpdateError)
 
 __all__ = ["Document", "Edge"]
 
@@ -50,7 +50,7 @@ class Document(object) :
 			self.setPrivates(fieldDict)
 
 		if self.collection._validation['on_set']:
-			for k in fieldDict.keys() :
+			for k in list(fieldDict.keys()) :
 				self[k] = fieldDict[k]
 		else :
 			self._store.update(fieldDict)
@@ -189,8 +189,8 @@ class Document(object) :
 		that are accessed as object fields: doc._key"""	
 		
 		def _recValidate(k, v) :
-			if type(v) is types.DictType :
-				for kk, vv in v.iteritems() :
+			if type(v) is dict :
+				for kk, vv in v.items() :
 					newk = "%s.%s" % (k, kk) 
 					_recValidate(newk, vv)	
 			else :
@@ -235,7 +235,7 @@ class Edge(Document) :
 				fromVertice._id.save()
 
 			self["_from"] = fromVertice._id
-		elif (type(fromVertice) is types.StringType) or (type(fromVertice) is types.UnicodeType) :
+		elif (type(fromVertice) is bytes) or (type(fromVertice) is str) :
 			self["_from"] = fromVertice
 		
 		if toVertice.__class__ is Document :
@@ -243,7 +243,7 @@ class Edge(Document) :
 				toVertice._id.save()
 
 			self["_to"] = toVertice._id
-		elif (type(toVertice) is types.StringType) or (type(toVertice) is types.UnicodeType) :
+		elif (type(toVertice) is bytes) or (type(toVertice) is str) :
 			self["_to"] = toVertice
 
 		self.save(**edgeArgs)
