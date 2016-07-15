@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages 
+from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
@@ -15,7 +15,7 @@ setup(
 
     description='An easy to use python driver for ArangoDB with built-in validation',
     long_description=long_description,
-    
+
     url='https://github.com/tariqdaouda/pyArango',
 
     author='Tariq Daouda',
@@ -35,7 +35,7 @@ setup(
         'Intended Audience :: System Administrators',
         'Topic :: Software Development :: Libraries',
         'Topic :: Database',
-    	'Topic :: Database :: Database Engines/Servers',
+        'Topic :: Database :: Database Engines/Servers',
 
         'License :: OSI Approved :: Apache Software License',
 
@@ -43,7 +43,7 @@ setup(
     ],
 
     install_requires=['requests>=2.7.0'],
-    
+
     keywords='database ORM nosql arangodb driver validation',
 
     packages=find_packages(),
