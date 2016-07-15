@@ -103,7 +103,8 @@ class Connection(object) :
         "use dbArgs for arguments other than name. for a full list of arguments please have a look at arangoDB's doc"
         dbArgs['name'] = name
         payload = json.dumps(dbArgs)
-        r = self.session.post(self.databasesURL, data = payload)
+        url = self.URL + "/database"
+        r = self.session.post(url, data = payload)
         data = r.json()
         if r.status_code == 201 and not data["error"] :
             db = Database(self, name)
