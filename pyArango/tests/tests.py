@@ -1,4 +1,5 @@
 import unittest, copy
+import os
 
 from pyArango.connection import *
 from pyArango.database import *
@@ -9,16 +10,18 @@ from pyArango.graph import *
 from pyArango.users import *
 from pyArango.theExceptions import *
 
-global ROOT_USERNAME
-global ROOT_PASSWORD
 
 class pyArangoTests(unittest.TestCase):
 
     def setUp(self):
-        global ROOT_USERNAME
-        global ROOT_PASSWORD
+        ARANGODB_ROOT_USERNAME = os.getenv('ARANGODB_ROOT_USERNAME', 'root')
+        ARANGODB_ROOT_PASSWORD = os.getenv('ARANGODB_ROOT_PASSWORD', 'root')
+        # Change default username/password in bash like this:
+        # export ARANGODB_ROOT_USERNAME=myUserName
+        # export ARANGODB_ROOT_PASSWORD=myPassword
 
-        self.conn = Connection(username=ROOT_USERNAME, password=ROOT_PASSWORD)
+        self.conn = Connection(username=ARANGODB_ROOT_USERNAME, \
+            password=ARANGODB_ROOT_PASSWORD)
 
         try :
             self.conn.createDatabase(name = "test_db_2")
@@ -53,7 +56,7 @@ class pyArangoTests(unittest.TestCase):
             doc["species"] = "human"
             doc.save()
         return collection
-    
+
     # @unittest.skip("stand by")
     def test_collection_create_delete(self) :
         col = self.db.createCollection(name = "to_be_erased")
@@ -61,10 +64,10 @@ class pyArangoTests(unittest.TestCase):
         d1["name"] = "tesla"
         d1.save()
         self.assertEqual(1, col.count())
-        
+
         self.db["to_be_erased"].delete()
         self.assertRaises(DeletionError, self.db["to_be_erased"].delete)
-    
+
     # @unittest.skip("stand by")
     def test_edges_create_delete(self) :
         ed = self.db.createCollection(className = "Edges", name = "to_be_erased")
@@ -143,7 +146,7 @@ class pyArangoTests(unittest.TestCase):
         self.assertFalse(self.db['theCol'].hasField('street'))
         self.assertFalse(self.db['theCol'].hasField('banana'))
         self.assertFalse(self.db['theCol'].hasField('address.banana'))
-        
+
     # @unittest.skip("stand by")
     def test_document_create_patch(self) :
         collection = self.db.createCollection(name = "lala")
@@ -152,7 +155,7 @@ class pyArangoTests(unittest.TestCase):
         self.assertRaises(ValueError, doc.patch)
         doc.save()
         doc.patch()
-    
+
     # @unittest.skip("stand by")
     def test_aql_validation(self) :
         collection = self.db.createCollection(name = "users")
@@ -166,7 +169,7 @@ class pyArangoTests(unittest.TestCase):
     # @unittest.skip("stand by")
     def test_aql_query_rawResults_true(self) :
         self.createManyUsers(100)
-        
+
         aql = "FOR c IN users FILTER c.name == @name LIMIT 10 RETURN c.name"
         bindVars = {'name' : 'Tesla-3'}
         q = self.db.AQLQuery(aql, rawResults = True, batchSize = 10, bindVars = bindVars)
@@ -181,14 +184,14 @@ class pyArangoTests(unittest.TestCase):
         bindVars = {'name' : 'Tesla-3'}
         q = self.db.AQLQuery(aql, rawResults = False, batchSize = 10, bindVars = bindVars)
         self.assertEqual(len(q.result), 1)
-        self.assertEqual(q[0]['name'], 'Tesla-3')       
-        self.assertTrue(isinstance(q[0], Document))     
-    
+        self.assertEqual(q[0]['name'], 'Tesla-3')
+        self.assertTrue(isinstance(q[0], Document))
+
     # @unittest.skip("stand by")
     def test_aql_query_batch(self) :
         nbUsers = 100
         self.createManyUsers(nbUsers)
-        
+
         aql = "FOR c IN users LIMIT %s RETURN c" % nbUsers
         q = self.db.AQLQuery(aql, rawResults = False, batchSize = 1, count = True)
         lstRes = []
@@ -198,7 +201,7 @@ class pyArangoTests(unittest.TestCase):
                 q.nextBatch()
             except StopIteration :
                 self.assertEqual(i, nbUsers-1)
-        
+
         lstRes.sort()
         self.assertEqual(lstRes, range(nbUsers))
         self.assertEqual(q.count, nbUsers)
@@ -207,12 +210,12 @@ class pyArangoTests(unittest.TestCase):
     def test_simple_query_by_example_batch(self) :
         nbUsers = 100
         col = self.createManyUsers(nbUsers)
-        
+
         example = {'species' : "human"}
 
         q = col.fetchByExample(example, batchSize = 1, count = True)
         lstRes = []
-        for i in xrange(nbUsers+5) :    
+        for i in xrange(nbUsers+5) :
             lstRes.append(q[0]["number"])
             try :
                 q.nextBatch()
@@ -228,16 +231,16 @@ class pyArangoTests(unittest.TestCase):
     def test_simple_query_all_batch(self) :
         nbUsers = 100
         col = self.createManyUsers(nbUsers)
-        
+
         q = col.fetchAll(batchSize = 1, count = True)
         lstRes = []
-        for i in xrange(nbUsers) :  
+        for i in xrange(nbUsers) :
             lstRes.append(q[0]["number"])
             try :
                 q.nextBatch()
             except StopIteration :
                 self.assertEqual(i, nbUsers-1)
-        
+
         lstRes.sort()
         self.assertEqual(lstRes, range(nbUsers))
         self.assertEqual(q.count, nbUsers)
@@ -261,7 +264,7 @@ class pyArangoTests(unittest.TestCase):
     def test_cursor(self) :
         nbUsers = 2
         col = self.createManyUsers(nbUsers)
-        
+
         q = col.fetchAll(batchSize = 1, count = True)
         q2 = Cursor(q.database, q.cursor.id, rawResults = True)
 
@@ -280,7 +283,7 @@ class pyArangoTests(unittest.TestCase):
                 "on_set" : True,
                 "allow_foreign_fields" : False
             }
-            
+
             _fields = {
                 "str" : Field(validators = [VAL.Length(50, 51)]),
                 "notNull" : Field(validators = [VAL.NotNull()]),
@@ -288,7 +291,7 @@ class pyArangoTests(unittest.TestCase):
                     "str": Field(validators = [VAL.Length(50, 51)])
                 }
             }
-            
+
         myCol = self.db.createCollection('Col_on_set')
         doc = myCol.createDocument()
         self.assertRaises(ValidationError, doc.__setitem__, 'str', "qwer")
@@ -321,12 +324,12 @@ class pyArangoTests(unittest.TestCase):
                     "str": Field(validators = [VAL.Length(50, 51)])
                 }
             }
-            
+
         myCol = self.db.createCollection('Col_on_set')
         doc = myCol.createDocument()
         doc["str"] = 3
         self.assertRaises(InvalidDocument, doc.save)
-        
+
         doc = myCol.createDocument()
         doc["str"] = "string"
         doc["foreigner"] = "string"
@@ -359,8 +362,8 @@ class pyArangoTests(unittest.TestCase):
         for doc in docs :
             cache.cache(doc)
             self.assertEqual(cache.head.key, doc.key)
-        
-        self.assertEqual(cache.cacheStore.keys(), [5, 6, 7, 8, 9])  
+
+        self.assertEqual(cache.cacheStore.keys(), [5, 6, 7, 8, 9])
         self.assertEqual(cache.getChain(), [9, 8, 7, 6, 5])
         doc = cache[5]
         self.assertEqual(cache.head.key, doc.key)
@@ -393,7 +396,7 @@ class pyArangoTests(unittest.TestCase):
                 }
 
         self.assertRaises(KeyError, keyTest)
-        
+
     # @unittest.skip("stand by")
     def test_validation_default_inlavid_value(self) :
 
@@ -404,12 +407,12 @@ class pyArangoTests(unittest.TestCase):
                 }
 
         self.assertRaises(ValueError, keyTest)
-    
+
     # @unittest.skip("stand by")
     def test_collection_type_creation(self) :
         class Edgy(Edges) :
             pass
-        
+
         class Coly(Collection) :
             pass
 
@@ -464,7 +467,7 @@ class pyArangoTests(unittest.TestCase):
         humans = self.db.createCollection("Human")
         rels = self.db.createCollection("Relation")
         humansList = []
-        
+
         for i in range(10) :
             h = humans.createDocument()
             h["number"] = i
@@ -505,7 +508,7 @@ class pyArangoTests(unittest.TestCase):
 
             _edgeDefinitions = (EdgeDefinition("Friend", fromCollections = ["Humans"], toCollections = ["Humans"]), )
             _orphanedCollections = []
-        
+
         humans = self.db.createCollection("Humans")
         rels = self.db.createCollection("Friend")
         g = self.db.createGraph("MyGraph")
@@ -513,7 +516,7 @@ class pyArangoTests(unittest.TestCase):
         h2 = g.createVertex('Humans', {"name" : "simba2"})
         h3 = g.createVertex('Humans', {"name" : "simba3"})
         h4 = g.createVertex('Humans', {"name" : "simba4"})
-        
+
         g.link('Friend', h1, h3, {})
         g.link('Friend', h2, h3, {})
         self.assertEqual(len(h3.getEdges(rels)), 2)
@@ -557,7 +560,7 @@ class pyArangoTests(unittest.TestCase):
 
             _edgeDefinitions = (EdgeDefinition("knows", fromCollections = ["persons"], toCollections = ["persons"]), )
             _orphanedCollections = []
-        
+
         pers = self.db.createCollection("persons")
         rels = self.db.createCollection("knows")
         g = self.db.createGraph("knows_graph")
@@ -569,7 +572,7 @@ class pyArangoTests(unittest.TestCase):
         eve = g.createVertex("persons", {"_key" : "eve"})
 
         e = g.link("knows", alice, alice, {'me' : "aa"})
-        
+
         g.link("knows", alice, bob, {})
         g.link("knows", bob, charlie, {})
         g.link("knows", bob, dave, {})
@@ -614,7 +617,7 @@ class pyArangoTests(unittest.TestCase):
             }
 
         pers = self.db.createCollection("persons")
-        
+
         hashInd = pers.ensureHashIndex(["name"])
         hashInd.delete()
         hashInd2 = pers.ensureHashIndex(["name"])
@@ -646,10 +649,10 @@ class pyArangoTests(unittest.TestCase):
     # @unittest.skip("stand by")
     def test_transaction_exception(self) :
         self.assertRaises(TransactionError, self.db.transaction, collections = {}, action = "function () { return value; }")
-    
+
     # @unittest.skip("stand by")
     def test_users_create_delete(self) :
-        
+
         nbUsers = len(self.conn.users.fetchAllUsers())
         u = self.conn.users.createUser("pyArangoTest_tesla", "secure")
         u.save()
@@ -661,51 +664,37 @@ class pyArangoTests(unittest.TestCase):
         u.delete()
         self.assertRaises( KeyError, self.conn.users.fetchUser, "tesla")
         self.assertEqual(len(self.conn.users.fetchAllUsers()), nbUsers)
-            
+
     # @unittest.skip("stand by")
     def test_users_credentials(self) :
-        
+
         class persons(Collection) :
             pass
 
         pers = self.db.createCollection("persons")
-        
+
         u = self.conn.users.createUser("pyArangoTest_tesla", "secure")
         u.save()
-        
+
         u.setPermissions("test_db_2", True)
         conn = Connection(username="pyArangoTest_tesla", password="secure")
-        
+
         self.assertRaises( KeyError, conn.__getitem__, "_system" )
         self.assertTrue( conn.hasDatabase("test_db_2") )
 
     # @unittest.skip("stand by")
     def test_users_update(self) :
-        
+
         u = self.conn.users.createUser("pyArangoTest_tesla", "secure")
         u.save()
-        
+
         u.setPermissions("test_db_2", True)
         conn = Connection(username="pyArangoTest_tesla", password="secure")
-        
+
         u["password"] = "newpass"
         u.save()
         conn = Connection(username="pyArangoTest_tesla", password="newpass")
 
-        
+
 if __name__ == "__main__" :
-    global ROOT_USERNAME
-    global ROOT_PASSWORD
-
-    try :
-        input = raw_input
-    except NameError :
-        pass
-
-    # ROOT_USERNAME = input("Please enter root username: ") 
-    # ROOT_PASSWORD = input("Please entre root password: ")
-
-    ROOT_USERNAME = "root"
-    ROOT_PASSWORD = "root"
-
     unittest.main()

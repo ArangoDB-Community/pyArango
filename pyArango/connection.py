@@ -46,7 +46,7 @@ class AikidoSession(object) :
 			reqFct = getattr(object.__getattribute__(self, "session"), k)
 		except :
 			raise AttributeError("Attribute '%s' not found (no Aikido move available)" % k)
-		
+
 		holdClass = object.__getattribute__(self, "Holder")
 		log = object.__getattribute__(self, "log")
 		log["nb_request"] += 1
@@ -65,7 +65,7 @@ class Connection(object) :
 			self.arangoURL = url[:-1]
 		else :
 			self.arangoURL = arangoURL
-		
+
 		self.session = None
 		self.resetSession(username, password)
 
@@ -103,7 +103,7 @@ class Connection(object) :
 		"use dbArgs for arguments other than name. for a full list of arguments please have a look at arangoDB's doc"
 		dbArgs['name'] = name
 		payload = json.dumps(dbArgs)
-		r = self.session.post(self.databasesURL, data = payload)
+		r = self.session.post(self.URL + "/database", data = payload)
 		data = r.json()
 		if r.status_code == 201 and not data["error"] :
 			db = Database(self, name)
