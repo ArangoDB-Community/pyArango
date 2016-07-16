@@ -702,10 +702,10 @@ if __name__ == "__main__" :
     except NameError :
         pass
 
-    ROOT_USERNAME = input("Please enter root username: ") 
-    ROOT_PASSWORD = input("Please entre root password: ")
+    # ROOT_USERNAME = input("Please enter root username: ") 
+    # ROOT_PASSWORD = input("Please entre root password: ")
 
-    # ROOT_USERNAME = "root"
-    # ROOT_PASSWORD = "root"
+    ROOT_USERNAME = "root"
+    ROOT_PASSWORD = "root"
 
     unittest.main()

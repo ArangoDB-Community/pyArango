@@ -1,0 +1,21 @@
+sudo: required
+
+language: python
+
+python:
+  - "2.7"
+  - "3.5"
+
+services:
+  - docker
+
+before_install:
+- docker pull arangodb:latest
+- docker run -d -e ARANGO_NO_AUTH=1 -p 127.0.0.1:8529:8529 arangodb:latest
+# docker run -d -e ARANGO_ROOT_PASSWORD=root -p 127.0.0.1:8529:8529 arangodb:latest
+- docker ps -a
+
+install: "python setup.py install"
+
+# TODO: create or abstract test database test_db_2
+script: "python pyArango/tests/tests.py" # TODO: run tests/
