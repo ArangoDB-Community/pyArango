@@ -1,9 +1,6 @@
 pyArango
 =========
 
-.. image:: https://travis-ci.org/tariqdaouda/pyArango.svg?branch=master
-    :target: https://travis-ci.org/tariqdaouda/pyArango
-
 NoSQL is really cool, but in this harsh world it is impossible to live without field validation.
 
 **WARNING**: The last versions of pyArango are only compatible with ArangoDB 3.X. For the old version checkout the branch ArangoDBV2_ 
