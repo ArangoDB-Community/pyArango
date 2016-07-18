@@ -69,6 +69,8 @@ class Connection(object) :
     def __init__(self, arangoURL = 'http://localhost:8529', username=None, password=None) :
         self.databases = {}
         if arangoURL[-1] == "/" :
+            if ('url' not in vars()):
+                raise Exception("you either need to define `url` or make arangoURL contain an HTTP-Host")
             self.arangoURL = url[:-1]
         else :
             self.arangoURL = arangoURL
