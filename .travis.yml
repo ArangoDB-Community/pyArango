@@ -6,6 +6,10 @@ python:
   - "2.7"
   - "3.5"
 
+# hack: ensure env variables are not None
+env:
+- ARANGODB_ROOT_USERNAME=root ARANGODB_ROOT_PASSWORD=root
+
 # services:
 #   - docker
 
@@ -23,9 +27,6 @@ before_install:
 - sed -e 's/disable-authentication true/authentication false/g' setup.sh > setup.sh.tmp && mv -f setup.sh.tmp setup.sh
 - sudo chmod +x setup.sh
 - sudo ./setup.sh
-# hack: ensure env variables are not None
-- "export ARANGODB_ROOT_USERNAME=root"
-- "export ARANGODB_ROOT_PASSWORD=root"
 
 
 install: "python setup.py install"
