@@ -16,7 +16,6 @@ class pyArangoTests(unittest.TestCase):
     def setUp(self):
         global ARANGODB_ROOT_USERNAME
         global ARANGODB_ROOT_PASSWORD
-
         global mainProcess
 
         if mainProcess not True:
