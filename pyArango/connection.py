@@ -20,7 +20,8 @@ class AikidoSession(object) :
                 kwargs["auth"] = self.session.auth
 
             try :
-                ret = self.fct(*args, **kwargs)
+                with self.session.session as s:
+                   ret = self.fct(*args, **kwargs)
             except :
                 print ("===\nUnable to establish connection, perhaps arango is not running.\n===")
                 raise
