@@ -60,6 +60,8 @@ class pyArangoTests(unittest.TestCase):
     # @unittest.skip("stand by")
     def test_collection_create_delete(self) :
         col = self.db.createCollection(name = "to_be_erased")
+        self.assertTrue(self.db.hasCollection("to_be_erased"))
+        self.assertFalse(self.db.hasCollection("no_collection_by_that_name"))
         d1 = col.createDocument()
         d1["name"] = "tesla"
         d1.save()
