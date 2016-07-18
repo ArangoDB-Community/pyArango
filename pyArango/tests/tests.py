@@ -14,11 +14,10 @@ from pyArango.theExceptions import *
 class pyArangoTests(unittest.TestCase):
 
     def setUp(self):
-        global ARANGODB_ROOT_USERNAME
-        global ARANGODB_ROOT_PASSWORD
-        global mainProcess
-
-        if mainProcess not True:
+        if __name__ == "__main__":
+            global ARANGODB_ROOT_USERNAME
+            global ARANGODB_ROOT_PASSWORD
+        else:
             ARANGODB_ROOT_USERNAME = os.getenv('ARANGODB_ROOT_USERNAME', 'root')
             ARANGODB_ROOT_PASSWORD = os.getenv('ARANGODB_ROOT_PASSWORD', 'root')
 
@@ -703,9 +702,6 @@ if __name__ == "__main__" :
     # export ARANGODB_ROOT_PASSWORD=myPassword
     global ARANGODB_ROOT_USERNAME
     global ARANGODB_ROOT_PASSWORD
-
-    global mainProcess
-    mainProcess = True
 
     ARANGODB_ROOT_USERNAME = os.getenv('ARANGODB_ROOT_USERNAME', None)
     ARANGODB_ROOT_PASSWORD = os.getenv('ARANGODB_ROOT_PASSWORD', None)
