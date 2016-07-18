@@ -12,10 +12,13 @@ from pyArango.consts import *
 from pyArango.theExceptions import *
 
 class pyArangoTests(unittest.TestCase):
-    
+
     def setUp(self):
-        global ARANGODB_ROOT_USERNAME
-        global ARANGODB_ROOT_PASSWORD
+        ARANGODB_ROOT_USERNAME = os.getenv('ARANGODB_ROOT_USERNAME', 'root')
+        ARANGODB_ROOT_PASSWORD = os.getenv('ARANGODB_ROOT_PASSWORD', 'root')
+        # Change default username/password in bash like this:
+        # export ARANGODB_ROOT_USERNAME=myUserName
+        # export ARANGODB_ROOT_PASSWORD=myPassword
 
         self.conn = Connection(username=ARANGODB_ROOT_USERNAME, password=ARANGODB_ROOT_PASSWORD)
         try :
@@ -692,23 +695,4 @@ class pyArangoTests(unittest.TestCase):
         conn = Connection(username="pyArangoTest_tesla", password="newpass")
 
 if __name__ == "__main__" :
-    
-    # Change default username/password in bash like this:
-    # export ARANGODB_ROOT_USERNAME=myUserName
-    # export ARANGODB_ROOT_PASSWORD=myPassword
-    global ARANGODB_ROOT_USERNAME
-    global ARANGODB_ROOT_PASSWORD
-
-    ARANGODB_ROOT_USERNAME = os.getenv('ARANGODB_ROOT_USERNAME', None)
-    ARANGODB_ROOT_PASSWORD = os.getenv('ARANGODB_ROOT_PASSWORD', None)
-
-    if ARANGODB_ROOT_USERNAME is None :
-        try :
-            inpFct = raw_input
-        except NameError :
-            inpFct = input
-
-        ARANGODB_ROOT_USERNAME = inpFct("Please enter root username: ")
-        ARANGODB_ROOT_PASSWORD = inpFct("Please entre root password: ")
-
     unittest.main()
