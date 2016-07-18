@@ -1,4 +1,5 @@
 import unittest, copy
+import os
 
 from pyArango.connection import *
 from pyArango.database import *
@@ -10,17 +11,13 @@ from pyArango.users import *
 from pyArango.consts import *
 from pyArango.theExceptions import *
 
-global ROOT_USERNAME
-global ROOT_PASSWORD
-
 class pyArangoTests(unittest.TestCase):
-
+    
     def setUp(self):
-        global ROOT_USERNAME
-        global ROOT_PASSWORD
+        global ARANGODB_ROOT_USERNAME
+        global ARANGODB_ROOT_PASSWORD
 
-        self.conn = Connection(username=ROOT_USERNAME, password=ROOT_PASSWORD)
-
+        self.conn = Connection(username=ARANGODB_ROOT_USERNAME, password=ARANGODB_ROOT_PASSWORD)
         try :
             self.conn.createDatabase(name = "test_db_2")
         except CreationError :
@@ -695,18 +692,23 @@ class pyArangoTests(unittest.TestCase):
         conn = Connection(username="pyArangoTest_tesla", password="newpass")
 
 if __name__ == "__main__" :
-    global ROOT_USERNAME
-    global ROOT_PASSWORD
+    
+    # Change default username/password in bash like this:
+    # export ARANGODB_ROOT_USERNAME=myUserName
+    # export ARANGODB_ROOT_PASSWORD=myPassword
+    global ARANGODB_ROOT_USERNAME
+    global ARANGODB_ROOT_PASSWORD
 
-    try :
-        input = raw_input
-    except NameError :
-        pass
+    ARANGODB_ROOT_USERNAME = os.getenv('ARANGODB_ROOT_USERNAME', None)
+    ARANGODB_ROOT_PASSWORD = os.getenv('ARANGODB_ROOT_PASSWORD', None)
 
-    # ROOT_USERNAME = input("Please enter root username: ")
-    # ROOT_PASSWORD = input("Please entre root password: ")
+    if ARANGODB_ROOT_USERNAME is None :
+        try :
+            inpFct = raw_input
+        except NameError :
+            inpFct = input
 
-    ROOT_USERNAME = "root"
-    ROOT_PASSWORD = "root"
+        ARANGODB_ROOT_USERNAME = inpFct("Please enter root username: ")
+        ARANGODB_ROOT_PASSWORD = inpFct("Please entre root password: ")
 
     unittest.main()

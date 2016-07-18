@@ -15,7 +15,7 @@ before_install:
 # - docker ps -a
 # TODO: sort out docker ports, in the mean time we'll use this installer script https://www.arangodb.com/download/travis-ci/
 - sudo apt-get update
-- sudo apt-get -y install wget  # hack: travis likes curl but the installer likes wget
+- sudo apt-get -y install wget  # hack: travis prefers curl
 - echo arangodb3 arangodb/password password root | sudo debconf-set-selections
 - echo arangodb3 arangodb/password_again password root | sudo debconf-set-selections
 - sudo curl -s -L https://www.arangodb.com/repositories/travisCI/setup_arangodb_3.0.2.sh -o setup.sh
@@ -27,6 +27,5 @@ before_install:
 install: 
 - "python setup.py install"
 
-script: 
-- "python pyArango/tests/tests.py"
-- "python pyArango/tests/validators_tests.py"
+
+script: "python -m unittest discover pyArango/tests/"
