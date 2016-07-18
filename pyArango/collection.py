@@ -149,7 +149,9 @@ class Collection_metaclass(type) :
         try :
             return cls.collectionClasses[name]
         except KeyError :
-            raise KeyError("There's no child of Collection by the name of: %s" % name)
+            raise KeyError("There is no Collection Class of type: '%s';"+
+                           " currently supported values: [%s]"
+                           % (name, ', '.join(getCollectionClasses().keys())))
 
     @classmethod
     def isCollection(cls, name) :
