@@ -1,3 +1,13 @@
+1.2.2
+======
+
+* Cross python support for iterators
+
+1.2.1
+======
+
+* Cross python support for metclasses
+
 1.2.0
 ======
 
