@@ -11,7 +11,7 @@ with open(path.join(here, 'DESCRIPTION.rst'), encoding='utf-8') as f:
 setup(
     name='pyArango',
 
-    version='1.2.0',
+    version='1.2.1',
 
     description='An easy to use python driver for ArangoDB with built-in validation',
     long_description=long_description,
@@ -29,7 +29,8 @@ setup(
         #   3 - Alpha
         #   4 - Beta
         #   5 - Production/Stable
-        'Development Status :: 5 - Production/Stable',
+        # 'Development Status :: 5 - Production/Stable',
+        'Development Status :: 4 - Beta',
 
         'Intended Audience :: Developers',
         'Intended Audience :: System Administrators',
@@ -40,9 +41,10 @@ setup(
         'License :: OSI Approved :: Apache Software License',
 
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
     ],
 
-    install_requires=['requests>=2.7.0'],
+    install_requires=['requests>=2.7.0', 'future'],
 
     keywords='database ORM nosql arangodb driver validation',
 

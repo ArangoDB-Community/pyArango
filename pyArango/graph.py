@@ -1,4 +1,5 @@
 import json
+from future.utils import with_metaclass
 
 from .theExceptions import (CreationError, DeletionError, UpdateError, TraversalError)
 from . import collection as COL
@@ -64,7 +65,7 @@ class EdgeDefinition(object) :
     def __repr__(self) :
         return str(self)
 
-class Graph(object, metaclass=Graph_metaclass) :
+class Graph(with_metaclass(Graph_metaclass, object)) :
     """The class from witch all your graph types must derive"""
 
     _edgeDefinitions = []

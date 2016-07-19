@@ -1,5 +1,6 @@
 import json
 import types
+from future.utils import with_metaclass
 
 from .document import Document, Edge
 from .theExceptions import ValidationError, SchemaViolation, CreationError, UpdateError, DeletionError, InvalidDocument
@@ -193,7 +194,7 @@ def getCollectionClasses() :
     "returns a dictionary of all defined collection classes"
     return Collection_metaclass.collectionClasses
 
-class Collection(object, metaclass=Collection_metaclass) :
+class Collection(with_metaclass(Collection_metaclass, object)) :
     """A document collection. Collections are meant to be instanciated by databases"""
     #here you specify the fields that you want for the documents in your collection
     _fields = {}
