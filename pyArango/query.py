@@ -25,7 +25,6 @@ class RawCursor(object) :
             raise CursorError(data["errorMessage"], self.id, data)
         return r.json()
 
-@implements_iterator
 class Query(object) :
     "This class is abstract and should not be instanciated. All query classes derive from it"
 
