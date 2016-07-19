@@ -3,7 +3,7 @@ pyArango (Work in progress: porting to python3)
 .. image:: https://travis-ci.org/tariqdaouda/pyArango.svg?branch=1.2.2
     :target: https://travis-ci.org/tariqdaouda/pyArango
 .. image:: https://img.shields.io/badge/python-2.7%2C%203.5-blue.svg
-.. image:: https://img.shields.io/badge/arangodb-3%2B-blue.svg
+.. image:: https://img.shields.io/badge/arangodb-3.0-blue.svg
 
 NoSQL is really cool, but in this harsh world it is impossible to live without field validation.
 
