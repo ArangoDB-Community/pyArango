@@ -1,14 +1,11 @@
 import json
 
-from future.utils import implements_iterator
-
 from .document import Document, Edge
 from .theExceptions import QueryError, AQLQueryError, SimpleQueryError, CreationError
 from . import consts as CONST
 
 __all__ = ["Query", "AQLQuery", "SimpleQuery", "Cursor", "RawCursor"]
 
-@implements_iterator
 class RawCursor(object) :
     "a raw interface to cursors that returns json"
     def __init__(self, database, cursorId) :
