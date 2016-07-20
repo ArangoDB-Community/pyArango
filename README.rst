@@ -1,5 +1,6 @@
-pyArango (Work in progress: porting to python3)
-=======================================================
+pyArango
+========
+
 .. image:: https://travis-ci.org/tariqdaouda/pyArango.svg?branch=1.2.2
     :target: https://travis-ci.org/tariqdaouda/pyArango
 .. image:: https://img.shields.io/badge/python-2.7%2C%203.5-blue.svg
