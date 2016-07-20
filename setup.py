@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages 
+from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
@@ -11,11 +11,11 @@ with open(path.join(here, 'DESCRIPTION.rst'), encoding='utf-8') as f:
 setup(
     name='pyArango',
 
-    version='1.1.0',
+    version='1.2.2',
 
     description='An easy to use python driver for ArangoDB with built-in validation',
     long_description=long_description,
-    
+
     url='https://github.com/tariqdaouda/pyArango',
 
     author='Tariq Daouda',
@@ -29,21 +29,23 @@ setup(
         #   3 - Alpha
         #   4 - Beta
         #   5 - Production/Stable
-        'Development Status :: 5 - Production/Stable',
+        # 'Development Status :: 5 - Production/Stable',
+        'Development Status :: 4 - Beta',
 
         'Intended Audience :: Developers',
         'Intended Audience :: System Administrators',
         'Topic :: Software Development :: Libraries',
         'Topic :: Database',
-    	'Topic :: Database :: Database Engines/Servers',
+        'Topic :: Database :: Database Engines/Servers',
 
         'License :: OSI Approved :: Apache Software License',
 
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
     ],
 
-    install_requires=['requests>=2.7.0'],
-    
+    install_requires=['requests>=2.7.0', 'future'],
+
     keywords='database ORM nosql arangodb driver validation',
 
     packages=find_packages(),
