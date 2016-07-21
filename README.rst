@@ -34,7 +34,7 @@ You can be 100% permissive or enforce schemas and validate fields, on set, on sa
 Installation
 ------------
 
-Only python 2 is supported.
+Supports python 2.7 and 3.4.
 
 From PyPi:
 
