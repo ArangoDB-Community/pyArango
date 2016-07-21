@@ -1,3 +1,8 @@
+1.2.3
+=====
+
+* Some more meaningful error messages
+
 1.2.2
 ======
 
