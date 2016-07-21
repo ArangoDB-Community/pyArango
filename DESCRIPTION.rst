@@ -16,11 +16,3 @@ For the latest news about pyArango, you can follow me on twitter `@tariqdaouda`_
 If you have any issues with it, please file a github issue.
 
 .. _@tariqdaouda: https://www.twitter.com/tariqdaouda
-
-Changelog
-===========
-
-1.0.3
--------
-* Added support for all types of indexes
-* Connections are now managed into sessions that the user can restart if necessary. This allows for a much more stable interaction with ArangoDB when a lot of queries are involved
