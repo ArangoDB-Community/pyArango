@@ -1,6 +1,7 @@
 import json
 import types
 from future.utils import with_metaclass
+from . import consts as CONST
 
 from .document import Document, Edge
 from .theExceptions import ValidationError, SchemaViolation, CreationError, UpdateError, DeletionError, InvalidDocument
