@@ -10,9 +10,10 @@ before_install:
 - curl -s -L https://raw.githubusercontent.com/brennv/arangodb-travis/v3.0.3/setup_arangodb.sh -o setup.sh
 - chmod +x setup.sh
 - ./setup.sh
+- pip install coverage
 
 install: python setup.py install
 
-script: python -m unittest discover pyArango/tests/
+script: coverage run -m unittest discover pyArango/tests/
 
 after_success: bash <(curl -s https://codecov.io/bash)
