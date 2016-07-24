@@ -148,3 +148,6 @@ class Users(object) :
                 return u
         else :
             raise KeyError("Unable to get user: %s" % username)
+
+    def __getitem__(self, k) :
+        return self.fetchUser(k)
