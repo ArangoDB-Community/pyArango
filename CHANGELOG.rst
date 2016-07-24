@@ -1,3 +1,8 @@
+1.2.4
+=====
+
+* missing import in collections.py added
+
 1.2.3
 =====
 
