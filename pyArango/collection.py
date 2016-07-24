@@ -260,6 +260,19 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
     def createDocument(self, initValues = {}) :
         "create and returns a document"
         return self.documentClass(self, initValues)
+   
+    def ensureCapConstraint(self, size, byteSize = None) :
+        """Ensures that there's a cap constraint in the collection, and returns it"""
+        data = { 
+          "type" : "cap",
+          "size" : size,
+        }
+        if byteSize is not None :
+          data["byteSize"] = byteSize
+
+        ind = Index(self, creationData = data)
+        self.indexes["cap"][ind.infos["id"]] = ind
+        return ind
 
     def ensureHashIndex(self, fields, unique = False, sparse = True) :
         """Creates a hash index if it does not already exist, and returns it"""
@@ -297,6 +310,9 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
     def ensureFulltextIndex(self, fields, minLength = None) :
         """Creates a fulltext index if it does not already exist, and returns it"""
+        if self.collection.version != "2.8.x" :
+            raise ValueError("This function is no longer part of the API")
+        
         data = {
             "type" : "fulltext",
             "fields" : fields,
