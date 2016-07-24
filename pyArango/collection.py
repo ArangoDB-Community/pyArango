@@ -263,6 +263,9 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
    
     def ensureCapConstraint(self, size, byteSize = None) :
         """Ensures that there's a cap constraint in the collection, and returns it"""
+        if self.connection.version != "2.8.x" :
+            raise ValueError("This function is no longer part of the API")
+
         data = { 
           "type" : "cap",
           "size" : size,
@@ -310,8 +313,6 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
     def ensureFulltextIndex(self, fields, minLength = None) :
         """Creates a fulltext index if it does not already exist, and returns it"""
-        if self.collection.version != "2.8.x" :
-            raise ValueError("This function is no longer part of the API")
         
         data = {
             "type" : "fulltext",
@@ -412,13 +413,13 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
     def fetchFirst(self, count, rawResults = False) :
         """Returns the first document inserted in a collection"""
-        if self.collection.version != "2.8.x" :
+        if self.connection.version != "2.8.x" :
             raise ValueError("This function is no longer part of the API")
         return self.simpleQuery('first', rawResults = rawResults, count = count)
 
     def fetchLast(self, count, rawResults = False) :
         """Returns the last document inserted in a collection"""
-        if self.collection.version != "2.8.x" :
+        if self.connection.version != "2.8.x" :
             raise ValueError("This function is no longer part of the API")
         return self.simpleQuery('last', rawResults = rawResults, count = count)
 
