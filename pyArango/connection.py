@@ -65,8 +65,8 @@ class AikidoSession(object) :
             pass
 
 class Connection(object) :
-    """This is the entry point in pyArango and directly handles databases."""
-    def __init__(self, arangoURL = 'http://localhost:8529', username=None, password=None) :
+    """This is the entry point in pyArango and directly handles databases. For 2.8 compatibility use version="2.8.x" """
+    def __init__(self, arangoURL = 'http://localhost:8529', username=None, password=None, version="3.x") :
         self.databases = {}
         if arangoURL[-1] == "/" :
             if ('url' not in vars()):
@@ -77,6 +77,12 @@ class Connection(object) :
 
         self.session = None
         self.resetSession(username, password)
+        
+        self.allowedVersions = set(["2.8.x", "3.x"])
+        if version.lower() not in self.allowedVersions :
+            raise ValueError("Unknown version number. Possible values: %s" % self.allowedVersions)
+       
+        self.version = version.lower()
 
         self.URL = '%s/_api' % self.arangoURL
         if not self.session.auth :

@@ -40,7 +40,12 @@ class Database(object) :
         if r.status_code == 200 :
             self.collections = {}
 
-            for colData in data["result"] :
+            if self.connection.version == "2.8.x" :
+                resData = data["collections"]
+            else :
+                resData = data["result"]
+
+            for colData in resData :
                 colName = colData['name']
                 if colData['isSystem'] :
                     colObj = COL.SystemCollection(self, colData)

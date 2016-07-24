@@ -229,6 +229,9 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
             "fulltext" : {},
         }
 
+        if self.connection.version == "2.8.x" :
+            self.indexes["cap"] = {}
+
     def getIndexes(self) :
         """Fills self.indexes with all the indexes associates with the collection and returns it"""
         url = "%s/index" % self.database.URL
@@ -499,7 +502,11 @@ class Edges(Collection) :
         "This one is meant to be called by the database"
         Collection.__init__(self, database, jsonData)
         self.documentClass = Edge
-        self.edgesURL = "%s/edges/%s" % (self.database.URL, self.name)
+        if self.database.connection.version == "2.8.x" :
+            self.documentsURL = "%s/edge" % (self.database.URL)
+            self.edgesURL = "%ss/%s" % (self.documentsURL, self.name)
+        else :
+            self.edgesURL = "%s/edges/%s" % (self.database.URL, self.name)
 
     def createEdge(self, initValues = {}) :
         "alias for createDocument, both functions create an edge"
