@@ -394,6 +394,18 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
             fetchAlll(limit = 3, shik = 10)"""
         return self.simpleQuery('all', rawResults = rawResults, **queryArgs)
 
+    def fetchFirst(self, count, rawResults = False) :
+        """Returns the first document inserted in a collection"""
+        if self.collection.version != "2.8.x" :
+            raise ValueError("This function is no longer part of the API")
+        return self.simpleQuery('first', rawResults = rawResults, count = count)
+
+    def fetchLast(self, count, rawResults = False) :
+        """Returns the last document inserted in a collection"""
+        if self.collection.version != "2.8.x" :
+            raise ValueError("This function is no longer part of the API")
+        return self.simpleQuery('last', rawResults = rawResults, count = count)
+
     def simpleQuery(self, queryType, rawResults = False, **queryArgs) :
         """General interface for simple queries. queryType can be something like 'all', 'by-example' etc... everything is in the arango doc.
         If rawResults, the query will return dictionaries instead of Document objetcs.
