@@ -5,6 +5,19 @@ from .database import Database, DBHandle
 from .theExceptions import SchemaViolation, CreationError, ConnectionError
 from .users import Users
 
+class JsonHook(object) :
+    """This one replaces requests' original json() function. If a call to json() fails, it will print a message with the request content"""
+    def __init__(self, ret) :
+        self.ret = ret
+        self.ret.json_originalFct = self.ret.json
+    
+    def __call__(self, *args, **kwargs) :
+        try :
+            return self.ret.json_originalFct(*args, **kwargs)
+        except Exception as e :
+            print( "Unable to get json for request: %s. Content: %s" % (self.ret.url, self.ret.content) )
+            raise e 
+
 class AikidoSession(object) :
     """Magical Aikido being that you probably do not need to access directly that deflects every http request to requests in the most graceful way.
     It will also save basic stats on requests in it's attribute '.log'.
@@ -16,6 +29,7 @@ class AikidoSession(object) :
             self.fct = fct
 
         def __call__(self, *args, **kwargs) :
+
             if self.session.auth :
                 kwargs["auth"] = self.session.auth
 
@@ -29,6 +43,7 @@ class AikidoSession(object) :
             if ret.status_code == 401 :
                 raise ConnectionError("Unauthorized access, you must supply a (username, password) with the correct credentials", ret.url, ret.status_code, ret.content)
 
+            ret.json = JsonHook(ret)
             return ret
 
     def __init__(self, username, password) :
