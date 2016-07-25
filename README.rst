@@ -125,8 +125,8 @@ from **Validator** and implement a **validate()** method.
 
 .. code:: python
 
-  import pyArango.Collection as COL
-  import pyArango.Validator as VAL
+  import pyArango.collection as COL
+  import pyArango.validator as VAL
   from pyArango.theExceptions import ValidationError
   import types
 
@@ -163,7 +163,7 @@ Creating Edges
 
 .. code:: python
 
-  from pyArango.Collection import Edges
+  from pyArango.collection import Edges
 
   class Connections(Edges) :
 
@@ -182,7 +182,7 @@ Linking Documents with Edges
 
 .. code:: python
 
- from pyArango.Collection import *
+ from pyArango.collection import *
 
  class Things(Collection) :
    ....
@@ -232,8 +232,8 @@ to that document are also deleted.
 
 .. code:: python
 
- from pyArango.Collection import Collection, Field
- from pyArango.Graph import Graph, EdgeDefinition
+ from pyArango.collection import Collection, Field
+ from pyArango.graph import Graph, EdgeDefinition
 
  class Humans(Collection) :
   _fields = {
