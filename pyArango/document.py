@@ -257,3 +257,9 @@ class Edge(Document) :
             raise AttributeError("You must specify '_from' and '_to' attributes before saving. You can also use the function 'links()'")
 
         Document.save(self, **edgeArgs)
+
+    def __getattr__(self, k) :
+        if k == "_from" or k == "_to" :
+            return self._store[k]
+        else :
+            return Document.__getattr__(self, k)
