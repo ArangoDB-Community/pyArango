@@ -28,7 +28,7 @@ class pyArangoTests(unittest.TestCase):
             pass
 
         self.db = self.conn["test_db_2"]
-        self._reset()
+        # self._reset()
 
     def _reset(self) :
         self.db.reload()
@@ -45,7 +45,8 @@ class pyArangoTests(unittest.TestCase):
         self.conn.disconnectSession()
 
     def tearDown(self):
-        self._reset()
+        # self._reset()
+        pass
 
     def createManyUsers(self, nbUsers) :
         collection = self.db.createCollection(name = "users")
