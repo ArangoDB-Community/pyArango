@@ -537,6 +537,20 @@ class Edges(Collection) :
         else :
             self.edgesURL = "%s/edges/%s" % (self.database.URL, self.name)
 
+    @classmethod
+    def validateField(cls, fieldName, value) :
+        """checks if 'value' is valid for field 'fieldName'. If the validation is unsuccessful, raises a SchemaViolation or a ValidationError.
+        for nested dicts ex: {address : { street: xxx} }, fieldName can take the form address.street
+        """
+        try :
+            valValue = Collection.validateField(fieldName, value)
+        except SchemaViolation as e:
+            if fieldName == "_from" or fieldName == "_to" :
+                return True
+            else :
+                raise e
+        return valValue
+
     def createEdge(self, initValues = {}) :
         "alias for createDocument, both functions create an edge"
         return self.createDocument(initValues)

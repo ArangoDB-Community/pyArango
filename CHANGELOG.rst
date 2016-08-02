@@ -3,6 +3,12 @@
 
 * Added compatibility with Arango 2.8.x
 
+* Added getter for users
+
+* Edges back compatibility with 2.8 solved "_from" "_to" are no longer foreign fields, ._from ._to work again
+
+* calls to json() now print the request's content upon failure.
+
 1.2.4
 =====
 
