@@ -65,17 +65,17 @@ Initiatilisation and document saving
   from pyArango.connection import *
 
   conn = Connection()
-  conn.createDatabase(name = "test_db")
-  db = self.conn["test_db"] #all databases are loaded automatically into the connection and are accessible in this fashion
-  collection = db.createCollection(name = "users") #all collections are also loaded automatically
+  conn.createDatabase(name="test_db")
+  db = self.conn["test_db"] # all databases are loaded automatically into the connection and are accessible in this fashion
+  collection = db.createCollection(name="users") # all collections are also loaded automatically
   # collection.delete() # self explanatory
 
-  for i in xrange(100) :
-  	doc = collection.createDocument()
-  	doc["name"] = "Tesla-%d" % i
-  	doc["number"] = i
-  	doc["species"] = "human"
-  	doc.save()
+  for i in xrange(100):
+      doc = collection.createDocument()
+      doc["name"] = "Tesla-%d" % i
+      doc["number"] = i
+      doc["species"] = "human"
+      doc.save()
 
   doc = collection.createDocument()
   doc["name"] = "Tesla-101"
@@ -93,9 +93,9 @@ Queries : AQL
 .. code:: python
 
   aql = "FOR c IN users FILTER c.name == @name LIMIT 10 RETURN c"
-  bindVars = {'name' : 'Tesla-3'}
+  bindVars = {'name': 'Tesla-3'}
   # by setting rawResults to True you'll get dictionaries instead of Document objects, useful if you want to result to set of fields for example
-  queryResult = db.AQLQuery(aql, rawResults = False, batchSize = 1, bindVars = bindVars)
+  queryResult = db.AQLQuery(aql, rawResults=False, batchSize=1, bindVars=bindVars)
   document = queryResult[0]
 
 Queries : Simple queries by example
@@ -104,8 +104,8 @@ PyArango supports all types of simple queries (see collection.py for the full li
 
 .. code:: python
 
-  example = {'species' : "human"}
-  query = collection.fetchByExample(example, batchSize = 20, count = True)
+  example = {'species': "human"}
+  query = collection.fetchByExample(example, batchSize=20, count=True)
   print query.count # print the total number or documents
 
 Queries : Batches
@@ -114,7 +114,7 @@ Queries : Batches
 .. code:: python
 
   for e in query :
-    print e['name']
+      print e['name']
 
 Defining a Collection and field/schema Validation
 -------------------------------------------------
@@ -130,25 +130,25 @@ from **Validator** and implement a **validate()** method.
   from pyArango.theExceptions import ValidationError
   import types
 
-  class String_val(VAL.Validator) :
-   def validate(self, value) :
-  		if type(value) is not types.StringType :
-  			raise ValidationError("Field value must be a string")
-  		return True
+  class String_val(VAL.Validator):
+   def validate(self, value):
+       if type(value) is not types.StringType :
+           raise ValidationError("Field value must be a string")
+       return True
 
-  class Humans(COL.Collection) :
+  class Humans(COL.Collection):
 
-    _validation = {
-      'on_save' : False,
-      'on_set' : False,
-      'allow_foreign_fields' : True # allow fields that are not part of the schema
-    }
+      _validation = {
+          'on_save': False,
+          'on_set': False,
+          'allow_foreign_fields': True  # allow fields that are not part of the schema
+      }
 
-  	_fields = {
-  	  'name' : Field(validators = [VAL.NotNull(), String_val()]),
-  	  'anything' : Field(),
-  	  'species' : Field(validators = [VAL.NotNull(), VAL.Length(5, 15), String_val()])
-  	}
+      _fields = {
+          'name': Field(validators=[VAL.NotNull(), String_val()]),
+          'anything': Field(),
+          'species': Field(validators=[VAL.NotNull(), VAL.Length(5, 15), String_val()])
+      }
 
   collection = db.createCollection('Humans')
 
@@ -165,17 +165,17 @@ Creating Edges
 
   from pyArango.collection import Edges
 
-  class Connections(Edges) :
+  class Connections(Edges):
 
-    _validation = {
-      'on_save' : False,
-      'on_set' : False,
-      'allow_foreign_fields' : True # allow fields that are not part of the schema
-    }
+      _validation = {
+          'on_save': False,
+          'on_set': False,
+          'allow_foreign_fields': True # allow fields that are not part of the schema
+      }
 
-  	_fields = {
-  	  'length' : Field(NotNull = True),
-  	}
+      _fields = {
+          'length': Field(NotNull=True),
+      }
 
 Linking Documents with Edges
 -----------------------------
@@ -184,10 +184,10 @@ Linking Documents with Edges
 
  from pyArango.collection import *
 
- class Things(Collection) :
+ class Things(Collection):
    ....
 
- class Connections(Edges) :
+ class Connections(Edges):
    ....
 
  ....
@@ -198,7 +198,7 @@ Linking Documents with Edges
 
  conn.links(a, b)
  conn["someField"] = 35
- conn.save() #once an edge links documents, save() and patch() can be used as with any other Document object
+ conn.save() # once an edge links documents, save() and patch() can be used as with any other Document object
 
 
 Geting Edges linked to a vertex
@@ -220,9 +220,9 @@ You can do it either from a Document or an Edges collection:
   myDocument.getEdges(myConnections)
   myConnections.getEdges(myDocument)
 
-  #you can also of ask for the raw json with
-  myDocument.getInEdges(myConnections, rawResults = True)
-  #otherwise Document objects are retuned in a list
+  # you can also of ask for the raw json with
+  myDocument.getInEdges(myConnections, rawResults=True)
+  # otherwise Document objects are retuned in a list
 
 Creating a Graph
 -----------------
@@ -235,35 +235,35 @@ to that document are also deleted.
  from pyArango.collection import Collection, Field
  from pyArango.graph import Graph, EdgeDefinition
 
- class Humans(Collection) :
-  _fields = {
-  "name" : Field()
-  }
+ class Humans(Collection):
+     _fields = {
+         "name": Field()
+     }
 
- class Friend(Edges) :theGraphtheGraph
-  _fields = {
-  "lifetime" : Field()
-  }
+ class Friend(Edges): # theGraphtheGraph
+     _fields = {
+         "lifetime": Field()
+     }
 
- #Here's how you define a graph
+ # Here's how you define a graph
  class MyGraph(Graph) :
-  _edgeDefinitions = (EdgeDefinition("Friend", fromCollections = ["Humans"], toCollections = ["Humans"]), )
-  _orphanedCollections = []
+     _edgeDefinitions = (EdgeDefinition("Friend", fromCollections=["Humans"], toCollections=["Humans"]))
+     _orphanedCollections = []
 
- #create the collections (do this only if they don't already exist in the database)
+ # create the collections (do this only if they don't already exist in the database)
  self.db.createCollection("Humans")
  self.db.createCollection("Friend")
- #same for the graph
+ # same for the graph
  theGraph = self.db.createGraph("MyGraph")
 
- #creating some documents
- h1 = theGraph.createVertex('Humans', {"name" : "simba"})
- h2 = theGraph.createVertex('Humans', {"name" : "simba2"})
+ # creating some documents
+ h1 = theGraph.createVertex('Humans', {"name": "simba"})
+ h2 = theGraph.createVertex('Humans', {"name": "simba2"})
 
- #linking them
- theGraph.link('Friend', h1, h2, {"lifetime" : "eternal"})
+ # linking them
+ theGraph.link('Friend', h1, h2, {"lifetime": "eternal"})
 
- #deleting one of them along with the edge
+ # deleting one of them along with the edge
  theGraph.deleteVertex(h2)
 
 Document Cache
@@ -273,8 +273,8 @@ pyArango collections have a caching system for documents that performs insertion
 
 .. code:: python
 
- #create a cache a of 1500 documents for collection humans
+ # create a cache a of 1500 documents for collection humans
  humans.activateCache(1500)
 
- #disable the cache
+ # disable the cache
  humans.deactivateCache()
