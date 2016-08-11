@@ -1,3 +1,10 @@
+1.2.6
+=====
+
+* Fixed Cache
+
+* Cache now exposes document store and attributes transparently
+
 1.2.5
 =====
 
