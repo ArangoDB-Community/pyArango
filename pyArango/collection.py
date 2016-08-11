@@ -16,7 +16,22 @@ class CachedDoc(object) :
         self.prev = prev
         self.document = document
         self.nextDoc = nextDoc
-        self.key = document.key
+        self._key = document._key
+
+    def __getitem__(self, k) :
+        return self.document[k]
+
+    def __setitem__(self, k, v) :
+        self.document[k] = v
+
+    def __getattribute__(self, k) :
+        try :
+            return object.__getattribute__(self, k)
+        except Exception as e1:
+            try :
+                return getattr(self.document, k)
+            except Exception as e2 :
+                raise e2
 
 class DocumentCache(object) :
     "Document cache for collection, with insert, deletes and updates in O(1)"
@@ -28,8 +43,8 @@ class DocumentCache(object) :
         self.tail = None
 
     def cache(self, doc) :
-        if doc.key in self.cacheStore :
-            ret = self.cacheStore[doc.key]
+        if doc._key in self.cacheStore :
+            ret = self.cacheStore[doc._key]
             if ret.prev is not None :
                 ret.prev.nextDoc = ret.nextDoc
                 self.head.prev = ret
@@ -41,34 +56,34 @@ class DocumentCache(object) :
                 ret = CachedDoc(doc, prev = None, nextDoc = None)
                 self.head = ret
                 self.tail = self.head
-                self.cacheStore[doc.key] = ret
+                self.cacheStore[doc._key] = ret
             else :
                 if len(self.cacheStore) >= self.cacheSize :
-                    del(self.cacheStore[self.tail.key])
+                    del(self.cacheStore[self.tail._key])
                     self.tail = self.tail.prev
                     self.tail.nextDoc = None
 
                 ret = CachedDoc(doc, prev = None, nextDoc = self.head)
                 self.head.prev = ret
                 self.head = self.head.prev
-                self.cacheStore[doc.key] = ret
+                self.cacheStore[doc._key] = ret
 
-    def delete(self, key) :
+    def delete(self, _key) :
         "removes a document from the cache"
         try :
-            doc = self.cacheStore[key]
+            doc = self.cacheStore[_key]
             doc.prev.nextDoc = doc.nextDoc
             doc.nextDoc.prev = doc.prev
-            del(self.cacheStore[key])
+            del(self.cacheStore[_key])
         except KeyError :
-            raise KeyError("Document with key %s is not available in cache" % key)
+            raise KeyError("Document with _key %s is not available in cache" % _key)
 
     def getChain(self) :
         "returns a list of keys representing the chain of documents"
         l = []
         h = self.head
         while h :
-            l.append(h.key)
+            l.append(h._key)
             h = h.nextDoc
         return l
 
@@ -77,17 +92,17 @@ class DocumentCache(object) :
         l = []
         h = self.head
         while h :
-            l.append(str(h.key))
+            l.append(str(h._key))
             h = h.nextDoc
         return "<->".join(l)
 
-    def __getitem__(self, key) :
+    def __getitem__(self, _key) :
         try :
-            ret = self.cacheStore[key]
+            ret = self.cacheStore[_key]
             self.cache(ret)
             return ret
         except KeyError :
-            raise KeyError("Document with key %s is not available in cache" % key)
+            raise KeyError("Document with _key %s is not available in cache" % _key)
 
     def __repr__(self) :
         return "[DocumentCache, size: %d, full: %d]" %(self.cacheSize, len(self.cacheStore))

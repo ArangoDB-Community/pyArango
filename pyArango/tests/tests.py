@@ -352,9 +352,20 @@ class pyArangoTests(unittest.TestCase):
     def test_document_cache(self) :
         class DummyDoc(object) :
             def __init__(self, key) :
-                self.key = key
+                self._key = key
+                self.hhh = "hhh"
+                self.store = {
+                    "a" : 1
+                }
+
+            def __getitem__(self, k) :
+                return self.store[k]
+                
+            def __setitem__(self, k, v) :
+                self.store[k] = v
+
             def __repr__(self) :
-                return repr(self.key)
+                return repr(self._key)
 
         docs = []
         for i in range(10) :
@@ -363,12 +374,17 @@ class pyArangoTests(unittest.TestCase):
         cache = DocumentCache(5)
         for doc in docs :
             cache.cache(doc)
-            self.assertEqual(cache.head.key, doc.key)
-
+            self.assertEqual(cache.head._key, doc._key)
+        
         self.assertEqual(list(cache.cacheStore.keys()), [5, 6, 7, 8, 9])
         self.assertEqual(cache.getChain(), [9, 8, 7, 6, 5])
         doc = cache[5]
-        self.assertEqual(cache.head.key, doc.key)
+
+        self.assertEqual(doc.hhh, "hhh")
+        doc["a"] = 3
+        self.assertEqual(doc["a"], 3)
+
+        self.assertEqual(cache.head._key, doc._key)
         self.assertEqual(cache.getChain(), [5, 9, 8, 7, 6])
 
     # @unittest.skip("stand by")
