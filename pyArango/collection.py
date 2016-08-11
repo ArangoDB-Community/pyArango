@@ -82,13 +82,12 @@ class DocumentCache(object) :
         return "<->".join(l)
 
     def __getitem__(self, key) :
-        if key in self.cacheStore :
-            try :
-                ret = self.cacheStore[key]
-                self.cache(ret)
-                return ret
-            except KeyError :
-                raise KeyError("Document with key %s is not available in cache" % key)
+        try :
+            ret = self.cacheStore[key]
+            self.cache(ret)
+            return ret
+        except KeyError :
+            raise KeyError("Document with key %s is not available in cache" % key)
 
     def __repr__(self) :
         return "[DocumentCache, size: %d, full: %d]" %(self.cacheSize, len(self.cacheStore))
