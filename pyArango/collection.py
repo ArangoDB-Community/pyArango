@@ -16,7 +16,7 @@ class CachedDoc(object) :
         self.prev = prev
         self.document = document
         self.nextDoc = nextDoc
-        self.key = document._key
+        self.key = document.key
 
 class DocumentCache(object) :
     "Document cache for collection, with insert, deletes and updates in O(1)"
