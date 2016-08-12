@@ -81,7 +81,7 @@ class AikidoSession(object) :
 
 class Connection(object) :
     """This is the entry point in pyArango and directly handles databases."""
-    def __init__(self, arangoURL = 'http://localhost:8529', username=None, password=None) :
+    def __init__(self, arangoURL = 'http://127.0.0.1:8529', username=None, password=None) :
         self.databases = {}
         if arangoURL[-1] == "/" :
             if ('url' not in vars()):
