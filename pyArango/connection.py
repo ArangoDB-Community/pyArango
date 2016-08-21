@@ -56,7 +56,7 @@ class Connection(object):
         when accessed """
 
         result = self.session.get(self.db_url)
-
+        result.raise_for_status()
         data = result.json()
         if result.status_code == 200 and not data["error"]:
             self.databases = {}
