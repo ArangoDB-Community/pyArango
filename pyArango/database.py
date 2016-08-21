@@ -21,7 +21,7 @@ class Database(object) :
         self.connection = connection
         self.collections = {}
 
-        self.URL = '%s/_db/%s/_api' % (self.connection.arangoURL, self.name)
+        self.URL = '%s/_db/%s/_api' % (self.connection.arango_url, self.name)
         self.collectionsURL = '%s/collection' % (self.URL)
         self.cursorsURL = '%s/cursor' % (self.URL)
         self.explainURL = '%s/explain' % (self.URL)

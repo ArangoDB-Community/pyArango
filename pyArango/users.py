@@ -30,7 +30,7 @@ class User(object) :
         except KeyError :
             self["password"] = ""
 
-        self.URL = "%s/user/%s" % (self.connection.URL, self["username"])
+        self.URL = self.connection.api_url +"/user/" + self["username"]
 
     def save(self):
         """Save/updates the user"""
@@ -110,7 +110,7 @@ class Users(object) :
     """This one manages users."""
     def __init__(self, connection) :
         self.connection = connection
-        self.URL = "%s/user" % (self.connection.URL)
+        self.URL = self.connection.api_url + "/user"
 
     def createUser(self, username, password) :
         u = User(self)
