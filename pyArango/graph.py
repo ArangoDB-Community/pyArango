@@ -91,11 +91,11 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
                 raise KeyError("'%s' is not a valid edge collection" % de.name)
             self.definitions[de.name] = de
 
-        self.URL = "%s/%s" % (self.database.graphsURL, self._key)
+        self.api_url = "%s/%s" % (self.database.graphsURL, self._key)
 
     def createVertex(self, collectionName, docAttributes, waitForSync = False) :
         """adds a vertex to the graph and returns it"""
-        url = "%s/vertex/%s" % (self.URL, collectionName)
+        url = "%s/vertex/%s" % (self.api_url, collectionName)
         self.database[collectionName].validateDct(docAttributes)
 
         r = self.connection.session.post(url, data = json.dumps(docAttributes), params = {'waitForSync' : waitForSync})
@@ -108,7 +108,7 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
 
     def deleteVertex(self, document, waitForSync = False) :
         """deletes a vertex from the graph as well as al linked edges"""
-        url = "%s/vertex/%s" % (self.URL, document._id)
+        url = "%s/vertex/%s" % (self.api_url, document._id)
 
         r = self.connection.session.delete(url, params = {'waitForSync' : waitForSync})
         data = r.json()
@@ -123,7 +123,7 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
         if collectionName not in self.definitions :
             raise KeyError("'%s' is not among the edge definitions" % collectionName)
 
-        url = "%s/edge/%s" % (self.URL, collectionName)
+        url = "%s/edge/%s" % (self.api_url, collectionName)
         self.database[collectionName].validateDct(edgeAttributes)
         payload = edgeAttributes
         payload.update({'_from' : _fromId, '_to' : _toId})
@@ -146,7 +146,7 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
 
     def deleteEdge(self, edge, waitForSync = False) :
         """removes an edge from the graph"""
-        url = "%s/edge/%s" % (self.URL, edge._id)
+        url = "%s/edge/%s" % (self.api_url, edge._id)
         r = self.connection.session.delete(url, params = {'waitForSync' : waitForSync})
         if r.status_code == 200 or r.status_code == 202 :
             return True
@@ -154,7 +154,7 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
 
     def delete(self) :
         """deletes the graph"""
-        r = self.connection.session.delete(self.URL)
+        r = self.connection.session.delete(self.api_url)
         data = r.json()
         if r.status_code < 200 or r.status_code > 202 or data["error"] :
             raise DeletionError(data["errorMessage"], data)
