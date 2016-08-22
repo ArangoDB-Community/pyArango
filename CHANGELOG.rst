@@ -1,3 +1,8 @@
+1.2.7
+=====
+
+* Fixed connection reuse
+
 1.2.6
 =====
 
