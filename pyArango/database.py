@@ -59,7 +59,7 @@ class Database(object) :
 
                 self.collections[colName] = colObj
         else :
-            raise updateError(data["errorMessage"], data)
+            raise UpdateError(data["errorMessage"], data)
 
     def reloadGraphs(self) :
         "reloads the graph list"
