@@ -57,7 +57,7 @@ This is the quickstart guide, you can find the full documentation here_.
 
 .. _here: http://pyArango.tariqdaouda.com
 
-Initiatilisation and document saving
+Initialization and document saving
 -------------------------------------
 
 .. code:: python
