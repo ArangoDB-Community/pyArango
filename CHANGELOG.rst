@@ -1,3 +1,8 @@
+1.2.8
+=====
+
+* BugFix: recursive field validation
+
 1.2.7
 =====
 

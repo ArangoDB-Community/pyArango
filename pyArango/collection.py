@@ -335,24 +335,29 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
                     return None
             return v
 
-        validators = _getValidators(cls, fieldName)
+        field = _getValidators(cls, fieldName)
 
-        if validators is None :
+        if field is None :
             if not cls._validation["allow_foreign_fields"] :
                 raise SchemaViolation(cls, fieldName)
         else :
-            return validators.validate(value)
+            return field.validate(value)
 
     @classmethod
     def validateDct(cls, dct) :
         "validates a dictionary. The dictionary must be defined such as {field: value}. If the validation is unsuccefull, raises an InvalidDocument"
-        def _validate(dct, res) :
+        def _validate(dct, res, parentsStr="") :
             for k, v in dct.items() :
+                if len(parentsStr) == 0 :
+                    ps = k
+                else :
+                    ps = "%s.%s" % (parentsStr, k)
+                
                 if type(v) is dict :
-                    _validate(v, res)
+                    _validate(v, res, ps)
                 elif k not in cls.arangoPrivates :
                     try :
-                        cls.validateField(k, v)
+                        cls.validateField(ps, v)
                     except (ValidationError, SchemaViolation) as e:
                         res[k] = str(e)
 
