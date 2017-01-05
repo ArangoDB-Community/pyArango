@@ -133,7 +133,9 @@ class AQLQuery(Query) :
     "AQL queries are attached to and instanciated by a database"
     def __init__(self, database, query, batchSize, bindVars, options, count, fullCount, rawResults = True,
                  json_encoder = None, **moreArgs) :
-        payload = {'query' : query, 'batchSize' : batchSize, 'bindVars' : bindVars, 'options' : options, 'count' : count, 'fullCount' : fullCount}
+        # fullCount is passed in the options dict per https://docs.arangodb.com/3.1/HTTP/AqlQueryCursor/AccessingCursors.html
+        options["fullCount"] = fullCount
+        payload = {'query' : query, 'batchSize' : batchSize, 'bindVars' : bindVars, 'options' : options, 'count' : count}
         payload.update(moreArgs)
 
         self.query = query
