@@ -36,10 +36,12 @@ class Length(Validator) :
         self.maxLen = maxLen
 
     def validate(self, value) :
-        if self.minLen <= len(value) and len(value) <= self.maxLen :
-            return True
-
-        raise ValidationError("Field must have a length in ['%s';'%s'] got: '%s'" % (self.minLen, self.maxLen, len(value)))
+        try:
+            if self.minLen <= len(value) and len(value) <= self.maxLen :
+                return True
+            raise ValidationError("Field must have a length in ['%s';'%s'] got: '%s'" % (self.minLen, self.maxLen, len(value)))
+        except Exception as e:
+            raise ValidationError("Invalid value: '%s' has no length" % value)
 
     def __str__(self) :
         return "%s[%s, %s]" % (self.__class__.__name__, self.minLen, self.maxLen)

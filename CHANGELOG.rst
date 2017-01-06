@@ -2,6 +2,9 @@
 =====
 
 * BugFix: recursive field validation
+* BugFix: fullCount option now works
+* Length validator will raise a ValidationError if value has no length
+* users can now specify custon json encoders
 
 1.2.7
 =====
