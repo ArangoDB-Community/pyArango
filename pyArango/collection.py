@@ -337,7 +337,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
         field = _getValidators(cls, fieldName)
 
-        if field is None :
+        if field is None and fieldName not in ("_id", "_key", "_rev", "_from", "_to") :
             if not cls._validation["allow_foreign_fields"] :
                 raise SchemaViolation(cls, fieldName)
         else :
@@ -427,16 +427,14 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         This function will return the number of documents, created and updated, and will raise an UpdateError exception if there's at least one error.
         params are any parameters from arango's documentation"""
         
-        try :
-            payload = json.dumps(docs)
-        except :
-            payload = []
-            for d in docs :
-                try:
-                    payload.append(d.toJson())
-                except Exception as e:
-                    payload.append(json.dumps(d))
+        payload = []
+        for d in docs :
+            try:
+                payload.append(d.toJson())
+            except Exception as e:
+                payload.append(json.dumps(d))
         payload = '\n'.join(payload)
+        # print payload
 
         params["type"] = "documents"
         params["onDuplicate"] = onDuplicate
