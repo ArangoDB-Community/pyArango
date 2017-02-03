@@ -71,6 +71,18 @@ class pyArangoTests(unittest.TestCase):
         self.assertRaises(DeletionError, self.db["to_be_erased"].delete)
 
     # @unittest.skip("stand by")
+    def test_bulkSave(self) :
+        collection = self.db.createCollection(name = "lops")
+        docs = []
+        for i in range(nbUsers) :
+            doc = collection.createDocument()
+            doc["name"] = "Tesla-%d" % i
+            docs.append(doc)
+
+        res = collection.bulkSave(docs)
+        self.assertEqual(res, 0)
+
+    # @unittest.skip("stand by")
     def test_edges_create_delete(self) :
         ed = self.db.createCollection(className = "Edges", name = "to_be_erased")
         col = self.db.createCollection(name = "to_be_erased_to")

@@ -1,3 +1,8 @@
+1.2.9
+=====
+
+* Added bulk import to connection
+
 1.2.8
 =====
 

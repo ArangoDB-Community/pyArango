@@ -20,28 +20,28 @@ class Document(object) :
         self._store = {}
         self._patchStore = {}
 
-        self._id, self._rev, self._key = None, None, None
+        # self._id, self._rev, self._key = None, None, None
         self.URL = None
 
         self.set(jsonFieldInit)
         self.modified = True
 
-    def setPrivates(self, fieldDict) :
-        """will set self._id, self._rev and self._key field. Private fields (starting by '_') are all accessed using the self. interface,
-        other fields are accessed through self[fielName], the same as regular dictionnary in python"""
-        try :
-            self._id = fieldDict["_id"]
-            self.URL = "%s/%s" % (self.documentsURL, self._id)
-            del(fieldDict["_id"])
+    # def setPrivates(self, fieldDict) :
+    #     """will set self._id, self._rev and self._key field. Private fields (starting by '_') are all accessed using the self. interface,
+    #     other fields are accessed through self[fielName], the same as regular dictionnary in python"""
+    #     try :
+    #         self._id = fieldDict["_id"]
+    #         self.URL = "%s/%s" % (self.documentsURL, self._id)
+    #         del(fieldDict["_id"])
 
-            self._rev = fieldDict["_rev"]
-            del(fieldDict["_rev"])
+    #         self._rev = fieldDict["_rev"]
+    #         del(fieldDict["_rev"])
 
-            self._key = fieldDict["_key"]
-            del(fieldDict["_key"])
-        except KeyError :
-            self._id, self._rev, self._key = None, None, None
-            self.URL = None
+    #         self._key = fieldDict["_key"]
+    #         del(fieldDict["_key"])
+    #     except KeyError :
+    #         self._id, self._rev, self._key = None, None, None
+    #         self.URL = None
 
     def set(self, fieldDict = None) :
         """Sets the document according to values contained in the dictinnary fieldDict. This will also set self._id/_rev/_key"""
@@ -173,6 +173,22 @@ class Document(object) :
         except AttributeError :
             raise AttributeError("%s does not seem to be a valid Edges object" % edges)
 
+    def toJson(self) :
+        """return a json string version of the document"""
+        return json.dumps(self._store)
+
+    def __getattribute__(self, k) :
+        if k in ("_id", "_key", "_rev") :
+            return self[k]
+        
+        return super(Document, self).__getattribute__(k)
+
+    def __setattr__(self, k, v) :
+        if k in ("_id", "_key", "_rev") :
+            self._store[k] = v
+
+        super(Document, self).__setattr__(k, v)
+
     def __getitem__(self, k) :
         """Document fields are accessed in a dictionary like fashion: doc[fieldName]. With the exceptions of private fiels (starting with '_')
         that are accessed as object fields: doc._key"""
@@ -202,6 +218,9 @@ class Document(object) :
         self._store[k] = v
         if self.URL is not None :
             self._patchStore[k] = self._store[k]
+
+        if k == "_id" :
+            self.URL = "%s/%s" % (self.documentsURL, v)
 
         self.modified = True
 
@@ -263,3 +282,4 @@ class Edge(Document) :
             return self._store[k]
         else :
             return Document.__getattr__(self, k)
+
