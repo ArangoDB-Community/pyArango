@@ -208,7 +208,7 @@ class Database(object) :
 
         data = r.json()
 
-        if r.status_code == 200 and not data["error"] :
+        if (r.status_code == 200 or r.status_code == 201 or r.status_code == 202) and not data["error"] :
             return data
         else :
             raise TransactionError(data["errorMessage"], action, data)
