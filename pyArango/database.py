@@ -120,7 +120,7 @@ class Database(object) :
         sid = _id.split("/")
         return self[sid[0]][sid[1]]
 
-    def createGraph(self, name, createCollections = True) :
+    def createGraph(self, name, createCollections = True, isSmart = False, numberOfShards = None, smartGraphAttribute = None) :
         """Creates a graph and returns it. 'name' must be the name of a class inheriting from Graph.
         You can decide weither or not you want non existing collections to be created by setting the value of 'createCollections'.
         If the value if 'false' checks will be performed to make sure that every collection mentionned in the edges definition exist. Raises a ValueError in case of
@@ -146,11 +146,21 @@ class Database(object) :
         if not createCollections :
             _checkCollectionList(graphClass._orphanedCollections)
 
+	options = {}
+	if numberOfShards:
+		options['numberOfShards'] = numberOfShards
+	if smartGraphAttribute:
+		options['smartGraphAttribute'] = smartGraphAttribute
+
         payload = {
                 "name": name,
                 "edgeDefinitions": ed,
-                "orphanCollections": graphClass._orphanedCollections
+                "orphanCollections": graphClass._orphanedCollections,
+		"isSmart": isSmart
             }
+
+	if options:
+		payload['options'] = options
 
         payload = json.dumps(payload)
         r = self.connection.session.post(self.graphsURL, data = payload)
