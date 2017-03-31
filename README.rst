@@ -126,7 +126,7 @@ from **Validator** and implement a **validate()** method.
 .. code:: python
 
   import pyArango.collection as COL
-  import pyArango.validator as VAL
+  import pyArango.validation as VAL
   from pyArango.theExceptions import ValidationError
   import types
 
