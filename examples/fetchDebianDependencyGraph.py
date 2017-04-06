@@ -4,7 +4,7 @@ from pyArango.connection import *
 from pyArango.graph import *
 from asciitree import *
 
-conn = Connection(username="root", password="")
+conn = Connection(username="USERNAME", password="SECRET")
 
 db = conn["ddependencyGrahp"]
 
