@@ -278,3 +278,22 @@ pyArango collections have a caching system for documents that performs insertion
 
  #disable the cache
  humans.deactivateCache()
+
+Examples
+========
+More examples can be found in the examples directory.
+To try them out change the connection strings according to your local setup.
+
+Debian Dependency Graph
+-----------------------
+If you are on a Debian / Ubuntu you can install packages with automatic dependency resolution.
+In the end this is a graph. This example parses debian package files using the `deb_pkg_tools`,
+and will then create vertices and edges from packages and their relations.
+
+Use `examples/debiangraph.py` to install it, or `examples/fetchDebianDependencyGraph.py` to browse
+it as an ascii tree.
+
+ArangoDB Social Graph
+---------------------
+You can create the `ArangoDB SocialGraph <https://docs.arangodb.com/latest/Manual/Graphs/#the-social-graph>`_ using `examples/createSocialGraph.py`.
+It resemples `The original ArangoDB Javascript implementation <https://github.com/arangodb/arangodb/blob/devel/js/common/modules/%40arangodb/graph-examples/example-graph.js#L56>`_ in python.
