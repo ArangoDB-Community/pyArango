@@ -52,7 +52,8 @@ class EdgeDefinition(object) :
     """An edge definition for a graph"""
 
     def __init__(self, edgesCollection, fromCollections, toCollections) :
-        self.edgesCollection = self.name = edgesCollection
+        self.name = edgesCollection
+        self.edgesCollection = edgesCollection
         self.fromCollections = fromCollections
         self.toCollections = toCollections
 
@@ -85,11 +86,28 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
         self._rev = jsonInit["_rev"]
         self._id = jsonInit["_id"]
 
+        orfs = set(self._orphanedCollections)
+        for o in jsonInit["orphanCollections"] :
+            if o not in orfs :
+                self._orphanedCollections.append(o)
+                if self.connection.verbose :
+                    print("Orphan collection %s is not in graph definition. Added it" % o)
+
         self.definitions = {}
+        edNames = set()
+        for ed in self._edgeDefinitions :
+            self.definitions[ed.edgesCollection] = ed.edgesCollection
+
+        for ed in jsonInit["edgeDefinitions"] :
+            if ed["collection"] not in self.definitions :
+                self.definitions[ed["collection"]] = EdgeDefinition(ed["collection"], fromCollections = ed["from"], toCollections = ed["to"])
+                if self.connection.verbose :
+                    print("Edge definition %s is not in graph definition. Added it" % ed)
+
         for de in self._edgeDefinitions :
-            if de.name not in self.database.collections and not COL.isEdgeCollection(de.name) :
-                raise KeyError("'%s' is not a valid edge collection" % de.name)
-            self.definitions[de.name] = de
+            if de.edgesCollection not in self.database.collections and not COL.isEdgeCollection(de.edgesCollection) :
+                raise KeyError("'%s' is not a valid edge collection" % de.edgesCollection)
+            self.definitions[de.edgesCollection] = de
 
         self.URL = "%s/%s" % (self.database.graphsURL, self._key)
 
