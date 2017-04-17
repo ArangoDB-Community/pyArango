@@ -41,7 +41,7 @@ class Query(object) :
         self.database = database
         self.connection = self.database.connection
         self.currI = 0
-        if request.status_code == 201 or request.status_code == 200:
+        if request.status_code == 201 or request.status_code == 200 or request.status_code == 202:
             self.batchNumber = 1
             try : #if there's only one element
                 self.response = {"result" : [self.response["document"]], 'hasMore' : False}
