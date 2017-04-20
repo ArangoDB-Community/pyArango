@@ -132,6 +132,7 @@ class Collection_metaclass(type) :
     _validationDefault = {
             'on_save' : False,
             'on_set' : False,
+            'on_load' : False,
             'allow_foreign_fields' : True
         }
 
@@ -217,6 +218,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
     _validation = {
         'on_save' : False,
         'on_set' : False,
+        'on_load' : False,
         'allow_foreign_fields' : True
     }
 

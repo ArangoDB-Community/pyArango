@@ -23,7 +23,11 @@ class Document(object) :
         self._id, self._rev, self._key = None, None, None
         self.URL = None
 
-        self.set(jsonFieldInit)
+        if not self.collection._validation['on_load']:
+            self.set(jsonFieldInit, validate=False)
+        else :
+            self.set(jsonFieldInit, validate=True)
+
         self.modified = True
 
     def setPrivates(self, fieldDict) :
@@ -43,11 +47,15 @@ class Document(object) :
             self._id, self._rev, self._key = None, None, None
             self.URL = None
 
-    def set(self, fieldDict = None) :
+    def set(self, fieldDict = None, validate = True) :
         """Sets the document according to values contained in the dictinnary fieldDict. This will also set self._id/_rev/_key"""
 
         if fieldDict and self._id is None :
             self.setPrivates(fieldDict)
+
+        if not validate :
+            self._store.update(fieldDict)
+            return
 
         if self.collection._validation['on_set']:
             for k in list(fieldDict.keys()) :
