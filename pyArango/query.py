@@ -34,7 +34,7 @@ class Query(object) :
 
         self.rawResults = rawResults
         self.response = request.json()
-        if self.response["error"] and self.response["errorMessage"] != "no match" :
+        if self.response.get("error") and self.response["errorMessage"] != "no match" :
             raise QueryError(self.response["errorMessage"], self.response)
 
         self.request = request
