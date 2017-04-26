@@ -50,7 +50,8 @@ class Query(object) :
                 pass
 
             if "hasMore" in self.response and self.response["hasMore"] :
-                self.cursor = RawCursor(self.database, self.id)
+		cursor_id = self.response.get("id","")
+                self.cursor = RawCursor(self.database, cursor_id)
             else :
                 self.cursor = None
         elif request.status_code == 404 :
