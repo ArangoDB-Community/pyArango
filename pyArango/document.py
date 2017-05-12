@@ -169,11 +169,13 @@ class DocumentStore(object) :
 class Document(object) :
     """The class that represents a document. Documents are meant to be instanciated by collections"""
 
-    def __init__(self, collection, jsonFieldInit = {}) :
+    def __init__(self, collection, jsonFieldInit = None) :
         self.typeName = "ArangoDoc"
         self.reset(collection, jsonFieldInit)
 
-    def reset(self, collection, jsonFieldInit = {}) :
+    def reset(self, collection, jsonFieldInit = None) :
+        if not jsonFieldInit:
+            jsonFieldInit = {}
         """replaces the current values in the document by those in jsonFieldInit"""
         self.collection = collection
         self.connection = self.collection.connection
@@ -362,11 +364,15 @@ class Document(object) :
 
 class Edge(Document) :
     """An Edge document"""
-    def __init__(self, edgeCollection, jsonFieldInit = {}) :
+    def __init__(self, edgeCollection, jsonFieldInit = None) :
+        if not jsonFieldInit:
+            return {}
         self.typeName = "ArangoEdge"
         self.reset(edgeCollection, jsonFieldInit)
 
-    def reset(self, edgeCollection, jsonFieldInit = {}) :
+    def reset(self, edgeCollection, jsonFieldInit=None) :
+        if not jsonFieldInit:
+            jsonFieldInit = {}
         Document.reset(self, edgeCollection, jsonFieldInit)
 
     def setPrivates(self, fieldDict) :

@@ -558,8 +558,10 @@ class Edges(Collection) :
                 raise e
         return valValue
 
-    def createEdge(self, initValues = {}) :
+    def createEdge(self, initValues = None) :
         "alias for createDocument, both functions create an edge"
+        if not initValues:
+            initValues = {}
         return self.createDocument(initValues)
 
     def getInEdges(self, vertex, rawResults = False) :

@@ -2,7 +2,9 @@ from .theExceptions import ConnectionError, CreationError, DeletionError, Update
 
 class User(object) :
     """This class represents a user"""
-    def __init__(self, users, jsonData = {}) :
+    def __init__(self, users, jsonData=None) :
+        if not jsonData:
+            jsonData = {}
         self._store = {}
         self.users = users
         self.connection = self.users.connection
@@ -47,7 +49,7 @@ class User(object) :
         payload = json.dumps(payload)
         if not self.URL :
             if "username" not in self._store or "password" not in self._store :
-                raise KeyError("You must define self['name'] and self['password'] to be able to create a new user")    
+                raise KeyError("You must define self['name'] and self['password'] to be able to create a new user")
 
             r = self.connection.session.post(self.users.URL, data = payload)
             data = r.json()
