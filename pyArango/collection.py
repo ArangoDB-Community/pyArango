@@ -1,10 +1,8 @@
-import json
-import types
 from future.utils import with_metaclass
 from . import consts as CONST
 
 from .document import Document, Edge
-from .theExceptions import ValidationError, SchemaViolation, CreationError, UpdateError, DeletionError, InvalidDocument
+from .theExceptions import ValidationError, SchemaViolation, CreationError, DeletionError, InvalidDocument, DocumentNotFoundError
 from .query import SimpleQuery
 from .index import Index
 
@@ -110,13 +108,13 @@ class DocumentCache(object) :
 class Field(object) :
     """The class for defining pyArango fields."""
     def __init__(self, validators=None) :
+        """validators must be a list of validators"""
         if not validators:
             validators = []
-        "validators must be a list of validators"
         self.validators = validators
 
     def validate(self, value) :
-        "checks the validity of 'value' given the lits of validators"
+        """checks the validity of 'value' given the lits of validators"""
         for v in self.validators :
             v.validate(value)
         return True
@@ -209,7 +207,7 @@ def isEdgeCollection(name) :
     return Collection_metaclass.isEdgeCollection(name)
 
 def getCollectionClasses() :
-    "returns a dictionary of all defined collection classes"
+    """returns a dictionary of all defined collection classes"""
     return Collection_metaclass.collectionClasses
 
 class Collection(with_metaclass(Collection_metaclass, object)) :
@@ -258,7 +256,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         return self.indexes
 
     def activateCache(self, cacheSize) :
-        "Activate the caching system. Cached documents are only available through the __getitem__ interface"
+        """Activate the caching system. Cached documents are only available through the __getitem__ interface"""
         self.documentCache = DocumentCache(cacheSize)
 
     def deactivateCache(self) :
@@ -266,14 +264,14 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         self.documentCache = None
 
     def delete(self) :
-        "deletes the collection from the database"
+        """deletes the collection from the database"""
         r = self.connection.session.delete(self.URL)
         data = r.json()
         if not r.status_code == 200 or data["error"] :
             raise DeletionError(data["errorMessage"], data)
 
     def createDocument(self, initValues = None) :
-        "create and returns a document"
+        """create and returns a document"""
         if initValues is None :
             initV = {}
         else :
@@ -330,7 +328,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
             "fields" : fields,
         }
         if minLength is not None :
-            data["minLength"] =  minLength
+            data["minLength"] = minLength
 
         ind = Index(self, creationData = data)
         self.indexes["fulltext"][ind.infos["id"]] = ind
@@ -396,7 +394,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
     @classmethod
     def hasField(cls, fieldName) :
-        "returns True/False wether the collection has field K in it's schema. Use the dot notation for the nested fields: address.street"
+        """returns True/False wether the collection has field K in it's schema. Use the dot notation for the nested fields: address.street"""
         path = fieldName.split(".")
         v = cls._fields
         for k in path :
@@ -414,15 +412,18 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
             r = self.connection.session.get(url, params = {'rev' : rev})
         else :
             r = self.connection.session.get(url)
-        if (r.status_code - 400) < 0 :
+
+        if r.status_code < 400 :
             if rawResults :
                 return r.json()
             return self.documentClass(self, r.json())
+        elif r.status_code == 404 :
+            raise DocumentNotFoundError("Unable to find document with _key: %s" % key, r.json())
         else :
-            raise KeyError("Unable to find document with _key: %s" % key, r.json())
+            raise Exception("Unable to find document with _key: %s, response: %s" % key, r.json())
 
     def fetchByExample(self, exampleDict, batchSize, rawResults = False, **queryArgs) :
-        "exampleDict should be something like {'age' : 28}"
+        """exampleDict should be something like {'age': 28}"""
         return self.simpleQuery('by-example', rawResults, example = exampleDict, batchSize = batchSize, **queryArgs)
 
     def fetchFirstExample(self, exampleDict, rawResults = False) :
@@ -443,25 +444,25 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         return SimpleQuery(self, queryType, rawResults, **queryArgs)
 
     def action(self, method, action, **params) :
-        "a generic fct for interacting everything that doesn't have an assigned fct"
+        """a generic fct for interacting everything that doesn't have an assigned fct"""
         fct = getattr(self.connection.session, method.lower())
         r = fct(self.URL + "/" + action, params = params)
         return r.json()
 
     def truncate(self) :
-        "deletes every document in the collection"
+        """deletes every document in the collection"""
         return self.action('PUT', 'truncate')
 
     def empty(self) :
-        "alias for truncate"
+        """alias for truncate"""
         return self.truncate()
 
     def load(self) :
-        "loads collection in memory"
+        """loads collection in memory"""
         return self.action('PUT', 'load')
 
     def unload(self) :
-        "unloads collection from memory"
+        """unloads collection from memory"""
         return self.action('PUT', 'unload')
 
     def revision(self) :
@@ -489,7 +490,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
     #     self.createCollection(className, **colArgs)
 
     def getType(self) :
-        "returns a word describing the type of the collection (edges or ducments) instead of a number, if you prefer the number it's in self.type"
+        """returns a word describing the type of the collection (edges or ducments) instead of a number, if you prefer the number it's in self.type"""
         if self.type == CONST.COLLECTION_DOCUMENT_TYPE :
             return "document"
         elif self.type == CONST.COLLECTION_EDGE_TYPE :
@@ -498,7 +499,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
             raise ValueError("The collection is of Unknown type %s" % self.type)
 
     def getStatus(self) :
-        "returns a word describing the status of the collection (loaded, loading, deleted, unloaded, newborn) instead of a number, if you prefer the number it's in self.status"
+        """returns a word describing the status of the collection (loaded, loading, deleted, unloaded, newborn) instead of a number, if you prefer the number it's in self.status"""
         if self.status == CONST.COLLECTION_LOADING_STATUS :
             return "loading"
         elif self.status == CONST.COLLECTION_LOADED_STATUS :
@@ -520,7 +521,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         return "ArangoDB collection name: %s, id: %s, type: %s, status: %s" % (self.name, self.id, self.getType(), self.getStatus())
 
     def __getitem__(self, key) :
-        "returns a document from the cache. If it's not there, fetches it from the db and caches it first. If the cache is not activated this is equivalent to fetchDocument( rawResults = False)"
+        """returns a document from the cache. If it's not there, fetches it from the db and caches it first. If the cache is not activated this is equivalent to fetchDocument( rawResults=False)"""
         if self.documentCache is None :
             return self.fetchDocument(key, rawResults = False)
         try :
@@ -531,17 +532,17 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         return doc
 
 class SystemCollection(Collection) :
-    "for all collections with isSystem = True"
+    """for all collections with isSystem = True"""
     def __init__(self, database, jsonData) :
         Collection.__init__(self, database, jsonData)
 
 class Edges(Collection) :
-    "The default edge collection. All edge Collections must inherit from it"
+    """The default edge collection. All edge Collections must inherit from it"""
 
     arangoPrivates = ["_id", "_key", "_rev", "_to", "_from"]
 
     def __init__(self, database, jsonData) :
-        "This one is meant to be called by the database"
+        """This one is meant to be called by the database"""
         Collection.__init__(self, database, jsonData)
         self.documentClass = Edge
         self.edgesURL = "%s/edges/%s" % (self.database.URL, self.name)
@@ -561,17 +562,17 @@ class Edges(Collection) :
         return valValue
 
     def createEdge(self, initValues = None) :
-        "alias for createDocument, both functions create an edge"
+        """alias for createDocument, both functions create an edge"""
         if not initValues:
             initValues = {}
         return self.createDocument(initValues)
 
     def getInEdges(self, vertex, rawResults = False) :
-        "An alias for getEdges() that returns only the in Edges"
+        """An alias for getEdges() that returns only the in Edges"""
         return self.getEdges(vertex, inEdges = True, outEdges = False, rawResults = rawResults)
 
     def getOutEdges(self, vertex, rawResults = False) :
-        "An alias for getEdges() that returns only the out Edges"
+        """An alias for getEdges() that returns only the out Edges"""
         return self.getEdges(vertex, inEdges = False, outEdges = True, rawResults = rawResults)
 
     def getEdges(self, vertex, inEdges = True, outEdges = True, rawResults = False) :
@@ -606,4 +607,3 @@ class Edges(Collection) :
                 return data["edges"]
         else :
             raise CreationError("Unable to return edges for vertex: %s" % vId, data)
-
