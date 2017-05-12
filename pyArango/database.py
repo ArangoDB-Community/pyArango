@@ -195,9 +195,9 @@ class Database(object) :
 
     def validateAQLQuery(self, query, bindVars=None, options=None) :
         "returns the server answer is the query is valid. Raises an AQLQueryError if not"
-        if not bindVars:
+        if bindVars is None:
             bindVars = {}
-        if not options:
+        if options is None:
             options = {}
         payload = {'query' : query, 'bindVars' : bindVars, 'options' : options}
         r = self.connection.session.post(self.cursorsURL, data = json.dumps(payload))

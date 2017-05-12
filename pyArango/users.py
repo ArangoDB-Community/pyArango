@@ -3,7 +3,7 @@ from .theExceptions import ConnectionError, CreationError, DeletionError, Update
 class User(object) :
     """This class represents a user"""
     def __init__(self, users, jsonData=None) :
-        if not jsonData:
+        if jsonData is None:
             jsonData = {}
         self._store = {}
         self.users = users

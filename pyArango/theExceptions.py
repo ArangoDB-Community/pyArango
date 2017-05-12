@@ -2,7 +2,7 @@ class pyArangoException(Exception):
     """The calss from witch all Exceptions inherit"""
     def __init__(self, message, errors=None):
         Exception.__init__(self, message)
-        if not errors:
+        if errors is None:
             errors = {}
         self.message = message
         self.errors = errors
@@ -13,7 +13,7 @@ class pyArangoException(Exception):
 class ConnectionError(pyArangoException):
     """Something went wrong with the connection"""
     def __init__(self, message, URL, statusCode="", errors=None):
-        if not errors:
+        if errors is None:
             errors = {}
         mes = "%s. URL: %s, status: %s" % (message, URL, statusCode)
         pyArangoException.__init__(self, mes, errors)
@@ -21,42 +21,42 @@ class ConnectionError(pyArangoException):
 class CreationError(pyArangoException):
     """Something went wrong when creating something"""
     def __init__(self, message, errors=None):
-        if not errors:
+        if errors is None:
             errors = {}
         pyArangoException.__init__(self, message, errors)
 
 class UpdateError(pyArangoException):
     """Something went wrong when updating something"""
     def __init__(self, message, errors=None):
-        if not errors:
+        if errors is None:
             errors = {}
         pyArangoException.__init__(self, message, errors)
 
 class DeletionError(pyArangoException):
     """Something went wrong when deleting something"""
     def __init__(self, message, errors=None):
-        if not errors:
+        if errors is None:
             errors = {}
         pyArangoException.__init__(self, message, errors)
 
 class TraversalError(pyArangoException):
     """Something went wrong when doing a graph traversal"""
     def __init__(self, message, errors=None):
-        if not errors:
+        if errors is None:
             errors = {}
         pyArangoException.__init__(self, message, errors)
 
 class ValidationError(pyArangoException):
     """Something went wrong when validating something"""
     def __init__(self, message, errors=None):
-        if not errors:
+        if errors is None:
             errors = {}
         pyArangoException.__init__(self, message, errors)
 
 class SchemaViolation(pyArangoException):
     """Raised when someone tries to add a new field to an object belonging a to a Collection with enforced schema"""
     def __init__(self, collection, field, errors=None):
-        if not errors:
+        if errors is None:
             errors = {}
         message = "Collection '%s' does not have a field '%s' in it's schema" % (collection.__name__, field)
         pyArangoException.__init__(self, message, errors)
@@ -82,21 +82,21 @@ class InvalidDocument(pyArangoException):
 class SimpleQueryError(pyArangoException):
     """Something went wrong with a simple query"""
     def __init__(self, message, errors=None):
-        if not errors:
+        if errors is None:
             errors = {}
         pyArangoException.__init__(self, message, errors)
 
 class QueryError(pyArangoException):
     """Something went wrong with an aql query"""
     def __init__(self, message, errors=None):
-        if not errors:
+        if errors is None:
             errors = {}
         pyArangoException.__init__(self, message, errors)
 
 class AQLQueryError(pyArangoException):
     """Something went wrong with an aql query"""
     def __init__(self, message, query, errors=None):
-        if not errors:
+        if errors is None:
             errors = {}
         message = "Error in: %s.\n->%s" % (query, message)
         pyArangoException.__init__(self, message, errors)
@@ -104,7 +104,7 @@ class AQLQueryError(pyArangoException):
 class CursorError(pyArangoException):
     """Something went wrong when trying to fetch data with a cursor"""
     def __init__(self, message, cursorId, errors=None):
-        if not errors:
+        if errors is None:
             errors = {}
         message = "Unable to retreive data for cursor %s: %s" % (cursorId, message)
         pyArangoException.__init__(self, message, errors)
@@ -112,7 +112,7 @@ class CursorError(pyArangoException):
 class TransactionError(pyArangoException):
     """Something went wrong with a transaction"""
     def __init__(self, message, action, errors=None):
-        if not errors:
+        if errors is None:
             errors = {}
         message = "Error in: %s.\n->%s" % (action, message)
         pyArangoException.__init__(self, message, errors)
@@ -129,6 +129,6 @@ class AbstractInstanciationError(Exception):
 
 class DocumentNotFoundError(pyArangoException):
     def __init__(self, message, errors=None):
-        if not errors:
+        if errors is None:
             errors = {}
         pyArangoException.__init__(self, message, errors)
