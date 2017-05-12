@@ -109,7 +109,9 @@ class DocumentCache(object) :
 
 class Field(object) :
     """The class for defining pyArango fields."""
-    def __init__(self, validators = []) :
+    def __init__(self, validators=None) :
+        if not validators:
+            validators = []
         "validators must be a list of validators"
         self.validators = validators
 
