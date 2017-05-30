@@ -78,19 +78,20 @@ class pyArangoTests(unittest.TestCase):
         d1 = col.createDocument()
         d1["name"] = "tesla"
         d1.save()
-
+        
         d2 = col.createDocument()
         d2["name"] = "tesla2"
         d2.save()
-
+        
         d3 = col.createDocument()
         d3["name"] = "tesla3"
         d3.save()
 
         self.db.reloadCollections()
         ed = self.db.collections["to_be_erased"]
-        e1 = ed.createEdge({"name": 'tesla'})
+        e1 = ed.createEdge({"name": 'tesla-edge'})
         e1.links(d1, d2)
+        
         e2 = ed.createEdge()
         e2.links(d1, d3)
         self.assertEqual(2, ed.count())
@@ -334,8 +335,7 @@ class pyArangoTests(unittest.TestCase):
 
         doc = myCol.createDocument()
         doc["str"] = "string"
-        doc["foreigner"] = "string"
-        self.assertRaises(InvalidDocument,  doc.save)
+        self.assertRaises(SchemaViolation,  doc.__setitem__, "foreigner", "string")
 
         doc = myCol.createDocument()
         doc["nestedStr"] = {}

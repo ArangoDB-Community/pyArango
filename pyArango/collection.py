@@ -270,9 +270,14 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         if not r.status_code == 200 or data["error"] :
             raise DeletionError(data["errorMessage"], data)
 
-    def createDocument(self, initValues = {}) :
+    def createDocument(self, initValues = None) :
         "create and returns a document"
-        return self.documentClass(self, initValues)
+        if initValues is None :
+            initV = {}
+        else :
+            initV = initValues
+
+        return self.documentClass(self, initV)
 
     def ensureHashIndex(self, fields, unique = False, sparse = True) :
         """Creates a hash index if it does not already exist, and returns it"""
@@ -321,54 +326,54 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         self.indexes["fulltext"][ind.infos["id"]] = ind
         return ind
 
-    @classmethod
-    def validateField(cls, fieldName, value) :
-        """checks if 'value' is valid for field 'fieldName'. If the validation is unsuccessful, raises a SchemaViolation or a ValidationError.
-        for nested dicts ex: {address : { street: xxx} }, fieldName can take the form address.street
-        """
+    # @classmethod
+    # def validateField(cls, fieldName, value) :
+    #     """checks if 'value' is valid for field 'fieldName'. If the validation is unsuccessful, raises a SchemaViolation or a ValidationError.
+    #     for nested dicts ex: {address : { street: xxx} }, fieldName can take the form address.street
+    #     """
 
-        def _getValidators(cls, fieldName) :
-            path = fieldName.split(".")
-            v = cls._fields
-            for k in path :
-                try :
-                    v = v[k]
-                except KeyError :
-                    return None
-            return v
+    #     def _getValidators(cls, fieldName) :
+    #         path = fieldName.split(".")
+    #         v = cls._fields
+    #         for k in path :
+    #             try :
+    #                 v = v[k]
+    #             except KeyError :
+    #                 return None
+    #         return v
 
-        field = _getValidators(cls, fieldName)
+    #     field = _getValidators(cls, fieldName)
 
-        if field is None :
-            if not cls._validation["allow_foreign_fields"] :
-                raise SchemaViolation(cls, fieldName)
-        else :
-            return field.validate(value)
+    #     if field is None :
+    #         if not cls._validation["allow_foreign_fields"] :
+    #             raise SchemaViolation(cls, fieldName)
+    #     else :
+    #         return field.validate(value)
 
-    @classmethod
-    def validateDct(cls, dct) :
-        "validates a dictionary. The dictionary must be defined such as {field: value}. If the validation is unsuccefull, raises an InvalidDocument"
-        def _validate(dct, res, parentsStr="") :
-            for k, v in dct.items() :
-                if len(parentsStr) == 0 :
-                    ps = k
-                else :
-                    ps = "%s.%s" % (parentsStr, k)
+    # @classmethod
+    # def validateDct(cls, dct) :
+    #     "validates a dictionary. The dictionary must be defined such as {field: value}. If the validation is unsuccefull, raises an InvalidDocument"
+    #     def _validate(dct, res, parentsStr="") :
+    #         for k, v in dct.items() :
+    #             if len(parentsStr) == 0 :
+    #                 ps = k
+    #             else :
+    #                 ps = "%s.%s" % (parentsStr, k)
                 
-                if type(v) is dict :
-                    _validate(v, res, ps)
-                elif k not in cls.arangoPrivates :
-                    try :
-                        cls.validateField(ps, v)
-                    except (ValidationError, SchemaViolation) as e:
-                        res[k] = str(e)
+    #             if type(v) is dict :
+    #                 _validate(v, res, ps)
+    #             elif k not in cls.arangoPrivates :
+    #                 try :
+    #                     cls.validateField(ps, v)
+    #                 except (ValidationError, SchemaViolation) as e:
+    #                     res[k] = str(e)
 
-        res = {}
-        _validate(dct, res)
-        if len(res) > 0 :
-            raise InvalidDocument(res)
+    #     res = {}
+    #     _validate(dct, res)
+    #     if len(res) > 0 :
+    #         raise InvalidDocument(res)
 
-        return True
+    #     return True
 
     @classmethod
     def hasField(cls, fieldName) :

@@ -49,15 +49,19 @@ class InvalidDocument(pyArangoException) :
     """Raised when a Document does not respect schema/validation defined in its collection"""
     def __init__(self, errors) :
         message = "Unsuccesful validation"
-        self.strErrors = []
-        for k, v in errors.items() :
-            self.strErrors.append("%s -> %s" % (k, v))
-        self.strErrors = '\n\t'.join(self.strErrors)
-
+        self.errors = errors
         pyArangoException.__init__(self, message, errors)
 
     def __str__(self) :
-        return self.message + ":\n\t" + self.strErrors
+        self.rors = []
+        for k, v in self.errors.items() :
+            strErrors.append("%s -> %s" % (k, v))
+        strErrors = '\n\t'.join(strErrors)
+        return self.message + ":\n\t" + strErrors
+
+    def add(self, errors) :
+        """add more errors"""
+        self.errors.update(errors)
 
 class SimpleQueryError(pyArangoException) :
     """Something went wrong with a simple query"""
