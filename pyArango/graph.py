@@ -3,6 +3,7 @@ from future.utils import with_metaclass
 
 from .theExceptions import (CreationError, DeletionError, UpdateError, TraversalError)
 from . import collection as COL
+from . import document as DOC
 
 __all__ = ["Graph", "getGraphClass", "isGraph", "getGraphClasses", "Graph_metaclass", "EdgeDefinition"]
 
@@ -114,7 +115,10 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
     def createVertex(self, collectionName, docAttributes, waitForSync = False) :
         """adds a vertex to the graph and returns it"""
         url = "%s/vertex/%s" % (self.URL, collectionName)
-        self.database[collectionName].validateDct(docAttributes)
+
+        store = DOC.DocumentStore(self.database[collectionName], validators=self.database[collectionName]._fields, initDct=docAttributes)
+        # self.database[collectionName].validateDct(docAttributes)
+        store.validate()
 
         r = self.connection.session.post(url, data = json.dumps(docAttributes), params = {'waitForSync' : waitForSync})
 
@@ -142,7 +146,10 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
             raise KeyError("'%s' is not among the edge definitions" % collectionName)
 
         url = "%s/edge/%s" % (self.URL, collectionName)
-        self.database[collectionName].validateDct(edgeAttributes)
+        # self.database[collectionName].validateDct(edgeAttributes)
+        store = DOC.DocumentStore(self.database[collectionName], validators=self.database[collectionName]._fields, initDct=edgeAttributes)
+        store.validate()
+        
         payload = edgeAttributes
         payload.update({'_from' : _fromId, '_to' : _toId})
 
@@ -150,6 +157,7 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
         data = r.json()
         if r.status_code == 201 or r.status_code == 202 :
             return self.database[collectionName][data["edge"]["_key"]]
+        # print "\n", data, payload, _fromId
         raise CreationError("Unable to create edge, %s" % r.json()["errorMessage"], data)
 
     def link(self, definition, doc1, doc2, edgeAttributes, waitForSync = False) :

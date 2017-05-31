@@ -2,11 +2,11 @@ import json, types
 
 from .theExceptions import (CreationError, DeletionError, UpdateError, ValidationError, SchemaViolation, InvalidDocument)
 
-__all__ = ["Document", "Edge"]
+__all__ = ["DocumentStore", "Document", "Edge"]
 
-class Store(object) :
+class DocumentStore(object) :
     
-    def __init__(self, collection, validators={}, initDct={}, patch=False) :
+    def __init__(self, collection, validators={}, initDct={}, patch=False, subStore=False) :
         self.store = {}
         self.patchStore = {}
         self.collection = collection
@@ -18,15 +18,15 @@ class Store(object) :
                 self.mustValidate = True
                 break
         
-        self.privates = set(["_to", "_from", "_id", "_key", "_rev"])
+        self.isSubStore = subStore
         self.subStores = {}
+        # self.privates = set(["_to", "_from", "_id", "_key", "_rev"])
         self.set(initDct, patch)
 
     def resetPatch(self) :
         self.patchStore = {}
 
     def getPatches(self) :
-
         #inner dct are not trackable. Return the full store
         if not self.mustValidate :
             return self.getStore()
@@ -51,7 +51,7 @@ class Store(object) :
             raise SchemaViolation(self.collection.__class__, field)
 
         if field in self.validators :
-            if self[field].__class__ is Store :
+            if self[field].__class__ is DocumentStore :
                 return self[field].validate()
             
             if field in self.patchStore :
@@ -69,7 +69,7 @@ class Store(object) :
         for k in self.store.keys() :
             try :
                 self.validateField(k)
-                if self.store[k].__class__ is Store :
+                if self.store[k].__class__ is DocumentStore :
                     self.store[k].validate()
             except InvalidDocument as e :
                 res.update(e.errors)
@@ -89,9 +89,9 @@ class Store(object) :
 
         for field, validator in self.validators.items() :
             if field in dct :
-                if type(validator) is DictType or dct[field] is DictType :
-                    if type(validator) is DictType and dct[field] is DictType :
-                        self.store[field] = Store(self.collection, validators = self.validators[field], initDct = dct[field], patch = patch)
+                if type(validator) is types.DictType or dct[field] is types.DictType :
+                    if type(validator) is types.DictType and dct[field] is types.DictType :
+                        self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = dct[field], patch = patch, subStore=True)
                         self.subStores[field] = self.store[field]
                     else :
                         raise SchemaViolation(self.collection.__class__, field)
@@ -101,8 +101,14 @@ class Store(object) :
                         self.patchStore[field] = self.store[field]
             else :
                 if type(validator) is types.DictType :
-                    self.store[field] = Store(self.collection, validators = self.validators[field], initDct = {})
+                    self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, subStore=True)
                     self.subStores[field] = self.store[field]
+
+    # def setPrivates(self, dct) :
+    #     for k, v in dct.items() :
+    #         if k not in self.privates :
+    #             raise ValueError("%s is not among privates" % k)
+    #         self[k] = v
 
     def __getitem__(self, k) :
         if self.collection._validation['allow_foreign_fields'] or self.collection.hasField(k) :
@@ -119,7 +125,8 @@ class Store(object) :
         
         if field in self.validators and type(self.validators[field]) is types.DictType :
             if type(value) is types.DictType :
-                self.store[field] = Store(self.collection, validators = self.validators[field], initDct = value, patch=True)
+                self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = value, patch=True, subStore=True)
+                self.subStores[field] = self.store[field]
             else :
                 raise ValueError("dct not dct")
         else :
@@ -154,15 +161,15 @@ class Document(object) :
 
         # self._store = {}
         # self._patchStore = {}
-        self._store = Store(self.collection, validators=self.collection._fields, initDct=jsonFieldInit)
+        self._store = DocumentStore(self.collection, validators=self.collection._fields, initDct=jsonFieldInit)
         
         if self.collection._validation['on_load']:
             self._store.validate()
 
+        # self.privateNames = set([])
         self._id, self._rev, self._key = None, None, None
         self.URL = None
 
-        
         self.modified = True
 
     def setPrivates(self, fieldDict) :
@@ -326,6 +333,13 @@ class Document(object) :
     def __getitem__(self, k) :
         return self._store[k]
 
+    def __getattr__(self, k) :
+        store = object.__getattribute__(self, "_store")
+        # print store
+        if k in store.privates :
+            return store[k]
+        else :
+            raise AttributeError("%s has not attribute %s" %(self.__class__, k))
 
     # def __getitem__(self, k) :
     #     """Document fields are accessed in a dictionary like fashion: doc[fieldName]. With the exceptions of private fiels (starting with '_')

@@ -298,7 +298,7 @@ class pyArangoTests(unittest.TestCase):
         myCol = self.db.createCollection('Col_on_set')
         doc = myCol.createDocument()
         self.assertRaises(ValidationError, doc.__setitem__, 'str', "qwer")
-        self.assertRaises(ValidationError, doc.__setitem__, 'nestedStr.str', "qwer")
+        self.assertRaises(ValidationError, doc["nestedStr"].__setitem__, 'str', "qwer")
         self.assertRaises(ValidationError, doc.__setitem__, 'notNull', None)
         self.assertRaises(SchemaViolation, doc.__setitem__, 'foreigner', None)
 
