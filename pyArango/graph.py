@@ -142,11 +142,16 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
     def createEdge(self, collectionName, _fromId, _toId, edgeAttributes, waitForSync = False) :
         """creates an edge between two documents"""
 
+        if not _fromId :
+            raise ValueError("Invalid _fromId: %s" % _fromId)
+
+        if not _toId :
+            raise ValueError("Invalid _toId: %s" % _toId)
+
         if collectionName not in self.definitions :
             raise KeyError("'%s' is not among the edge definitions" % collectionName)
 
         url = "%s/edge/%s" % (self.URL, collectionName)
-        # self.database[collectionName].validateDct(edgeAttributes)
         store = DOC.DocumentStore(self.database[collectionName], validators=self.database[collectionName]._fields, initDct=edgeAttributes)
         store.validate()
         
@@ -157,11 +162,14 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
         data = r.json()
         if r.status_code == 201 or r.status_code == 202 :
             return self.database[collectionName][data["edge"]["_key"]]
-        # print "\n", data, payload, _fromId
+        # print "\ngraph 160, ", data, payload, _fromId
         raise CreationError("Unable to create edge, %s" % r.json()["errorMessage"], data)
 
     def link(self, definition, doc1, doc2, edgeAttributes, waitForSync = False) :
         "A shorthand for createEdge that takes two documents as input"
+        if not doc1._id : doc1.save()
+        if not doc2._id : doc2.save()
+
         return self.createEdge(definition, doc1._id, doc2._id, edgeAttributes, waitForSync)
 
     def unlink(self, definition, doc1, doc2) :

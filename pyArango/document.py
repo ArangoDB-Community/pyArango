@@ -4,6 +4,9 @@ from .theExceptions import (CreationError, DeletionError, UpdateError, Validatio
 
 __all__ = ["DocumentStore", "Document", "Edge"]
 
+class GLOBAL(object) :
+    PRIVATES = set(["_to", "_from", "_id", "_key", "_rev"])
+
 class DocumentStore(object) :
     
     def __init__(self, collection, validators={}, initDct={}, patch=False, subStore=False) :
@@ -20,7 +23,6 @@ class DocumentStore(object) :
         
         self.isSubStore = subStore
         self.subStores = {}
-        # self.privates = set(["_to", "_from", "_id", "_key", "_rev"])
         self.set(initDct, patch)
 
     def resetPatch(self) :
@@ -87,28 +89,24 @@ class DocumentStore(object) :
             self.patchStore = dct
             return
 
-        for field, validator in self.validators.items() :
-            if field in dct :
-                if type(validator) is types.DictType or dct[field] is types.DictType :
-                    if type(validator) is types.DictType and dct[field] is types.DictType :
-                        self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = dct[field], patch = patch, subStore=True)
-                        self.subStores[field] = self.store[field]
+        for field in dct :
+            if field not in GLOBAL.PRIVATES :
+                if field in self.validators :
+                    validator = self.validators[field]
+                    if type(validator) is types.DictType or dct[field] is types.DictType :
+                        if type(validator) is types.DictType and dct[field] is types.DictType :
+                            self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = dct[field], patch = patch, subStore=True)
+                            self.subStores[field] = self.store[field]
+                        else :
+                            raise SchemaViolation(self.collection.__class__, field)
                     else :
-                        raise SchemaViolation(self.collection.__class__, field)
+                        self.store[field] = dct[field]
+                        if patch :
+                            self.patchStore[field] = self.store[field]
                 else :
-                    self.store[field] = dct[field]
-                    if patch :
-                        self.patchStore[field] = self.store[field]
-            else :
-                if type(validator) is types.DictType :
-                    self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, subStore=True)
-                    self.subStores[field] = self.store[field]
-
-    # def setPrivates(self, dct) :
-    #     for k, v in dct.items() :
-    #         if k not in self.privates :
-    #             raise ValueError("%s is not among privates" % k)
-    #         self[k] = v
+                    if type(validator) is types.DictType :
+                        self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, subStore=True)
+                        self.subStores[field] = self.store[field]
 
     def __getitem__(self, k) :
         if self.collection._validation['allow_foreign_fields'] or self.collection.hasField(k) :
@@ -150,8 +148,8 @@ class Document(object) :
     """The class that represents a document. Documents are meant to be instanciated by collections"""
 
     def __init__(self, collection, jsonFieldInit = {}) :
-        self.reset(collection, jsonFieldInit)
         self.typeName = "ArangoDoc"
+        self.reset(collection, jsonFieldInit)
 
     def reset(self, collection, jsonFieldInit = {}) :
         """replaces the current values in the document by those in jsonFieldInit"""
@@ -159,70 +157,54 @@ class Document(object) :
         self.connection = self.collection.connection
         self.documentsURL = self.collection.documentsURL
 
-        # self._store = {}
-        # self._patchStore = {}
+        self.setPrivates(jsonFieldInit)
         self._store = DocumentStore(self.collection, validators=self.collection._fields, initDct=jsonFieldInit)
-        
         if self.collection._validation['on_load']:
-            self._store.validate()
-
-        # self.privateNames = set([])
-        self._id, self._rev, self._key = None, None, None
-        self.URL = None
+            self.validate()
 
         self.modified = True
+
+    def validate(self) :
+        self._store.validate()
+        for pField in GLOBAL.PRIVATES :
+            if pField in self.collection._fields :
+                self.collection._fields[pField].validate(getattr(self, pField))
 
     def setPrivates(self, fieldDict) :
         """will set self._id, self._rev and self._key field. Private fields (starting by '_') are all accessed using the self. interface,
         other fields are accessed through self[fielName], the same as regular dictionnary in python"""
+        # print fieldDict
         try :
             self._id = fieldDict["_id"]
             self.URL = "%s/%s" % (self.documentsURL, self._id)
-            del(fieldDict["_id"])
-
+            
             self._rev = fieldDict["_rev"]
-            del(fieldDict["_rev"])
-
+            
             self._key = fieldDict["_key"]
-            del(fieldDict["_key"])
         except KeyError :
             self._id, self._rev, self._key = None, None, None
             self.URL = None
-
+        
     def set(self, fieldDict) :
         self._store.set(fieldDict)
-
-    # def set(self, fieldDict = None, validate = True) :
-    #     """Sets the document according to values contained in the dictinnary fieldDict. This will also set self._id/_rev/_key"""
-
-    #     if fieldDict and self._id is None :
-    #         self.setPrivates(fieldDict)
-
-    #     if not validate :
-    #         self.store.set(fieldDict)
-    #         return
-
-    #     if self.collection._validation['on_set']:
-    #         for k in list(fieldDict.keys()) :
-    #             self[k] = fieldDict[k]
-    #     else :
-    #         self._store.update(fieldDict)
 
     def save(self, waitForSync = False, **docArgs) :
         """Saves the document to the database by either performing a POST (for a new document) or a PUT (complete document overwrite).
         If you want to only update the modified fields use the .path() function.
         Use docArgs to put things such as 'waitForSync = True' (for a full list cf ArangoDB's doc).
         It will only trigger a saving of the document if it has been modified since the last save. If you want to force the saving you can use forceSave()"""
+        payload = self._store.getStore()
+        self._save(payload, waitForSync = False, **docArgs)
+
+    def _save(self, payload, waitForSync = False, **docArgs) :
 
         if self.modified :
 
             params = dict(docArgs)
             params.update({'collection': self.collection.name, "waitForSync" : waitForSync })
-            # payload = {}
-            # payload.update(self._store)
-            payload = self._store.getStore()
+
             if self.collection._validation['on_save'] :
-                self._store.validate()
+                self.validate()
             if self.URL is None :
                 if self._key is not None :
                     payload["_key"] = self._key
@@ -250,7 +232,6 @@ class Document(object) :
             self.modified = False
 
         self._store.resetPatch()
-        # self._patchStore = {}
 
     def forceSave(self, **docArgs) :
         "saves even if the document has not been modified since the last save"
@@ -292,7 +273,6 @@ class Document(object) :
             self.modified = False
 
         self._store.resetPatch()
-        # self._patchStore = {}
 
     def delete(self) :
         "deletes the document from the database"
@@ -306,13 +286,6 @@ class Document(object) :
         self.reset(self.collection)
 
         self.modified = True
-
-    # def validate(self, patch = False) :
-    #     "validates either the whole store, or only the patch store( patch = True) of the document according to the collection's settings.If logErrors returns a dictionary of errros per field, else raises exceptions"
-    #     if patch :
-    #         return self.collection.validateDct(self._patchStore)
-    #     else :
-    #         return self.collection.validateDct(self._store)
 
     def getInEdges(self, edges, rawResults = False) :
         "An alias for getEdges() that returns only the in Edges"
@@ -331,53 +304,15 @@ class Document(object) :
             raise AttributeError("%s does not seem to be a valid Edges object" % edges)
 
     def __getitem__(self, k) :
+        if k in GLOBAL.PRIVATES :
+            return getattr(self, k)
         return self._store[k]
 
-    def __getattr__(self, k) :
-        store = object.__getattribute__(self, "_store")
-        # print store
-        if k in store.privates :
-            return store[k]
-        else :
-            raise AttributeError("%s has not attribute %s" %(self.__class__, k))
-
-    # def __getitem__(self, k) :
-    #     """Document fields are accessed in a dictionary like fashion: doc[fieldName]. With the exceptions of private fiels (starting with '_')
-    #     that are accessed as object fields: doc._key"""
-    #     if self.collection._validation['allow_foreign_fields'] or self.collection.hasField(k) :
-    #         return self._store.get(k)
-
-    #     try :
-    #         return self._store[k]
-    #     except KeyError :
-    #         raise KeyError("Document of collection '%s' has no field '%s', for a permissive behaviour set 'allow_foreign_fields' to True" % (self.collection.name, k))
-
     def __setitem__(self, k, v) :
-        self._store[k] = v
-
-    # def __setitem__(self, k, v) :
-    #     """Documents work just like dictionaries doc[fieldName] = value. With the exceptions of private fiels (starting with '_')
-    #     that are accessed as object fields: doc._key"""
-
-    #     def _recValidate(k, v) :
-    #         if type(v) is dict :
-    #             for kk, vv in v.items() :
-    #                 newk = "%s.%s" % (k, kk)
-    #                 _recValidate(newk, vv)
-    #         else :
-    #             self.collection.validateField(k, v)
-
-    #     if self.collection._validation['on_set'] :
-    #         _recValidate(k, v)
-
-    #     self._store[k] = v
-    #     if self.URL is not None :
-    #         self._patchStore[k] = self._store[k]
-
-    #     self.modified = True
-
-    # def __delitem__(self, k) :
-    #     del(self._store[k])
+        if k in GLOBAL.PRIVATES :
+            setattr(self, k, v)
+        else :
+            self._store[k] = v
 
     def __str__(self) :
         return "%s '%s': %s" % (self.typeName, self._id, repr(self._store))
@@ -388,11 +323,11 @@ class Document(object) :
 class Edge(Document) :
     """An Edge document"""
     def __init__(self, edgeCollection, jsonFieldInit = {}) :
+        self.typeName = "ArangoEdge"
         self.reset(edgeCollection, jsonFieldInit)
 
     def reset(self, edgeCollection, jsonFieldInit = {}) :
         Document.reset(self, edgeCollection, jsonFieldInit)
-        self.typeName = "ArangoEdge"
 
     def links(self, fromVertice, toVertice, **edgeArgs) :
         """
@@ -424,10 +359,13 @@ class Edge(Document) :
 
         import types
 
-        if "_from" not in self._store or "_to" not in self._store :
+        if not getattr(self, "_from") or not getattr(self, "_to") :
             raise AttributeError("You must specify '_from' and '_to' attributes before saving. You can also use the function 'links()'")
 
-        Document.save(self, **edgeArgs)
+        payload = self._store.getStore()
+        payload["_from"] = self._from
+        payload["_to"] = self._to
+        Document._save(self, payload, **edgeArgs)
 
     def __getattr__(self, k) :
         if k == "_from" or k == "_to" :
