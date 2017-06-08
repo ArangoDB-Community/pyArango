@@ -152,6 +152,8 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
             raise KeyError("'%s' is not among the edge definitions" % collectionName)
 
         url = "%s/edge/%s" % (self.URL, collectionName)
+        self.database[collectionName].validatePrivate("_from", _fromId)
+        self.database[collectionName].validatePrivate("_to", _toId)
         store = DOC.DocumentStore(self.database[collectionName], validators=self.database[collectionName]._fields, initDct=edgeAttributes)
         store.validate()
         

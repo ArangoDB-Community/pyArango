@@ -326,6 +326,15 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         self.indexes["fulltext"][ind.infos["id"]] = ind
         return ind
 
+    def validatePrivate(self, field, value) :
+        """validate a private field value"""
+        if field not in self.arangoPrivates :
+            raise ValueError("%s is not a private field of collection %s" % (field, self))
+    
+        if field in self._fields :
+            self._fields[field].validate(value)
+        return True
+
     # @classmethod
     # def validateField(cls, fieldName, value) :
     #     """checks if 'value' is valid for field 'fieldName'. If the validation is unsuccessful, raises a SchemaViolation or a ValidationError.

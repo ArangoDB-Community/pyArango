@@ -4,9 +4,6 @@ from .theExceptions import (CreationError, DeletionError, UpdateError, Validatio
 
 __all__ = ["DocumentStore", "Document", "Edge"]
 
-class GLOBAL(object) :
-    PRIVATES = set(["_to", "_from", "_id", "_key", "_rev"])
-
 class DocumentStore(object) :
     
     def __init__(self, collection, validators={}, initDct={}, patch=False, subStore=False) :
@@ -23,7 +20,9 @@ class DocumentStore(object) :
         
         self.isSubStore = subStore
         self.subStores = {}
-        self.set(initDct, patch)
+        self.patching = patch
+        self.set(initDct)
+        self.patching = True
 
     def resetPatch(self) :
         self.patchStore = {}
@@ -52,8 +51,8 @@ class DocumentStore(object) :
         if field not in self.validators and not self.collection._validation['allow_foreign_fields'] :
             raise SchemaViolation(self.collection.__class__, field)
 
-        if field in self.validators :
-            if self[field].__class__ is DocumentStore :
+        if field in self.store:
+            if isinstance(self.store[field], DocumentStore) :
                 return self[field].validate()
             
             if field in self.patchStore :
@@ -68,45 +67,54 @@ class DocumentStore(object) :
             return True
 
         res = {}
-        for k in self.store.keys() :
+        for field in self.validators.keys() :
             try :
-                self.validateField(k)
-                if self.store[k].__class__ is DocumentStore :
-                    self.store[k].validate()
+                if type(self.validators[field]) is types.DictType and field not in self.store :
+                    self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, subStore=True)
+                self.validateField(field)
             except InvalidDocument as e :
                 res.update(e.errors)
             except (ValidationError, SchemaViolation) as e:
-                res[k] = str(e)
+                res[field] = str(e)
 
         if len(res) > 0 :
             raise InvalidDocument(res)
         
         return True
 
-    def set(self, dct, patch) :
+    def set(self, dct) :
         if not self.mustValidate :
             self.store = dct
             self.patchStore = dct
             return
 
-        for field in dct :
-            if field not in GLOBAL.PRIVATES :
-                if field in self.validators :
-                    validator = self.validators[field]
-                    if type(validator) is types.DictType or dct[field] is types.DictType :
-                        if type(validator) is types.DictType and dct[field] is types.DictType :
-                            self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = dct[field], patch = patch, subStore=True)
-                            self.subStores[field] = self.store[field]
-                        else :
-                            raise SchemaViolation(self.collection.__class__, field)
+        for field, value in dct.items() :
+            if field not in self.collection.arangoPrivates :
+                if type(value) is types.DictType :
+                    if field in validators :
+                        vals = self.validators[field]
                     else :
-                        self.store[field] = dct[field]
-                        if patch :
-                            self.patchStore[field] = self.store[field]
+                        vals = {}
+                    self[field] = DocumentStore(self.collection, validators = {}, initDct = value, patch = self.patching, subStore=True)
+                    self.subStores[field] = self.store[field]
                 else :
-                    if type(validator) is types.DictType :
-                        self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, subStore=True)
-                        self.subStores[field] = self.store[field]
+                    self[field] = value
+                # if field in self.validators :
+                #     validator = self.validators[field]
+                #     if type(validator) is types.DictType or dct[field] is types.DictType :
+                #         if type(validator) is types.DictType and dct[field] is types.DictType :
+                #             self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = dct[field], patch = patch, subStore=True)
+                #             self.subStores[field] = self.store[field]
+                #         else :
+                #             raise SchemaViolation(self.collection.__class__, field)
+                #     else :
+                #         self.store[field] = dct[field]
+                #         if patch :
+                #             self.patchStore[field] = self.store[field]
+                # else :
+                #     if type(validator) is types.DictType :
+                #         self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, subStore=True)
+                #         self.subStores[field] = self.store[field]
 
     def __getitem__(self, k) :
         if self.collection._validation['allow_foreign_fields'] or self.collection.hasField(k) :
@@ -121,15 +129,30 @@ class DocumentStore(object) :
         if not self.collection._validation['allow_foreign_fields'] and field not in self.validators :
             raise SchemaViolation(self.collection.__class__, field)
         
-        if field in self.validators and type(self.validators[field]) is types.DictType :
-            if type(value) is types.DictType :
-                self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = value, patch=True, subStore=True)
-                self.subStores[field] = self.store[field]
+        if field in self.collection.arangoPrivates :
+            raise ValueError("DocumentStore cannot contain private field (got %s)" % field)
+
+        if type(value) is types.DictType :
+            if field in self.validators :
+                vals = self.validators[field]
             else :
-                raise ValueError("dct not dct")
+                vals = {}
+            self.store[field] = DocumentStore(self.collection, validators = {}, initDct = value, patch = self.patching, subStore=True)
+            self.subStores[field] = self.store[field]
         else :
             self.store[field] = value
+
+        if self.patching :
             self.patchStore[field] = self.store[field]
+        # if field in self.validators and type(self.validators[field]) is types.DictType :
+        #     if type(value) is types.DictType :
+        #         self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = value, patch=True, subStore=True)
+        #         self.subStores[field] = self.store[field]
+        #     else :
+        #         raise ValueError("%s must be an embeded document as specified in schema" % field)
+        # else :
+        #     self.store[field] = value
+        #     self.patchStore[field] = self.store[field]
 
         if self.collection._validation['on_set'] :
             self.validateField(field)
@@ -166,9 +189,8 @@ class Document(object) :
 
     def validate(self) :
         self._store.validate()
-        for pField in GLOBAL.PRIVATES :
-            if pField in self.collection._fields :
-                self.collection._fields[pField].validate(getattr(self, pField))
+        for pField in self.collection.arangoPrivates :
+            self.collection.validatePrivate(field, getattr(self, pField))
 
     def setPrivates(self, fieldDict) :
         """will set self._id, self._rev and self._key field. Private fields (starting by '_') are all accessed using the self. interface,
@@ -304,12 +326,12 @@ class Document(object) :
             raise AttributeError("%s does not seem to be a valid Edges object" % edges)
 
     def __getitem__(self, k) :
-        if k in GLOBAL.PRIVATES :
+        if k in self.collection.arangoPrivates :
             return getattr(self, k)
         return self._store[k]
 
     def __setitem__(self, k, v) :
-        if k in GLOBAL.PRIVATES :
+        if k in self.collection.arangoPrivates :
             setattr(self, k, v)
         else :
             self._store[k] = v
