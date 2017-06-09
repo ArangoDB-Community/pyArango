@@ -222,7 +222,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         'allow_foreign_fields' : True
     }
 
-    arangoPrivates = ["_id", "_key"]
+    arangoPrivates = ["_id", "_key", "_rev"]
 
     def __init__(self, database, jsonData) :
 
@@ -528,7 +528,7 @@ class SystemCollection(Collection) :
 class Edges(Collection) :
     "The default edge collection. All edge Collections must inherit from it"
 
-    arangoPrivates = ["_id", "_key", "_to", "_from"]
+    arangoPrivates = ["_id", "_key", "_rev", "_to", "_from"]
 
     def __init__(self, database, jsonData) :
         "This one is meant to be called by the database"

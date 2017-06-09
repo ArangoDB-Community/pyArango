@@ -74,15 +74,15 @@ class DocumentStore(object) :
 
         res = {}
         for field in self.validators.keys() :
-            # try :
-                print field, self.store[field]
+            try :
+                # print field, self.store[field]
                 if type(self.validators[field]) is types.DictType and field not in self.store :
                     self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, subStore=True)
                 self.validateField(field)
-            # except InvalidDocument as e :
-                # res.update(e.errors)
-            # except (ValidationError, SchemaViolation) as e:
-                # res[field] = str(e)
+            except InvalidDocument as e :
+                res.update(e.errors)
+            except (ValidationError, SchemaViolation) as e:
+                res[field] = str(e)
 
         if len(res) > 0 :
             raise InvalidDocument(res)
@@ -99,7 +99,7 @@ class DocumentStore(object) :
         for field, value in dct.items() :
             if field not in self.collection.arangoPrivates :
                 if type(value) is types.DictType :
-                    if field in validators :
+                    if field in self.validators :
                         vals = self.validators[field]
                     else :
                         vals = {}
@@ -125,7 +125,7 @@ class DocumentStore(object) :
 
     def __setitem__(self, field, value) :
         """Set an element in the store"""
-        if not self.collection._validation['allow_foreign_fields'] and field not in self.validators and field not in self.collection.arangoPrivates:
+        if (not self.collection._validation['allow_foreign_fields']) and (field not in self.validators) and (field not in self.collection.arangoPrivates):
             raise SchemaViolation(self.collection.__class__, field)
         
         if field in self.collection.arangoPrivates :
@@ -278,7 +278,7 @@ class Document(object) :
         payload = self._store.getPatches()
         
         if self.collection._validation['on_save'] :
-            self.collection.validateDct(payload)
+            self.validate()
 
         if len(payload) > 0 :
             params = dict(docArgs)
