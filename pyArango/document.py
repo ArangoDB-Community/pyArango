@@ -74,14 +74,15 @@ class DocumentStore(object) :
 
         res = {}
         for field in self.validators.keys() :
-            try :
+            # try :
+                print field, self.store[field]
                 if type(self.validators[field]) is types.DictType and field not in self.store :
                     self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, subStore=True)
                 self.validateField(field)
-            except InvalidDocument as e :
-                res.update(e.errors)
-            except (ValidationError, SchemaViolation) as e:
-                res[field] = str(e)
+            # except InvalidDocument as e :
+                # res.update(e.errors)
+            # except (ValidationError, SchemaViolation) as e:
+                # res[field] = str(e)
 
         if len(res) > 0 :
             raise InvalidDocument(res)
@@ -124,7 +125,7 @@ class DocumentStore(object) :
 
     def __setitem__(self, field, value) :
         """Set an element in the store"""
-        if not self.collection._validation['allow_foreign_fields'] and field not in self.validators :
+        if not self.collection._validation['allow_foreign_fields'] and field not in self.validators and field not in self.collection.arangoPrivates:
             raise SchemaViolation(self.collection.__class__, field)
         
         if field in self.collection.arangoPrivates :
@@ -188,9 +189,10 @@ class Document(object) :
 
     def validate(self) :
         """validate the document"""
+        # print self._store
         self._store.validate()
         for pField in self.collection.arangoPrivates :
-            self.collection.validatePrivate(field, getattr(self, pField))
+            self.collection.validatePrivate(pField, getattr(self, pField))
 
     def setPrivates(self, fieldDict) :
         """will set self._id, self._rev and self._key field."""
