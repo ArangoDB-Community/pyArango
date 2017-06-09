@@ -1,3 +1,10 @@
+1.3.0
+=====
+
+* Fixed nested store patch update
+* REFACT: New DocumentStore class for taking care of storing document in a hierarchy of stores (nested objects) and validate them
+* Minor bug fixes
+
 1.2.8
 =====
 

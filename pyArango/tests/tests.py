@@ -464,7 +464,6 @@ class pyArangoTests(unittest.TestCase):
         link = rels.createEdge()
         link["ctype"] = "brother"
         link.links(tete, toto)
-
         sameLink = rels[link._key]
         self.assertEqual(sameLink["ctype"], link["ctype"])
         self.assertEqual(sameLink["_from"], tete._id)

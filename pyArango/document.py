@@ -5,13 +5,15 @@ from .theExceptions import (CreationError, DeletionError, UpdateError, Validatio
 __all__ = ["DocumentStore", "Document", "Edge"]
 
 class DocumentStore(object) :
-    
+    """Store all the data of a document in hierarchy of stores and handles validation.
+    Does not store private information, these are in the document."""
+
     def __init__(self, collection, validators={}, initDct={}, patch=False, subStore=False) :
         self.store = {}
         self.patchStore = {}
         self.collection = collection
         self.validators = validators
-
+        
         self.mustValidate = False
         for v in self.collection._validation.values() :
             if v :
@@ -25,10 +27,11 @@ class DocumentStore(object) :
         self.patching = True
 
     def resetPatch(self) :
+        """reset patches"""
         self.patchStore = {}
 
     def getPatches(self) :
-        #inner dct are not trackable. Return the full store
+        """get patches as a dictionary"""
         if not self.mustValidate :
             return self.getStore()
 
@@ -40,6 +43,7 @@ class DocumentStore(object) :
         return res
         
     def getStore(self) :
+        """get the inner store as dictionary"""
         res = {}
         res.update(self.store)
         for k, v in self.subStores.items() :
@@ -48,6 +52,7 @@ class DocumentStore(object) :
         return res
 
     def validateField(self, field) :
+        """Validatie a field"""
         if field not in self.validators and not self.collection._validation['allow_foreign_fields'] :
             raise SchemaViolation(self.collection.__class__, field)
 
@@ -63,6 +68,7 @@ class DocumentStore(object) :
         return True
 
     def validate(self) :
+        """Validate the hole document"""
         if not self.mustValidate :
             return True
 
@@ -83,6 +89,7 @@ class DocumentStore(object) :
         return True
 
     def set(self, dct) :
+        """Set the store using a dictionary"""
         if not self.mustValidate :
             self.store = dct
             self.patchStore = dct
@@ -95,37 +102,28 @@ class DocumentStore(object) :
                         vals = self.validators[field]
                     else :
                         vals = {}
-                    self[field] = DocumentStore(self.collection, validators = {}, initDct = value, patch = self.patching, subStore=True)
+                    self[field] = DocumentStore(self.collection, validators = vals, initDct = value, patch = self.patching, subStore=True)
                     self.subStores[field] = self.store[field]
                 else :
                     self[field] = value
-                # if field in self.validators :
-                #     validator = self.validators[field]
-                #     if type(validator) is types.DictType or dct[field] is types.DictType :
-                #         if type(validator) is types.DictType and dct[field] is types.DictType :
-                #             self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = dct[field], patch = patch, subStore=True)
-                #             self.subStores[field] = self.store[field]
-                #         else :
-                #             raise SchemaViolation(self.collection.__class__, field)
-                #     else :
-                #         self.store[field] = dct[field]
-                #         if patch :
-                #             self.patchStore[field] = self.store[field]
-                # else :
-                #     if type(validator) is types.DictType :
-                #         self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, subStore=True)
-                #         self.subStores[field] = self.store[field]
 
-    def __getitem__(self, k) :
-        if self.collection._validation['allow_foreign_fields'] or self.collection.hasField(k) :
-            return self.store.get(k)
+    def __getitem__(self, field) :
+        """Get an element from the store"""
+        if (field in self.validators) and (type(self.validators[field]) is types.DictType) and (field not in self.store) :
+            self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, patch = self.patching, subStore=True)
+            self.subStores[field] = self.store[field]
+            self.patchStore[field] = self.store[field]
+
+        if self.collection._validation['allow_foreign_fields'] or self.collection.hasField(field) :
+            return self.store.get(field)
 
         try :
-            return self.store[k]
+            return self.store[field]
         except KeyError :
-            raise SchemaViolation(self.collection.__class__, k)
+            raise SchemaViolation(self.collection.__class__, field)
 
     def __setitem__(self, field, value) :
+        """Set an element in the store"""
         if not self.collection._validation['allow_foreign_fields'] and field not in self.validators :
             raise SchemaViolation(self.collection.__class__, field)
         
@@ -137,32 +135,33 @@ class DocumentStore(object) :
                 vals = self.validators[field]
             else :
                 vals = {}
-            self.store[field] = DocumentStore(self.collection, validators = {}, initDct = value, patch = self.patching, subStore=True)
+            self.store[field] = DocumentStore(self.collection, validators = vals, initDct = value, patch = self.patching, subStore=True)
+            
             self.subStores[field] = self.store[field]
         else :
             self.store[field] = value
 
         if self.patching :
             self.patchStore[field] = self.store[field]
-        # if field in self.validators and type(self.validators[field]) is types.DictType :
-        #     if type(value) is types.DictType :
-        #         self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = value, patch=True, subStore=True)
-        #         self.subStores[field] = self.store[field]
-        #     else :
-        #         raise ValueError("%s must be an embeded document as specified in schema" % field)
-        # else :
-        #     self.store[field] = value
-        #     self.patchStore[field] = self.store[field]
 
         if self.collection._validation['on_set'] :
             self.validateField(field)
 
     def __delitem__(self, k) :
-        del(self.store[k])
-        del(self.patchStore[k])
+        """removes an element from the store"""
+        try :
+            del(self.store[k])
+        except :
+            pass
+    
+        try :
+            del(self.patchStore[k])
+        except :
+            pass
 
     def __contains__(self, k) :
-        return k in self.store
+        """returns true or false weither the store has a key k"""
+        return (k in self.store) or (k in self.validators)
 
     def __repr__(self) :
         return "<store: %s>" % repr(self.store)
@@ -188,26 +187,25 @@ class Document(object) :
         self.modified = True
 
     def validate(self) :
+        """validate the document"""
         self._store.validate()
         for pField in self.collection.arangoPrivates :
             self.collection.validatePrivate(field, getattr(self, pField))
 
     def setPrivates(self, fieldDict) :
-        """will set self._id, self._rev and self._key field. Private fields (starting by '_') are all accessed using the self. interface,
-        other fields are accessed through self[fielName], the same as regular dictionnary in python"""
-        # print fieldDict
-        try :
-            self._id = fieldDict["_id"]
-            self.URL = "%s/%s" % (self.documentsURL, self._id)
-            
-            self._rev = fieldDict["_rev"]
-            
-            self._key = fieldDict["_key"]
-        except KeyError :
-            self._id, self._rev, self._key = None, None, None
-            self.URL = None
+        """will set self._id, self._rev and self._key field."""
         
+        try :
+            for priv in ["_id", "_key", "_rev"] :
+                setattr(self, priv, fieldDict[priv])
+            self.URL = "%s/%s" % (self.documentsURL, self._id)
+        except KeyError :
+            for priv in ["_id", "_key", "_rev"] :
+                setattr(self, priv, None)
+            self.URL = None
+
     def set(self, fieldDict) :
+        """set the document with a dictionary"""
         self._store.set(fieldDict)
 
     def save(self, waitForSync = False, **docArgs) :
@@ -326,21 +324,32 @@ class Document(object) :
             raise AttributeError("%s does not seem to be a valid Edges object" % edges)
 
     def __getitem__(self, k) :
+        """get an element from the document"""
         if k in self.collection.arangoPrivates :
             return getattr(self, k)
         return self._store[k]
 
     def __setitem__(self, k, v) :
+        """set an element in the document"""
         if k in self.collection.arangoPrivates :
             setattr(self, k, v)
         else :
             self._store[k] = v
 
+    def __delitem__(self, k) :
+        """removes an element from the document"""
+        del(self._store[k])
+    
     def __str__(self) :
-        return "%s '%s': %s" % (self.typeName, self._id, repr(self._store))
+        return repr(self)
 
     def __repr__(self) :
-        return "%s '%s': %s" % (self.typeName, self._id, repr(self._store))
+        privStr = []
+        for p in self.collection.arangoPrivates :
+            privStr.append("%s: %s" % (p, getattr(self, p)) )
+
+        privStr = ', '.join(privStr)
+        return "%s '%s': %s" % (self.typeName, privStr, repr(self._store))
 
 class Edge(Document) :
     """An Edge document"""
@@ -350,6 +359,15 @@ class Edge(Document) :
 
     def reset(self, edgeCollection, jsonFieldInit = {}) :
         Document.reset(self, edgeCollection, jsonFieldInit)
+
+    def setPrivates(self, fieldDict) :
+        """set _id, _key, _rev, _from, _to"""
+        super(Edge, self).setPrivates(fieldDict)
+        if "_from" in fieldDict :
+            self._from = fieldDict["_from"]
+        
+        if "_to" in fieldDict :
+            self._to = fieldDict["_to"]
 
     def links(self, fromVertice, toVertice, **edgeArgs) :
         """
@@ -361,17 +379,17 @@ class Edge(Document) :
             if not fromVertice._id :
                 fromVertice._id.save()
 
-            self["_from"] = fromVertice._id
+            self._from = fromVertice._id
         elif (type(fromVertice) is bytes) or (type(fromVertice) is str) :
-            self["_from"] = fromVertice
+            self._from  = fromVertice
 
         if toVertice.__class__ is Document :
             if not toVertice._id :
                 toVertice._id.save()
 
-            self["_to"] = toVertice._id
+            self._to = toVertice._id
         elif (type(toVertice) is bytes) or (type(toVertice) is str) :
-            self["_to"] = toVertice
+            self._to = toVertice
 
         self.save(**edgeArgs)
 
