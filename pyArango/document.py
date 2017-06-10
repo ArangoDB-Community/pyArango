@@ -76,7 +76,8 @@ class DocumentStore(object) :
         for field in self.validators.keys() :
             try :
                 # print field, self.store[field]
-                if type(self.validators[field]) is types.DictType and field not in self.store :
+                # if type(self.validators[field]) is types.DictType and field not in self.store :
+                if isinstance(self.validators[field], dict) and field not in self.store :
                     self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, subStore=True)
                 self.validateField(field)
             except InvalidDocument as e :
@@ -98,7 +99,8 @@ class DocumentStore(object) :
 
         for field, value in dct.items() :
             if field not in self.collection.arangoPrivates :
-                if type(value) is types.DictType :
+                # if type(value) is types.DictType :
+                if isinstance(value, dict) :
                     if field in self.validators :
                         vals = self.validators[field]
                     else :
@@ -110,7 +112,8 @@ class DocumentStore(object) :
 
     def __getitem__(self, field) :
         """Get an element from the store"""
-        if (field in self.validators) and (type(self.validators[field]) is types.DictType) and (field not in self.store) :
+        # if (field in self.validators) and (type(self.validators[field]) is types.DictType) and (field not in self.store) :
+        if (field in self.validators) and isinstance(self.validators[field], dict) and (field not in self.store) :
             self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, patch = self.patching, subStore=True)
             self.subStores[field] = self.store[field]
             self.patchStore[field] = self.store[field]
@@ -131,7 +134,8 @@ class DocumentStore(object) :
         if field in self.collection.arangoPrivates :
             raise ValueError("DocumentStore cannot contain private field (got %s)" % field)
 
-        if type(value) is types.DictType :
+        # if type(value) is types.DictType :
+        if isinstance(value, dict) :
             if field in self.validators :
                 vals = self.validators[field]
             else :
@@ -398,8 +402,6 @@ class Edge(Document) :
     def save(self, **edgeArgs) :
         """Works like Document's except that you must specify '_from' and '_to' vertices before.
         There's also a links() function especially for first saves."""
-
-        import types
 
         if not getattr(self, "_from") or not getattr(self, "_to") :
             raise AttributeError("You must specify '_from' and '_to' attributes before saving. You can also use the function 'links()'")
