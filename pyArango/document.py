@@ -75,8 +75,6 @@ class DocumentStore(object) :
         res = {}
         for field in self.validators.keys() :
             try :
-                # print field, self.store[field]
-                # if type(self.validators[field]) is types.DictType and field not in self.store :
                 if isinstance(self.validators[field], dict) and field not in self.store :
                     self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, subStore=True)
                 self.validateField(field)
@@ -99,7 +97,6 @@ class DocumentStore(object) :
 
         for field, value in dct.items() :
             if field not in self.collection.arangoPrivates :
-                # if type(value) is types.DictType :
                 if isinstance(value, dict) :
                     if field in self.validators :
                         vals = self.validators[field]
@@ -112,7 +109,6 @@ class DocumentStore(object) :
 
     def __getitem__(self, field) :
         """Get an element from the store"""
-        # if (field in self.validators) and (type(self.validators[field]) is types.DictType) and (field not in self.store) :
         if (field in self.validators) and isinstance(self.validators[field], dict) and (field not in self.store) :
             self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, patch = self.patching, subStore=True)
             self.subStores[field] = self.store[field]
@@ -134,7 +130,6 @@ class DocumentStore(object) :
         if field in self.collection.arangoPrivates :
             raise ValueError("DocumentStore cannot contain private field (got %s)" % field)
 
-        # if type(value) is types.DictType :
         if isinstance(value, dict) :
             if field in self.validators :
                 vals = self.validators[field]

@@ -309,7 +309,7 @@ class pyArangoTests(unittest.TestCase):
         class String_val(VAL.Validator) :
 
             def validate(self, value) :
-                if type(value) is not bytes :
+                if not isinstance(value, bytes) and not isinstance(value, str) :
                     raise ValidationError("Field value must be a string")
                 return True
 
