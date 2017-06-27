@@ -58,6 +58,20 @@ class pyArangoTests(unittest.TestCase):
         return collection
 
     # @unittest.skip("stand by")
+    def test_bulk_import(self):
+        usersCollection = self.db.createCollection(name = "users")
+        nbUsers = 100
+        users = []
+        for i in range(nbUsers):
+            user = {}
+            user["name"] = "Tesla-%d" % i
+            user["number"] = i
+            user["species"] = "human"
+            users.append(user)
+        usersCollection.importBulk(users)
+        self.assertEqual(usersCollection.count(), len(users))
+
+    # @unittest.skip("stand by")
     def test_collection_create_delete(self) :
         col = self.db.createCollection(name = "to_be_erased")
         self.assertTrue(self.db.hasCollection("to_be_erased"))
@@ -78,11 +92,11 @@ class pyArangoTests(unittest.TestCase):
         d1 = col.createDocument()
         d1["name"] = "tesla"
         d1.save()
-        
+
         d2 = col.createDocument()
         d2["name"] = "tesla2"
         d2.save()
-        
+
         d3 = col.createDocument()
         d3["name"] = "tesla3"
         d3.save()
@@ -91,7 +105,7 @@ class pyArangoTests(unittest.TestCase):
         ed = self.db.collections["to_be_erased"]
         e1 = ed.createEdge({"name": 'tesla-edge'})
         e1.links(d1, d2)
-        
+
         e2 = ed.createEdge()
         e2.links(d1, d3)
         self.assertEqual(2, ed.count())
@@ -366,7 +380,7 @@ class pyArangoTests(unittest.TestCase):
 
             def __getitem__(self, k) :
                 return self.store[k]
-                
+
             def __setitem__(self, k, v) :
                 self.store[k] = v
 
@@ -381,7 +395,7 @@ class pyArangoTests(unittest.TestCase):
         for doc in docs :
             cache.cache(doc)
             self.assertEqual(cache.head._key, doc._key)
-        
+
         self.assertEqual(list(cache.cacheStore.keys()), [5, 6, 7, 8, 9])
         self.assertEqual(cache.getChain(), [9, 8, 7, 6, 5])
         doc = cache[5]
