@@ -279,6 +279,14 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
         return self.documentClass(self, initV)
 
+    def importBulk(self, data):
+        url = "%s/import" % (self.database.URL)
+        payload = json.dumps(data)
+        r = self.connection.session.post(url , params = {"collection": self.name, "type": "auto"}, data = payload)
+        data = r.json()
+        if not r.status_code == 201 or data["error"] :
+            raise CreationError(data["errorMessage"], data)
+
     def ensureHashIndex(self, fields, unique = False, sparse = True) :
         """Creates a hash index if it does not already exist, and returns it"""
         data = {
@@ -330,7 +338,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         """validate a private field value"""
         if field not in self.arangoPrivates :
             raise ValueError("%s is not a private field of collection %s" % (field, self))
-    
+
         if field in self._fields :
             self._fields[field].validate(value)
         return True
@@ -368,7 +376,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
     #                 ps = k
     #             else :
     #                 ps = "%s.%s" % (parentsStr, k)
-                
+
     #             if type(v) is dict :
     #                 _validate(v, res, ps)
     #             elif k not in cls.arangoPrivates :
