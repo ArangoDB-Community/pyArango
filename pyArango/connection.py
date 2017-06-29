@@ -119,7 +119,11 @@ class Connection(object) :
 
         r = self.session.get(self.databasesURL)
 
-        data = r.json()
+        data = [];
+        if r.content.length > 0:
+            data = r.json()
+        else if r.status_code == 401:
+            data["errorMessage"] = "Unauthorized"
         if r.status_code == 200 and not data["error"] :
             self.databases = {}
             for dbName in data["result"] :
