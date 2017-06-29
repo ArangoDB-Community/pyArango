@@ -1,5 +1,9 @@
 import requests
+import statsd
 import json
+import hashlib
+
+from datetime import datetime
 
 from .database import Database, DBHandle
 from .theExceptions import CreationError, ConnectionError
@@ -80,7 +84,7 @@ class AikidoSession(object) :
 
 class Connection(object) :
     """This is the entry point in pyArango and directly handles databases."""
-    def __init__(self, arangoURL = 'http://127.0.0.1:8529', username=None, password=None, verbose=False) :
+    def __init__(self, arangoURL = 'http://127.0.0.1:8529', username = None, password = None, verbose = False, statsdHost = None, statsdPort = None, reportFileName = None) :
         self.databases = {}
         self.verbose = verbose
         if arangoURL[-1] == "/" :
@@ -100,6 +104,16 @@ class Connection(object) :
             self.databasesURL = '%s/user/%s/database' % (self.URL, username)
 
         self.users = Users(self)
+
+        if reportFileName != None:
+            self.reportFile = open(reportFileName, 'a')
+        else:
+            self.reportFile = None
+
+        if statsdHost != None:
+            self.statsdc = statsd.StatsClient(statsdHost, statsdPort)
+        else:
+            self.statsdc = None
         self.reload()
 
     def disconnectSession(self) :
@@ -156,3 +170,17 @@ class Connection(object) :
                 return self.databases[dbName]
             except KeyError :
                 raise KeyError("Can't find any database named : %s" % dbName)
+
+    def reportStart(self, name):
+        if self.statsdc != None:
+            self.identifier = hashlib.sha224(name).hexdigest()[-6:]
+            if self.reportFile != None:
+                self.reportFile.write("[%s]: %s\n" % (self.identifier, name))
+                self.reportFile.flush()
+            self.startTime = datetime.now()
+
+    def reportItem(self):
+        if self.statsdc != None:
+	    diff = datetime.now() - self.startTime
+	    microsecs = (diff.total_seconds() * 1000 * 1000) + diff.microseconds
+            self.statsdc.timing("pyArango_" + self.identifier, int(microsecs))

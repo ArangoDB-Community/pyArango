@@ -204,7 +204,11 @@ class Database(object) :
         if params is not None:
             payload["params"] = params
 
+        self.connection.reportStart(action)
+
         r = self.connection.session.post(self.transactionURL, data = json.dumps(payload))
+
+        self.connection.reportItem()
 
         data = r.json()
 

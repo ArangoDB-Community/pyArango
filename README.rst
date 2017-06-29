@@ -279,6 +279,16 @@ pyArango collections have a caching system for documents that performs insertion
  #disable the cache
  humans.deactivateCache()
 
+Statsd Reporting
+----------------
+
+pyArango can optionally report query times to a statsd server for statistical evaluation.
+Its intended to be used in a two phase way: (we assume you're using bind values - right?)
+ - first run that will trigger all usecases. You create the connection by specifying statsdHost, statsdPort and reportFileName.
+   reportFilename will be filled with your queries paired with your hash identifiers. Its reported to statsd as 'pyArango_<hash>'.
+   you can later on use this digest to identify your queries to the gauges.
+ - on subsequent runs you only specify statsdHost and statsdPort; only the request times are reported to statsd.
+ 
 Examples
 ========
 More examples can be found in the examples directory.
