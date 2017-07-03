@@ -2,6 +2,7 @@
 =====
 
 * Will die gracefully if server response is empty
+* getStore and getPatches shorthands added to Document
 
 1.3.0
 =====

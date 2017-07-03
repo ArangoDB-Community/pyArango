@@ -324,6 +324,14 @@ class Document(object) :
         except AttributeError :
             raise AttributeError("%s does not seem to be a valid Edges object" % edges)
 
+    def getStore(self) :
+        """return the store in a dict format"""
+        return self._store.getStore()
+
+    def getPatches(self) :
+        """return the patches in a dict format"""
+        return self._store.getPatches()
+
     def __getitem__(self, k) :
         """get an element from the document"""
         if k in self.collection.arangoPrivates :
