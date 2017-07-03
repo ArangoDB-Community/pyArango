@@ -38,7 +38,9 @@ class AikidoSession(object) :
                 print ("===\nUnable to establish connection, perhaps arango is not running.\n===")
                 raise
 
-            if ret.status_code == 401 :
+            if len(ret.content) < 1:
+                raise ConnectionError("Empty server response", ret.url, ret.status_code, ret.content)
+            elif ret.status_code == 401 :
                 raise ConnectionError("Unauthorized access, you must supply a (username, password) with the correct credentials", ret.url, ret.status_code, ret.content)
 
             ret.json = JsonHook(ret)

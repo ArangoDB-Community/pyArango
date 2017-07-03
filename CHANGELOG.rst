@@ -1,3 +1,8 @@
+1.3.1
+=====
+
+* Will die gracefully if server response is empty
+
 1.3.0
 =====
 
