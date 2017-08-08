@@ -211,7 +211,7 @@ class Document(object) :
 
     def save(self, waitForSync = False, **docArgs) :
         """Saves the document to the database by either performing a POST (for a new document) or a PUT (complete document overwrite).
-        If you want to only update the modified fields use the .path() function.
+        If you want to only update the modified fields use the .patch() function.
         Use docArgs to put things such as 'waitForSync = True' (for a full list cf ArangoDB's doc).
         It will only trigger a saving of the document if it has been modified since the last save. If you want to force the saving you can use forceSave()"""
         payload = self._store.getStore()
