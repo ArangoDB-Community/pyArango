@@ -1,5 +1,4 @@
 import requests
-import statsd
 import json
 import hashlib
 
@@ -84,7 +83,7 @@ class AikidoSession(object) :
 
 class Connection(object) :
     """This is the entry point in pyArango and directly handles databases."""
-    def __init__(self, arangoURL = 'http://127.0.0.1:8529', username = None, password = None, verbose = False, statsdHost = None, statsdPort = None, reportFileName = None) :
+    def __init__(self, arangoURL = 'http://127.0.0.1:8529', username = None, password = None, verbose = False, statsdClient = None, reportFileName = None) :
         self.databases = {}
         self.verbose = verbose
         if arangoURL[-1] == "/" :
@@ -110,10 +109,8 @@ class Connection(object) :
         else:
             self.reportFile = None
 
-        if statsdHost != None:
-            self.statsdc = statsd.StatsClient(statsdHost, statsdPort)
-        else:
-            self.statsdc = None
+        if statsdClient != None:
+            self.statsdc = statsdClient
         self.reload()
 
     def disconnectSession(self) :

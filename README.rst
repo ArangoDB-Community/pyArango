@@ -283,6 +283,12 @@ Statsd Reporting
 ----------------
 
 pyArango can optionally report query times to a statsd server for statistical evaluation.
+
+  import statsd
+  from pyArango.connection import Connection
+  statsdclient = statsd.StatsClient(os.environ.get('STATSD_HOST'), int(os.environ.get('STATSD_PORT')))
+  conn = Connection('http://127.0.0.1:8529', 'root', 'opensesame', statsdClient = statsdclient, reportFileName = '/tmp/queries.log')
+
 Its intended to be used in a two phase way: (we assume you're using bind values - right?)
  - first run that will trigger all usecases. You create the connection by specifying statsdHost, statsdPort and reportFileName.
    reportFilename will be filled with your queries paired with your hash identifiers. Its reported to statsd as 'pyArango_<hash>'.
