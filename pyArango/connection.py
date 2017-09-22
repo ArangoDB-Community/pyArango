@@ -109,8 +109,7 @@ class Connection(object) :
         else:
             self.reportFile = None
 
-        if statsdClient != None:
-            self.statsdc = statsdClient
+        self.statsdc = statsdClient
         self.reload()
 
     def disconnectSession(self) :
