@@ -131,14 +131,17 @@ class Query(object) :
 
 class AQLQuery(Query) :
     "AQL queries are attached to and instanciated by a database"
-    def __init__(self, database, query, batchSize, bindVars, options, count, fullCount, rawResults = True, **moreArgs) :
-        payload = {'query' : query, 'batchSize' : batchSize, 'bindVars' : bindVars, 'options' : options, 'count' : count, 'fullCount' : fullCount}
+    def __init__(self, database, query, batchSize, bindVars, options, count, fullCount, rawResults = True,
+                 json_encoder = None, **moreArgs) :
+        # fullCount is passed in the options dict per https://docs.arangodb.com/3.1/HTTP/AqlQueryCursor/AccessingCursors.html
+        options["fullCount"] = fullCount
+        payload = {'query' : query, 'batchSize' : batchSize, 'bindVars' : bindVars, 'options' : options, 'count' : count}
         payload.update(moreArgs)
 
         self.query = query
         self.database = database
         self.connection = self.database.connection
-        request = self.connection.session.post(database.cursorsURL, data = json.dumps(payload))
+        request = self.connection.session.post(database.cursorsURL, data = json.dumps(payload, cls=json_encoder))
         Query.__init__(self, request, database, rawResults)
 
     def explain(self, allPlans = False) :
@@ -165,14 +168,15 @@ class Cursor(Query) :
 
 class SimpleQuery(Query) :
     "Simple queries are attached to and instanciated by a collection"
-    def __init__(self, collection, queryType, rawResults, **queryArgs) :
+    def __init__(self, collection, queryType, rawResults, json_encoder = None,
+                 **queryArgs) :
 
         self.collection = collection
         self.connection = self.collection.database.connection
 
         payload = {'collection' : collection.name}
         payload.update(queryArgs)
-        payload = json.dumps(payload)
+        payload = json.dumps(payload, cls=json_encoder)
         URL = "%s/simple/%s" % (collection.database.URL, queryType)
         request = self.connection.session.put(URL, data = payload)
 

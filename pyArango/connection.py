@@ -2,7 +2,7 @@ import requests
 import json
 
 from .database import Database, DBHandle
-from .theExceptions import SchemaViolation, CreationError, ConnectionError
+from .theExceptions import CreationError, ConnectionError
 from .users import Users
 
 class JsonHook(object) :
@@ -24,23 +24,23 @@ class AikidoSession(object) :
     """
 
     class Holder(object) :
-        def __init__(self, session, fct) :
-            self.session = session
+        def __init__(self, fct, auth) :
             self.fct = fct
+            self.auth = auth
 
         def __call__(self, *args, **kwargs) :
-
-            if self.session.auth :
-                kwargs["auth"] = self.session.auth
+            if self.auth :
+                kwargs["auth"] = self.auth
 
             try :
-                with self.session.session as s:
-                   ret = self.fct(*args, **kwargs)
+                ret = self.fct(*args, **kwargs)
             except :
                 print ("===\nUnable to establish connection, perhaps arango is not running.\n===")
                 raise
 
-            if ret.status_code == 401 :
+            if len(ret.content) < 1:
+                raise ConnectionError("Empty server response", ret.url, ret.status_code, ret.content)
+            elif ret.status_code == 401 :
                 raise ConnectionError("Unauthorized access, you must supply a (username, password) with the correct credentials", ret.url, ret.status_code, ret.content)
 
             ret.json = JsonHook(ret)
@@ -64,6 +64,7 @@ class AikidoSession(object) :
             raise AttributeError("Attribute '%s' not found (no Aikido move available)" % k)
 
         holdClass = object.__getattribute__(self, "Holder")
+        auth = object.__getattribute__(self, "auth")
         log = object.__getattribute__(self, "log")
         log["nb_request"] += 1
         try :
@@ -71,18 +72,19 @@ class AikidoSession(object) :
         except :
             log["requests"][reqFct.__name__] = 1
 
-        return holdClass(self, reqFct)
+        return holdClass(reqFct, auth)
 
     def disconnect(self) :
         try:
-            self.session.connection.close()
+            self.session.close()
         except Exception :
             pass
 
 class Connection(object) :
     """This is the entry point in pyArango and directly handles databases."""
-    def __init__(self, arangoURL = 'http://localhost:8529', username=None, password=None) :
+    def __init__(self, arangoURL = 'http://127.0.0.1:8529', username=None, password=None, verbose=False) :
         self.databases = {}
+        self.verbose = verbose
         if arangoURL[-1] == "/" :
             if ('url' not in vars()):
                 raise Exception("you either need to define `url` or make arangoURL contain an HTTP-Host")
@@ -103,14 +105,14 @@ class Connection(object) :
         self.reload()
 
     def disconnectSession(self) :
-        if self.session != None: 
+        if self.session: 
             self.session.disconnect()
 
     def resetSession(self, username=None, password=None) :
         """resets the session"""
         self.disconnectSession()
         self.session = AikidoSession(username, password)
-
+        
     def reload(self) :
         """Reloads the database list.
         Because loading a database triggers the loading of all collections and graphs within,

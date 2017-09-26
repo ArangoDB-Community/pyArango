@@ -16,7 +16,22 @@ class CachedDoc(object) :
         self.prev = prev
         self.document = document
         self.nextDoc = nextDoc
-        self.key = document.key
+        self._key = document._key
+
+    def __getitem__(self, k) :
+        return self.document[k]
+
+    def __setitem__(self, k, v) :
+        self.document[k] = v
+
+    def __getattribute__(self, k) :
+        try :
+            return object.__getattribute__(self, k)
+        except Exception as e1:
+            try :
+                return getattr(self.document, k)
+            except Exception as e2 :
+                raise e2
 
 class DocumentCache(object) :
     "Document cache for collection, with insert, deletes and updates in O(1)"
@@ -28,8 +43,8 @@ class DocumentCache(object) :
         self.tail = None
 
     def cache(self, doc) :
-        if doc.key in self.cacheStore :
-            ret = self.cacheStore[doc.key]
+        if doc._key in self.cacheStore :
+            ret = self.cacheStore[doc._key]
             if ret.prev is not None :
                 ret.prev.nextDoc = ret.nextDoc
                 self.head.prev = ret
@@ -41,34 +56,34 @@ class DocumentCache(object) :
                 ret = CachedDoc(doc, prev = None, nextDoc = None)
                 self.head = ret
                 self.tail = self.head
-                self.cacheStore[doc.key] = ret
+                self.cacheStore[doc._key] = ret
             else :
                 if len(self.cacheStore) >= self.cacheSize :
-                    del(self.cacheStore[self.tail.key])
+                    del(self.cacheStore[self.tail._key])
                     self.tail = self.tail.prev
                     self.tail.nextDoc = None
 
                 ret = CachedDoc(doc, prev = None, nextDoc = self.head)
                 self.head.prev = ret
                 self.head = self.head.prev
-                self.cacheStore[doc.key] = ret
+                self.cacheStore[doc._key] = ret
 
-    def delete(self, key) :
+    def delete(self, _key) :
         "removes a document from the cache"
         try :
-            doc = self.cacheStore[key]
+            doc = self.cacheStore[_key]
             doc.prev.nextDoc = doc.nextDoc
             doc.nextDoc.prev = doc.prev
-            del(self.cacheStore[key])
+            del(self.cacheStore[_key])
         except KeyError :
-            raise KeyError("Document with key %s is not available in cache" % key)
+            raise KeyError("Document with _key %s is not available in cache" % _key)
 
     def getChain(self) :
         "returns a list of keys representing the chain of documents"
         l = []
         h = self.head
         while h :
-            l.append(h.key)
+            l.append(h._key)
             h = h.nextDoc
         return l
 
@@ -77,18 +92,17 @@ class DocumentCache(object) :
         l = []
         h = self.head
         while h :
-            l.append(str(h.key))
+            l.append(str(h._key))
             h = h.nextDoc
         return "<->".join(l)
 
-    def __getitem__(self, key) :
-        if key in self.cacheStore :
-            try :
-                ret = self.cacheStore[key]
-                self.cache(ret)
-                return ret
-            except KeyError :
-                raise KeyError("Document with key %s is not available in cache" % key)
+    def __getitem__(self, _key) :
+        try :
+            ret = self.cacheStore[_key]
+            self.cache(ret)
+            return ret
+        except KeyError :
+            raise KeyError("Document with _key %s is not available in cache" % _key)
 
     def __repr__(self) :
         return "[DocumentCache, size: %d, full: %d]" %(self.cacheSize, len(self.cacheStore))
@@ -118,6 +132,7 @@ class Collection_metaclass(type) :
     _validationDefault = {
             'on_save' : False,
             'on_set' : False,
+            'on_load' : False,
             'allow_foreign_fields' : True
         }
 
@@ -203,10 +218,11 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
     _validation = {
         'on_save' : False,
         'on_set' : False,
+        'on_load' : False,
         'allow_foreign_fields' : True
     }
 
-    arangoPrivates = ["_id", "_key"]
+    arangoPrivates = ["_id", "_key", "_rev"]
 
     def __init__(self, database, jsonData) :
 
@@ -254,9 +270,22 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         if not r.status_code == 200 or data["error"] :
             raise DeletionError(data["errorMessage"], data)
 
-    def createDocument(self, initValues = {}) :
+    def createDocument(self, initValues = None) :
         "create and returns a document"
-        return self.documentClass(self, initValues)
+        if initValues is None :
+            initV = {}
+        else :
+            initV = initValues
+
+        return self.documentClass(self, initV)
+
+    def importBulk(self, data):
+        url = "%s/import" % (self.database.URL)
+        payload = json.dumps(data)
+        r = self.connection.session.post(url , params = {"collection": self.name, "type": "auto"}, data = payload)
+        data = r.json()
+        if not r.status_code == 201 or data["error"] :
+            raise CreationError(data["errorMessage"], data)
 
     def ensureHashIndex(self, fields, unique = False, sparse = True) :
         """Creates a hash index if it does not already exist, and returns it"""
@@ -305,49 +334,63 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         self.indexes["fulltext"][ind.infos["id"]] = ind
         return ind
 
-    @classmethod
-    def validateField(cls, fieldName, value) :
-        """checks if 'value' is valid for field 'fieldName'. If the validation is unsuccessful, raises a SchemaViolation or a ValidationError.
-        for nested dicts ex: {address : { street: xxx} }, fieldName can take the form address.street
-        """
+    def validatePrivate(self, field, value) :
+        """validate a private field value"""
+        if field not in self.arangoPrivates :
+            raise ValueError("%s is not a private field of collection %s" % (field, self))
 
-        def _getValidators(cls, fieldName) :
-            path = fieldName.split(".")
-            v = cls._fields
-            for k in path :
-                try :
-                    v = v[k]
-                except KeyError :
-                    return None
-            return v
-
-        validators = _getValidators(cls, fieldName)
-
-        if validators is None :
-            if not cls._validation["allow_foreign_fields"] :
-                raise SchemaViolation(cls, fieldName)
-        else :
-            return validators.validate(value)
-
-    @classmethod
-    def validateDct(cls, dct) :
-        "validates a dictionary. The dictionary must be defined such as {field: value}. If the validation is unsuccefull, raises an InvalidDocument"
-        def _validate(dct, res) :
-            for k, v in dct.items() :
-                if type(v) is dict :
-                    _validate(v, res)
-                elif k not in cls.arangoPrivates :
-                    try :
-                        cls.validateField(k, v)
-                    except (ValidationError, SchemaViolation) as e:
-                        res[k] = str(e)
-
-        res = {}
-        _validate(dct, res)
-        if len(res) > 0 :
-            raise InvalidDocument(res)
-
+        if field in self._fields :
+            self._fields[field].validate(value)
         return True
+
+    # @classmethod
+    # def validateField(cls, fieldName, value) :
+    #     """checks if 'value' is valid for field 'fieldName'. If the validation is unsuccessful, raises a SchemaViolation or a ValidationError.
+    #     for nested dicts ex: {address : { street: xxx} }, fieldName can take the form address.street
+    #     """
+
+    #     def _getValidators(cls, fieldName) :
+    #         path = fieldName.split(".")
+    #         v = cls._fields
+    #         for k in path :
+    #             try :
+    #                 v = v[k]
+    #             except KeyError :
+    #                 return None
+    #         return v
+
+    #     field = _getValidators(cls, fieldName)
+
+    #     if field is None :
+    #         if not cls._validation["allow_foreign_fields"] :
+    #             raise SchemaViolation(cls, fieldName)
+    #     else :
+    #         return field.validate(value)
+
+    # @classmethod
+    # def validateDct(cls, dct) :
+    #     "validates a dictionary. The dictionary must be defined such as {field: value}. If the validation is unsuccefull, raises an InvalidDocument"
+    #     def _validate(dct, res, parentsStr="") :
+    #         for k, v in dct.items() :
+    #             if len(parentsStr) == 0 :
+    #                 ps = k
+    #             else :
+    #                 ps = "%s.%s" % (parentsStr, k)
+
+    #             if type(v) is dict :
+    #                 _validate(v, res, ps)
+    #             elif k not in cls.arangoPrivates :
+    #                 try :
+    #                     cls.validateField(ps, v)
+    #                 except (ValidationError, SchemaViolation) as e:
+    #                     res[k] = str(e)
+
+    #     res = {}
+    #     _validate(dct, res)
+    #     if len(res) > 0 :
+    #         raise InvalidDocument(res)
+
+    #     return True
 
     @classmethod
     def hasField(cls, fieldName) :
@@ -493,7 +536,7 @@ class SystemCollection(Collection) :
 class Edges(Collection) :
     "The default edge collection. All edge Collections must inherit from it"
 
-    arangoPrivates = ["_id", "_key", "_to", "_from"]
+    arangoPrivates = ["_id", "_key", "_rev", "_to", "_from"]
 
     def __init__(self, database, jsonData) :
         "This one is meant to be called by the database"

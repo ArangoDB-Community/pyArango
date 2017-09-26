@@ -55,9 +55,9 @@ Full documentation
 
 This is the quickstart guide, you can find the full documentation here_.
 
-.. _here: http://pyArango.tariqdaouda.com
+.. _here: http://bioinfo.iric.ca/~daoudat/pyArango/
 
-Initiatilisation and document saving
+Initialization and document saving
 -------------------------------------
 
 .. code:: python
@@ -65,9 +65,11 @@ Initiatilisation and document saving
   from pyArango.connection import *
 
   conn = Connection()
+
   conn.createDatabase(name="test_db")
   db = self.conn["test_db"] # all databases are loaded automatically into the connection and are accessible in this fashion
   collection = db.createCollection(name="users") # all collections are also loaded automatically
+
   # collection.delete() # self explanatory
 
   for i in xrange(100):
@@ -126,7 +128,7 @@ from **Validator** and implement a **validate()** method.
 .. code:: python
 
   import pyArango.collection as COL
-  import pyArango.validator as VAL
+  import pyArango.validation as VAL
   from pyArango.theExceptions import ValidationError
   import types
 
@@ -278,3 +280,22 @@ pyArango collections have a caching system for documents that performs insertion
 
  # disable the cache
  humans.deactivateCache()
+
+Examples
+========
+More examples can be found in the examples directory.
+To try them out change the connection strings according to your local setup.
+
+Debian Dependency Graph
+-----------------------
+If you are on a Debian / Ubuntu you can install packages with automatic dependency resolution.
+In the end this is a graph. This example parses debian package files using the `deb_pkg_tools`,
+and will then create vertices and edges from packages and their relations.
+
+Use `examples/debiangraph.py` to install it, or `examples/fetchDebianDependencyGraph.py` to browse
+it as an ascii tree.
+
+ArangoDB Social Graph
+---------------------
+You can create the `ArangoDB SocialGraph <https://docs.arangodb.com/latest/Manual/Graphs/#the-social-graph>`_ using `examples/createSocialGraph.py`.
+It resemples `The original ArangoDB Javascript implementation <https://github.com/arangodb/arangodb/blob/devel/js/common/modules/%40arangodb/graph-examples/example-graph.js#L56>`_ in python.

@@ -3,6 +3,7 @@ from future.utils import with_metaclass
 
 from .theExceptions import (CreationError, DeletionError, UpdateError, TraversalError)
 from . import collection as COL
+from . import document as DOC
 
 __all__ = ["Graph", "getGraphClass", "isGraph", "getGraphClasses", "Graph_metaclass", "EdgeDefinition"]
 
@@ -52,7 +53,8 @@ class EdgeDefinition(object) :
     """An edge definition for a graph"""
 
     def __init__(self, edgesCollection, fromCollections, toCollections) :
-        self.edgesCollection = self.name = edgesCollection
+        self.name = edgesCollection
+        self.edgesCollection = edgesCollection
         self.fromCollections = fromCollections
         self.toCollections = toCollections
 
@@ -85,18 +87,38 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
         self._rev = jsonInit["_rev"]
         self._id = jsonInit["_id"]
 
+        orfs = set(self._orphanedCollections)
+        for o in jsonInit["orphanCollections"] :
+            if o not in orfs :
+                self._orphanedCollections.append(o)
+                if self.connection.verbose :
+                    print("Orphan collection %s is not in graph definition. Added it" % o)
+
         self.definitions = {}
+        edNames = set()
+        for ed in self._edgeDefinitions :
+            self.definitions[ed.edgesCollection] = ed.edgesCollection
+
+        for ed in jsonInit["edgeDefinitions"] :
+            if ed["collection"] not in self.definitions :
+                self.definitions[ed["collection"]] = EdgeDefinition(ed["collection"], fromCollections = ed["from"], toCollections = ed["to"])
+                if self.connection.verbose :
+                    print("Edge definition %s is not in graph definition. Added it" % ed)
+
         for de in self._edgeDefinitions :
-            if de.name not in self.database.collections and not COL.isEdgeCollection(de.name) :
-                raise KeyError("'%s' is not a valid edge collection" % de.name)
-            self.definitions[de.name] = de
+            if de.edgesCollection not in self.database.collections and not COL.isEdgeCollection(de.edgesCollection) :
+                raise KeyError("'%s' is not a valid edge collection" % de.edgesCollection)
+            self.definitions[de.edgesCollection] = de
 
         self.URL = "%s/%s" % (self.database.graphsURL, self._key)
 
     def createVertex(self, collectionName, docAttributes, waitForSync = False) :
         """adds a vertex to the graph and returns it"""
         url = "%s/vertex/%s" % (self.URL, collectionName)
-        self.database[collectionName].validateDct(docAttributes)
+
+        store = DOC.DocumentStore(self.database[collectionName], validators=self.database[collectionName]._fields, initDct=docAttributes)
+        # self.database[collectionName].validateDct(docAttributes)
+        store.validate()
 
         r = self.connection.session.post(url, data = json.dumps(docAttributes), params = {'waitForSync' : waitForSync})
 
@@ -120,11 +142,21 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
     def createEdge(self, collectionName, _fromId, _toId, edgeAttributes, waitForSync = False) :
         """creates an edge between two documents"""
 
+        if not _fromId :
+            raise ValueError("Invalid _fromId: %s" % _fromId)
+
+        if not _toId :
+            raise ValueError("Invalid _toId: %s" % _toId)
+
         if collectionName not in self.definitions :
             raise KeyError("'%s' is not among the edge definitions" % collectionName)
 
         url = "%s/edge/%s" % (self.URL, collectionName)
-        self.database[collectionName].validateDct(edgeAttributes)
+        self.database[collectionName].validatePrivate("_from", _fromId)
+        self.database[collectionName].validatePrivate("_to", _toId)
+        store = DOC.DocumentStore(self.database[collectionName], validators=self.database[collectionName]._fields, initDct=edgeAttributes)
+        store.validate()
+        
         payload = edgeAttributes
         payload.update({'_from' : _fromId, '_to' : _toId})
 
@@ -132,10 +164,14 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
         data = r.json()
         if r.status_code == 201 or r.status_code == 202 :
             return self.database[collectionName][data["edge"]["_key"]]
+        # print "\ngraph 160, ", data, payload, _fromId
         raise CreationError("Unable to create edge, %s" % r.json()["errorMessage"], data)
 
     def link(self, definition, doc1, doc2, edgeAttributes, waitForSync = False) :
         "A shorthand for createEdge that takes two documents as input"
+        if not doc1._id : doc1.save()
+        if not doc2._id : doc2.save()
+
         return self.createEdge(definition, doc1._id, doc2._id, edgeAttributes, waitForSync)
 
     def unlink(self, definition, doc1, doc2) :

@@ -1,3 +1,36 @@
+1.3.1
+=====
+
+* Will die gracefully if server response is empty
+* getStore and getPatches shorthands added to Document
+
+1.3.0
+=====
+
+* Fixed nested store patch update
+* REFACT: New DocumentStore class for taking care of storing document in a hierarchy of stores (nested objects) and validate them
+* Minor bug fixes
+
+1.2.8
+=====
+
+* BugFix: recursive field validation
+* BugFix: fullCount option now works
+* Length validator will raise a ValidationError if value has no length
+* users can now specify custon json encoders
+
+1.2.7
+=====
+
+* Fixed connection reuse
+
+1.2.6
+=====
+
+* Fixed Cache
+
+* Cache now exposes document store and attributes transparently
+
 1.2.5
 =====
 
@@ -5,7 +38,7 @@
 
 * Edges back compatibility with 2.8 solved "_from" "_to" are no longer foreign fields, ._from ._to work again
 
-* calls to json() now print the request's content upon failure.
+* Calls to json() now print the request's content upon failure.
 
 
 1.2.4
