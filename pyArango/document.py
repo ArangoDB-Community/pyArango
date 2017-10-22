@@ -171,6 +171,7 @@ class Document(object) :
 
     def __init__(self, collection, jsonFieldInit = {}) :
         self.typeName = "ArangoDoc"
+        self.privates = ["_id", "_key", "_rev"]
         self.reset(collection, jsonFieldInit)
 
     def reset(self, collection, jsonFieldInit = {}) :
@@ -184,11 +185,11 @@ class Document(object) :
         if self.collection._validation['on_load']:
             self.validate()
 
+        self.URL = None
         self.modified = True
 
     def validate(self) :
         """validate the document"""
-        # print self._store
         self._store.validate()
         for pField in self.collection.arangoPrivates :
             self.collection.validatePrivate(pField, getattr(self, pField))
@@ -196,14 +197,14 @@ class Document(object) :
     def setPrivates(self, fieldDict) :
         """will set self._id, self._rev and self._key field."""
         
-        try :
-            for priv in ["_id", "_key", "_rev"] :
+        for priv in self.privates :
+            if priv in fieldDict :
                 setattr(self, priv, fieldDict[priv])
-            self.URL = "%s/%s" % (self.documentsURL, self._id)
-        except KeyError :
-            for priv in ["_id", "_key", "_rev"] :
+            else :
                 setattr(self, priv, None)
-            self.URL = None
+        
+        if self._id is not None :
+            self.URL = "%s/%s" % (self.documentsURL, self._id)
 
     def set(self, fieldDict) :
         """set the document with a dictionary"""
@@ -364,19 +365,20 @@ class Edge(Document) :
     """An Edge document"""
     def __init__(self, edgeCollection, jsonFieldInit = {}) :
         self.typeName = "ArangoEdge"
+        self.privates = ["_id", "_key", "_rev", "_from", "_to"]
         self.reset(edgeCollection, jsonFieldInit)
 
     def reset(self, edgeCollection, jsonFieldInit = {}) :
         Document.reset(self, edgeCollection, jsonFieldInit)
 
-    def setPrivates(self, fieldDict) :
-        """set _id, _key, _rev, _from, _to"""
-        super(Edge, self).setPrivates(fieldDict)
-        if "_from" in fieldDict :
-            self._from = fieldDict["_from"]
+    # def setPrivates(self, fieldDict) :
+    #     """set _id, _key, _rev, _from, _to"""
+    #     super(Edge, self).setPrivates(fieldDict)
+    #     if "_from" in fieldDict :
+    #         self._from = fieldDict["_from"]
         
-        if "_to" in fieldDict :
-            self._to = fieldDict["_to"]
+    #     if "_to" in fieldDict :
+    #         self._to = fieldDict["_to"]
 
     def links(self, fromVertice, toVertice, **edgeArgs) :
         """

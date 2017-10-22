@@ -149,6 +149,17 @@ class pyArangoTests(unittest.TestCase):
         self.assertEqual(doc._id, doc2._id)
 
     # @unittest.skip("stand by")
+    def test_document_set_private_w_rest(self) :
+        collection = self.db.createCollection(name = "lala")
+        data = {
+            "_key": "key",
+            "name": "iop"
+        }
+        doc = collection.createDocument(data)
+        self.assertEqual(doc["_key"], doc._key)
+        self.assertEqual(doc["_key"], data["_key"])
+
+    # @unittest.skip("stand by")
     def test_document_has_field(self) :
         class theCol(Collection) :
             _fields = {
