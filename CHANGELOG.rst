@@ -1,3 +1,11 @@
+1.3.2
+=====
+
+* Validation bug fixes
+* New Numeric validator
+* Fields can have default values
+* When creationg a new document, Collection will serve one populated with defaults
+
 1.3.1
 =====
 

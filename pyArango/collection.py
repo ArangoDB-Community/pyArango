@@ -580,9 +580,13 @@ class Edges(Collection) :
                 raise e
         return valValue
 
-    def createEdge(self, initValues = {}) :
-        "alias for createDocument, both functions create an edge"
-        return self.createDocument(initValues)
+    def createEdge(self) :
+        "Create an edge populated with defaults"
+        return self.createDocument()
+
+    def createEdge_(self, initValues = {}) :
+        "Create an edge populated with initValues"
+        return self.createDocument_(initValues)
 
     def getInEdges(self, vertex, rawResults = False) :
         "An alias for getEdges() that returns only the in Edges"

@@ -103,7 +103,7 @@ class pyArangoTests(unittest.TestCase):
 
         self.db.reloadCollections()
         ed = self.db.collections["to_be_erased"]
-        e1 = ed.createEdge({"name": 'tesla-edge'})
+        e1 = ed.createEdge_({"name": 'tesla-edge'})
         e1.links(d1, d2)
 
         e2 = ed.createEdge()
@@ -155,7 +155,7 @@ class pyArangoTests(unittest.TestCase):
             "_key": "key",
             "name": "iop"
         }
-        doc = collection.createDocument(data)
+        doc = collection.createDocument_(data)
         self.assertEqual(doc["_key"], doc._key)
         self.assertEqual(doc["_key"], data["_key"])
 
