@@ -15,8 +15,8 @@ class Validator(object) :
 
 class NotNull(Validator) :
     """Checks that the Field has a non null value"""
-    def validate(self, value) :
-        if value is None or value == "" :
+    def validate(self, value, zero=True, emptyString=True) :
+        if value is None or (value == 0 is zero) or (value == "" and emptyString) :
             raise ValidationError("Field can't have a null value: '%s'" % value)
         return True
 
@@ -27,6 +27,14 @@ class Email(Validator) :
         pat = '^[A-z0-9._-]+@[A-z0-9.-]+\.[A-z]{2,4}$'
         if re.match(pat, value) is None :
             raise ValidationError("The email address: %s is invalid" % value)
+        return True
+
+class Numeric(Validator) :
+    def validate(self, value) :
+        try :
+            float(value)
+        except :
+            raise ValidationError("%s is not valid numerical value" % value)
         return True
 
 class Length(Validator) :

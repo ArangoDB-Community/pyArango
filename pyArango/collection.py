@@ -109,9 +109,10 @@ class DocumentCache(object) :
 
 class Field(object) :
     """The class for defining pyArango fields."""
-    def __init__(self, validators = []) :
+    def __init__(self, validators = [], default="") :
         "validators must be a list of validators"
         self.validators = validators
+        self.default = default
 
     def validate(self, value) :
         "checks the validity of 'value' given the lits of validators"
@@ -226,6 +227,16 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
     def __init__(self, database, jsonData) :
 
+        def getDefaultDoc(fields, dct) :
+            for k, v in fields.items() :
+                if isinstance(v, dict) :
+                    dct[k] = getDefaultDoc(fields[k], {})
+                elif isinstance(v, Field) :
+                    dct[k] = v.default
+                else :
+                    raise ValueError("Field '%s' is of invalid type '%s'" % (k, type(v)) )
+            return dct
+
         self.database = database
         self.connection = self.database.connection
         self.name = self.__class__.__name__
@@ -244,6 +255,8 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
             "geo" : {},
             "fulltext" : {},
         }
+
+        self.defaultDocument = getDefaultDoc(self._fields, {})
 
     def getIndexes(self) :
         """Fills self.indexes with all the indexes associates with the collection and returns it"""
@@ -270,12 +283,21 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         if not r.status_code == 200 or data["error"] :
             raise DeletionError(data["errorMessage"], data)
 
-    def createDocument(self, initValues = None) :
-        "create and returns a document"
-        if initValues is None :
+    def createDocument(self) :
+        "create and returns a document populated with the defaults"
+        if self._validation["on_load"] :
+            self._validation["on_load"] = False
+            return self.createDocument_(self.defaultDocument)
+            self._validation["on_load"] = True
+        else :
+            return self.createDocument_(self.defaultDocument)
+        
+    def createDocument_(self, initDict = None) :
+        "create and returns a completely empty document or one populated with initDict"
+        if initDict is None :
             initV = {}
         else :
-            initV = initValues
+            initV = initDict
 
         return self.documentClass(self, initV)
 

@@ -8,22 +8,28 @@ class DocumentStore(object) :
     """Store all the data of a document in hierarchy of stores and handles validation.
     Does not store private information, these are in the document."""
 
-    def __init__(self, collection, validators={}, initDct={}, patch=False, subStore=False) :
+    def __init__(self, collection, validators={}, initDct={}, patch=False, subStore=False, validateInit=False) :
         self.store = {}
         self.patchStore = {}
         self.collection = collection
         self.validators = validators
-        
+        self.validateInit = validateInit
+        self.isSubStore = subStore
+        self.subStores = {}
+        self.patching = patch
+
         self.mustValidate = False
+        if not self.validateInit :
+            self.set(initDct)
+
         for v in self.collection._validation.values() :
             if v :
                 self.mustValidate = True
                 break
+
+        if self.validateInit :
+            self.set(initDct)
         
-        self.isSubStore = subStore
-        self.subStores = {}
-        self.patching = patch
-        self.set(initDct)
         self.patching = True
 
     def resetPatch(self) :
@@ -63,12 +69,19 @@ class DocumentStore(object) :
             if field in self.patchStore :
                 return self.validators[field].validate(self.patchStore[field])
             else :
-                return self.validators[field].validate(self.store[field])
-
+                try :
+                    return self.validators[field].validate(self.store[field])
+                except ValidationError as e:
+                    raise ValidationError( "'%s' -> %s" % ( field, str(e)) )
+                except AttributeError:
+                    if isinstance(self.validators[field], dict) and not isinstance(self.store[field], dict) :
+                        raise ValueError("Validator expected a sub document for field '%s', got '%s' instead" % (field, self.store[field]) )
+                    else :
+                        raise
         return True
 
     def validate(self) :
-        """Validate the hole document"""
+        """Validate the whole document"""
         if not self.mustValidate :
             return True
 
@@ -76,7 +89,7 @@ class DocumentStore(object) :
         for field in self.validators.keys() :
             try :
                 if isinstance(self.validators[field], dict) and field not in self.store :
-                    self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, subStore=True)
+                    self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, subStore=True, validateInit=self.validateInit)
                 self.validateField(field)
             except InvalidDocument as e :
                 res.update(e.errors)
@@ -90,10 +103,10 @@ class DocumentStore(object) :
 
     def set(self, dct) :
         """Set the store using a dictionary"""
-        if not self.mustValidate :
-            self.store = dct
-            self.patchStore = dct
-            return
+        # if not self.mustValidate :
+        #     self.store = dct
+        #     self.patchStore = dct
+        #     return
 
         for field, value in dct.items() :
             if field not in self.collection.arangoPrivates :
@@ -102,7 +115,7 @@ class DocumentStore(object) :
                         vals = self.validators[field]
                     else :
                         vals = {}
-                    self[field] = DocumentStore(self.collection, validators = vals, initDct = value, patch = self.patching, subStore=True)
+                    self[field] = DocumentStore(self.collection, validators = vals, initDct = value, patch = self.patching, subStore=True, validateInit=self.validateInit)
                     self.subStores[field] = self.store[field]
                 else :
                     self[field] = value
@@ -110,7 +123,7 @@ class DocumentStore(object) :
     def __getitem__(self, field) :
         """Get an element from the store"""
         if (field in self.validators) and isinstance(self.validators[field], dict) and (field not in self.store) :
-            self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, patch = self.patching, subStore=True)
+            self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, patch = self.patching, subStore=True, validateInit=self.validateInit)
             self.subStores[field] = self.store[field]
             self.patchStore[field] = self.store[field]
 
@@ -135,7 +148,7 @@ class DocumentStore(object) :
                 vals = self.validators[field]
             else :
                 vals = {}
-            self.store[field] = DocumentStore(self.collection, validators = vals, initDct = value, patch = self.patching, subStore=True)
+            self.store[field] = DocumentStore(self.collection, validators = vals, initDct = value, patch = self.patching, subStore=True, validateInit=self.validateInit)
             
             self.subStores[field] = self.store[field]
         else :
@@ -144,7 +157,7 @@ class DocumentStore(object) :
         if self.patching :
             self.patchStore[field] = self.store[field]
 
-        if self.collection._validation['on_set'] :
+        if self.mustValidate and self.collection._validation['on_set'] :
             self.validateField(field)
 
     def __delitem__(self, k) :
@@ -180,12 +193,12 @@ class Document(object) :
         self.connection = self.collection.connection
         self.documentsURL = self.collection.documentsURL
 
+        self.URL = None
         self.setPrivates(jsonFieldInit)
         self._store = DocumentStore(self.collection, validators=self.collection._fields, initDct=jsonFieldInit)
         if self.collection._validation['on_load']:
             self.validate()
 
-        self.URL = None
         self.modified = True
 
     def validate(self) :

@@ -53,7 +53,7 @@ class InvalidDocument(pyArangoException) :
         pyArangoException.__init__(self, message, errors)
 
     def __str__(self) :
-        self.strErrors = []
+        strErrors = []
         for k, v in self.errors.items() :
             strErrors.append("%s -> %s" % (k, v))
         strErrors = '\n\t'.join(strErrors)
