@@ -2,7 +2,7 @@
 =====
 
 * Validation bug fixes
-* New Numeric validator
+* New Numeric, Int, Bool, String, Enumeration, Range validators
 * Fields can have default values
 * When creationg a new document, Collection will serve one populated with defaults
 

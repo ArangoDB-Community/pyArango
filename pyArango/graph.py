@@ -154,10 +154,12 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
         url = "%s/edge/%s" % (self.URL, collectionName)
         self.database[collectionName].validatePrivate("_from", _fromId)
         self.database[collectionName].validatePrivate("_to", _toId)
-        store = DOC.DocumentStore(self.database[collectionName], validators=self.database[collectionName]._fields, initDct=edgeAttributes)
-        store.validate()
         
-        payload = edgeAttributes
+        ed = self.database[collectionName].createEdge()
+        ed.set(edgeAttributes)
+        ed.validate()
+
+        payload = ed.getStore()
         payload.update({'_from' : _fromId, '_to' : _toId})
 
         r = self.connection.session.post(url, data = json.dumps(payload), params = {'waitForSync' : waitForSync})
