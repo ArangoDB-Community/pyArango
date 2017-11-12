@@ -29,6 +29,14 @@ class Email(Validator) :
             raise ValidationError("The email address: %s is invalid" % value)
         return True
 
+class Bool(Validator) :
+    def validate(self, value) :
+        try :
+            type(value) == type(True)
+        except :
+            raise ValidationError("%s is not valid Boolean value" % value)
+        return True
+
 class Numeric(Validator) :
     def validate(self, value) :
         try :
