@@ -1,6 +1,6 @@
 import requests
 import json
-import hashlib
+import uuid
 
 from datetime import datetime
 
@@ -93,6 +93,8 @@ class Connection(object) :
         else :
             self.arangoURL = arangoURL
 
+        self.identifier = None
+        self.startTime = None
         self.session = None
         self.resetSession(username, password)
 
@@ -169,7 +171,7 @@ class Connection(object) :
 
     def reportStart(self, name):
         if self.statsdc != None:
-            self.identifier = hashlib.sha224(name).hexdigest()[-6:]
+            self.identifier = str(uuid.uuid5(uuid.NAMESPACE_DNS, name))[-6:]
             if self.reportFile != None:
                 self.reportFile.write("[%s]: %s\n" % (self.identifier, name))
                 self.reportFile.flush()
