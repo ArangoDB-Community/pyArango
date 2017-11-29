@@ -179,6 +179,6 @@ class Connection(object) :
 
     def reportItem(self):
         if self.statsdc != None:
-	    diff = datetime.now() - self.startTime
-	    microsecs = (diff.total_seconds() * 1000 * 1000) + diff.microseconds
+            diff = datetime.now() - self.startTime
+            microsecs = (diff.total_seconds() * (1000 ** 2) ) + diff.microseconds
             self.statsdc.timing("pyArango_" + self.identifier, int(microsecs))
