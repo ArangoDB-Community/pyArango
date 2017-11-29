@@ -5,6 +5,7 @@
 * New Numeric, Int, Bool, String, Enumeration, Range validators
 * Fields can have default values
 * When creationg a new document, Collection will serve one populated with defaults
+* stastd support thx to: @dothebart
 
 1.3.1
 =====
