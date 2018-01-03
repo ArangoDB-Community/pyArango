@@ -283,14 +283,17 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         if not r.status_code == 200 or data["error"] :
             raise DeletionError(data["errorMessage"], data)
 
-    def createDocument(self) :
-        "create and returns a document populated with the defaults"
-        if self._validation["on_load"] :
-            self._validation["on_load"] = False
-            return self.createDocument_(self.defaultDocument)
-            self._validation["on_load"] = True
+    def createDocument(self, initDict = None) :
+        "create and returns a document populated with the defaults or with the values in initDict"
+        if initDict is not None :
+            return self.createDocument_(initDictt)
         else :
-            return self.createDocument_(self.defaultDocument)
+            if self._validation["on_load"] :
+                self._validation["on_load"] = False
+                return self.createDocument_(self.defaultDocument)
+                self._validation["on_load"] = True
+            else :
+                return self.createDocument_(self.defaultDocument)
         
     def createDocument_(self, initDict = None) :
         "create and returns a completely empty document or one populated with initDict"
@@ -549,6 +552,14 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
             doc = self.fetchDocument(key, rawResults = False)
             self.documentCache.cache(doc)
         return doc
+
+    def __contains__(self) :
+        """if doc in collection"""
+        try:
+            self.fetchDocument(key, rawResults = False)
+            return True
+        except KeyError as e:
+            return False
 
 class SystemCollection(Collection) :
     "for all collections with isSystem = True"
