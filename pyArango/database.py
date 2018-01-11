@@ -86,7 +86,7 @@ class Database(object) :
         Use colArgs to put things such as 'isVolatile = True' (see ArangoDB's doc
         for a full list of possible arugments)."""
 
-        if className != 'Collection' and className != 'Edges' :
+        if className != 'Collection' and className != 'Edges' and 'name' not in colArgs:
             colArgs['name'] = className
         else :
             if 'name' not in colArgs :
