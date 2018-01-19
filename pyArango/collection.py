@@ -304,10 +304,13 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
         return self.documentClass(self, initV)
 
-    def importBulk(self, data):
+    def importBulk(self, data, **addParams):
         url = "%s/import" % (self.database.URL)
         payload = json.dumps(data)
-        r = self.connection.session.post(url , params = {"collection": self.name, "type": "auto"}, data = payload)
+        params = {"collection": self.name, "type": "auto"}
+        for k, v in addParams.items():
+            params[k] = v 
+        r = self.connection.session.post(url , params = params, data = payload)
         data = r.json()
         if not r.status_code == 201 or data["error"] :
             raise CreationError(data["errorMessage"], data)
