@@ -308,8 +308,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         url = "%s/import" % (self.database.URL)
         payload = json.dumps(data)
         params = {"collection": self.name, "type": "auto"}
-        for k, v in addParams.items():
-            params[k] = v 
+        params.update(addParams)
         r = self.connection.session.post(url , params = params, data = payload)
         data = r.json()
         if not r.status_code == 201 or data["error"] :
