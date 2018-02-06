@@ -249,7 +249,7 @@ to that document are also deleted.
 
  # Here's how you define a graph
  class MyGraph(Graph) :
-     _edgeDefinitions = (EdgeDefinition("Friend", fromCollections=["Humans"], toCollections=["Humans"]))
+     _edgeDefinitions = [EdgeDefinition("Friend", fromCollections=["Humans"], toCollections=["Humans"])]
      _orphanedCollections = []
 
  # create the collections (do this only if they don't already exist in the database)
