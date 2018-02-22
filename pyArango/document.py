@@ -339,50 +339,9 @@ class Document(object) :
         except AttributeError :
             raise AttributeError("%s does not seem to be a valid Edges object" % edges)
 
-<<<<<<< HEAD
-    def toJson(self) :
-        """return a json string version of the document"""
-        return json.dumps(self._store)
-
-    def __getattribute__(self, k) :
-        if k in ("_id", "_key", "_rev") :
-            return self[k]
-        
-        return super(Document, self).__getattribute__(k)
-
-    def __setattr__(self, k, v) :
-        if k in ("_id", "_key", "_rev") :
-            self._store[k] = v
-
-        super(Document, self).__setattr__(k, v)
-
-    def __getitem__(self, k) :
-        """Document fields are accessed in a dictionary like fashion: doc[fieldName]. With the exceptions of private fiels (starting with '_')
-        that are accessed as object fields: doc._key"""
-        if self.collection._validation['allow_foreign_fields'] or self.collection.hasField(k) :
-            return self._store.get(k)
-
-        try :
-            return self._store[k]
-        except KeyError :
-            raise KeyError("Document of collection '%s' has no field '%s', for a permissive behaviour set 'allow_foreign_fields' to True" % (self.collection.name, k))
-
-    def __setitem__(self, k, v) :
-        """Documents work just like dictionaries doc[fieldName] = value. With the exceptions of private fiels (starting with '_')
-        that are accessed as object fields: doc._key"""
-
-        def _recValidate(k, v) :
-            if type(v) is dict :
-                for kk, vv in v.items() :
-                    newk = "%s.%s" % (k, kk)
-                    _recValidate(newk, vv)
-            else :
-                self.collection.validateField(k, v)
-=======
     def getStore(self) :
         """return the store in a dict format"""
         return self._store.getStore()
->>>>>>> f314570290f59c1f23aa74d5efd1324c2fcf3993
 
     def getPatches(self) :
         """return the patches in a dict format"""
@@ -394,19 +353,12 @@ class Document(object) :
             return getattr(self, k)
         return self._store[k]
 
-<<<<<<< HEAD
-        if k == "_id" :
-            self.URL = "%s/%s" % (self.documentsURL, v)
-
-        self.modified = True
-=======
     def __setitem__(self, k, v) :
         """set an element in the document"""
         if k in self.collection.arangoPrivates :
             setattr(self, k, v)
         else :
             self._store[k] = v
->>>>>>> f314570290f59c1f23aa74d5efd1324c2fcf3993
 
     def __delitem__(self, k) :
         """removes an element from the document"""
@@ -483,7 +435,3 @@ class Edge(Document) :
             return self._store[k]
         else :
             return Document.__getattr__(self, k)
-<<<<<<< HEAD
-
-=======
->>>>>>> f314570290f59c1f23aa74d5efd1324c2fcf3993
