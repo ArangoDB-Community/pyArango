@@ -2,6 +2,7 @@
 =====
 
 * Added bulk import to connection
+* Added binvars to explain
 
 1.2.8
 =====

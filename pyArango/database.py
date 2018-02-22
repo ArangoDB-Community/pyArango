@@ -177,9 +177,9 @@ class Database(object) :
         return AQLQuery(self, query, rawResults = rawResults, batchSize = batchSize, bindVars  = bindVars, options = options, count = count, fullCount = fullCount,
                         json_encoder = json_encoder, **moreArgs)
 
-    def explainAQLQuery(self, query, allPlans = False) :
+    def explainAQLQuery(self, query, bindVars, allPlans = False) :
         """Returns an explanation of the query. Setting allPlans to True will result in ArangoDB returning all possible plans. False returns only the optimal plan"""
-        payload = {'query' : query, 'allPlans' : allPlans}
+        payload = {'query' : query, 'bindVars' : bindVars, 'allPlans' : allPlans}
         request = self.connection.session.post(self.explainURL, data = json.dumps(payload))
         return request.json()
 
