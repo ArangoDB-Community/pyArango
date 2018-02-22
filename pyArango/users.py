@@ -21,10 +21,16 @@ class User(object) :
 
     def _set(self, jsonData) :
         """Initialize all fields at once. If no password is specified, it will be set as an empty string"""
+        
         self["username"] = jsonData["user"]
         self["active"] = jsonData["active"]
         self["extra"] = jsonData["extra"]
-        self["changePassword"] = jsonData["changePassword"]
+        try:
+            self["changePassword"] = jsonData["changePassword"]
+        except Exception as e:
+            pass
+            # self["changePassword"] = ""
+        
         try :
             self["password"] = jsonData["passwd"]
         except KeyError :

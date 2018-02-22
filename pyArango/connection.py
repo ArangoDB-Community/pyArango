@@ -1,5 +1,8 @@
 import requests
 import json
+import uuid
+
+from datetime import datetime
 
 from .database import Database, DBHandle
 from .theExceptions import CreationError, ConnectionError
@@ -38,7 +41,9 @@ class AikidoSession(object) :
                 print ("===\nUnable to establish connection, perhaps arango is not running.\n===")
                 raise
 
-            if ret.status_code == 401 :
+            if len(ret.content) < 1:
+                raise ConnectionError("Empty server response", ret.url, ret.status_code, ret.content)
+            elif ret.status_code == 401 :
                 raise ConnectionError("Unauthorized access, you must supply a (username, password) with the correct credentials", ret.url, ret.status_code, ret.content)
 
             ret.json = JsonHook(ret)
@@ -80,8 +85,9 @@ class AikidoSession(object) :
 
 class Connection(object) :
     """This is the entry point in pyArango and directly handles databases."""
-    def __init__(self, arangoURL = 'http://127.0.0.1:8529', username=None, password=None) :
+    def __init__(self, arangoURL = 'http://127.0.0.1:8529', username = None, password = None, verbose = False, statsdClient = None, reportFileName = None) :
         self.databases = {}
+        self.verbose = verbose
         if arangoURL[-1] == "/" :
             if ('url' not in vars()):
                 raise Exception("you either need to define `url` or make arangoURL contain an HTTP-Host")
@@ -89,6 +95,8 @@ class Connection(object) :
         else :
             self.arangoURL = arangoURL
 
+        self.identifier = None
+        self.startTime = None
         self.session = None
         self.resetSession(username, password)
 
@@ -99,6 +107,13 @@ class Connection(object) :
             self.databasesURL = '%s/user/%s/database' % (self.URL, username)
 
         self.users = Users(self)
+
+        if reportFileName != None:
+            self.reportFile = open(reportFileName, 'a')
+        else:
+            self.reportFile = None
+
+        self.statsdc = statsdClient
         self.reload()
 
     def disconnectSession(self) :
@@ -155,3 +170,17 @@ class Connection(object) :
                 return self.databases[dbName]
             except KeyError :
                 raise KeyError("Can't find any database named : %s" % dbName)
+
+    def reportStart(self, name):
+        if self.statsdc != None:
+            self.identifier = str(uuid.uuid5(uuid.NAMESPACE_DNS, name))[-6:]
+            if self.reportFile != None:
+                self.reportFile.write("[%s]: %s\n" % (self.identifier, name))
+                self.reportFile.flush()
+            self.startTime = datetime.now()
+
+    def reportItem(self):
+        if self.statsdc != None:
+            diff = datetime.now() - self.startTime
+            microsecs = (diff.total_seconds() * (1000 ** 2) ) + diff.microseconds
+            self.statsdc.timing("pyArango_" + self.identifier, int(microsecs))

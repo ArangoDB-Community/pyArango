@@ -58,6 +58,20 @@ class pyArangoTests(unittest.TestCase):
         return collection
 
     # @unittest.skip("stand by")
+    def test_bulk_import(self):
+        usersCollection = self.db.createCollection(name = "users")
+        nbUsers = 100
+        users = []
+        for i in range(nbUsers):
+            user = {}
+            user["name"] = "Tesla-%d" % i
+            user["number"] = i
+            user["species"] = "human"
+            users.append(user)
+        usersCollection.importBulk(users)
+        self.assertEqual(usersCollection.count(), len(users))
+
+    # @unittest.skip("stand by")
     def test_collection_create_delete(self) :
         col = self.db.createCollection(name = "to_be_erased")
         self.assertTrue(self.db.hasCollection("to_be_erased"))
@@ -101,8 +115,9 @@ class pyArangoTests(unittest.TestCase):
 
         self.db.reloadCollections()
         ed = self.db.collections["to_be_erased"]
-        e1 = ed.createEdge({"name": 'tesla'})
+        e1 = ed.createEdge_({"name": 'tesla-edge'})
         e1.links(d1, d2)
+
         e2 = ed.createEdge()
         e2.links(d1, d3)
         self.assertEqual(2, ed.count())
@@ -144,6 +159,17 @@ class pyArangoTests(unittest.TestCase):
         doc.save()
         doc2 = collection.fetchDocument(doc._key)
         self.assertEqual(doc._id, doc2._id)
+
+    # @unittest.skip("stand by")
+    def test_document_set_private_w_rest(self) :
+        collection = self.db.createCollection(name = "lala")
+        data = {
+            "_key": "key",
+            "name": "iop"
+        }
+        doc = collection.createDocument_(data)
+        self.assertEqual(doc["_key"], doc._key)
+        self.assertEqual(doc["_key"], data["_key"])
 
     # @unittest.skip("stand by")
     def test_document_has_field(self) :
@@ -309,7 +335,7 @@ class pyArangoTests(unittest.TestCase):
         myCol = self.db.createCollection('Col_on_set')
         doc = myCol.createDocument()
         self.assertRaises(ValidationError, doc.__setitem__, 'str', "qwer")
-        self.assertRaises(ValidationError, doc.__setitem__, 'nestedStr.str', "qwer")
+        self.assertRaises(ValidationError, doc["nestedStr"].__setitem__, 'str', "qwer")
         self.assertRaises(ValidationError, doc.__setitem__, 'notNull', None)
         self.assertRaises(SchemaViolation, doc.__setitem__, 'foreigner', None)
 
@@ -320,11 +346,11 @@ class pyArangoTests(unittest.TestCase):
         class String_val(VAL.Validator) :
 
             def validate(self, value) :
-                if type(value) is not bytes :
+                if not isinstance(value, bytes) and not isinstance(value, str) :
                     raise ValidationError("Field value must be a string")
                 return True
 
-        class Col_on_set(Collection) :
+        class Col_on_save(Collection) :
 
             _validation = {
                 "on_save" : True,
@@ -335,19 +361,18 @@ class pyArangoTests(unittest.TestCase):
             _fields = {
                 "str" : Field(validators = [String_val()]),
                 "nestedStr": {
-                    "str": Field(validators = [VAL.Length(50, 51)])
+                    "str": Field(validators = [VAL.Length(1, 51)])
                 }
             }
 
-        myCol = self.db.createCollection('Col_on_set')
+        myCol = self.db.createCollection('Col_on_save')
         doc = myCol.createDocument()
         doc["str"] = 3
         self.assertRaises(InvalidDocument, doc.save)
 
         doc = myCol.createDocument()
         doc["str"] = "string"
-        doc["foreigner"] = "string"
-        self.assertRaises(InvalidDocument,  doc.save)
+        self.assertRaises(SchemaViolation,  doc.__setitem__, "foreigner", "string")
 
         doc = myCol.createDocument()
         doc["nestedStr"] = {}
@@ -359,6 +384,12 @@ class pyArangoTests(unittest.TestCase):
         doc["nestedStr"] = {}
         doc["nestedStr"]["str"] = "string"
         doc["str"] = "string"
+        doc.save()
+        self.assertEqual(myCol[doc._key]._store.getStore(),  doc._store.getStore())
+        doc["nestedStr"]["str"] = "string2"
+        self.assertTrue(len(doc._store.getPatches()) > 0)
+        doc.patch()
+        self.assertEqual(myCol[doc._key]._store.getStore(),  doc._store.getStore())
 
     # @unittest.skip("stand by")
     def test_document_cache(self) :
@@ -372,7 +403,7 @@ class pyArangoTests(unittest.TestCase):
 
             def __getitem__(self, k) :
                 return self.store[k]
-                
+
             def __setitem__(self, k, v) :
                 self.store[k] = v
 
@@ -387,7 +418,7 @@ class pyArangoTests(unittest.TestCase):
         for doc in docs :
             cache.cache(doc)
             self.assertEqual(cache.head._key, doc._key)
-        
+
         self.assertEqual(list(cache.cacheStore.keys()), [5, 6, 7, 8, 9])
         self.assertEqual(cache.getChain(), [9, 8, 7, 6, 5])
         doc = cache[5]
@@ -476,7 +507,6 @@ class pyArangoTests(unittest.TestCase):
         link = rels.createEdge()
         link["ctype"] = "brother"
         link.links(tete, toto)
-
         sameLink = rels[link._key]
         self.assertEqual(sameLink["ctype"], link["ctype"])
         self.assertEqual(sameLink["_from"], tete._id)

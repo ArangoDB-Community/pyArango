@@ -170,6 +170,16 @@ class Database(object) :
         """returns true if the databse has a graph by the name of 'name'"""
         return name in self.graphs
 
+    def dropAllCollections(self):
+        """drops all public collections (graphs included) from the database"""
+        for graph_name in self.graphs:
+            self.graphs[graph_name].delete()
+        for collection_name in self.collections:
+            # Collections whose name starts with '_' are system collections
+            if not collection_name.startswith('_'):
+                self[collection_name].delete()
+        return
+
     def AQLQuery(self, query, batchSize = 100, rawResults = False, bindVars = {}, options = {}, count = False, fullCount = False,
                  json_encoder = None, **moreArgs) :
         """Set rawResults = True if you want the query to return dictionnaries instead of Document objects.
@@ -204,11 +214,15 @@ class Database(object) :
         if params is not None:
             payload["params"] = params
 
+        self.connection.reportStart(action)
+
         r = self.connection.session.post(self.transactionURL, data = json.dumps(payload))
+
+        self.connection.reportItem()
 
         data = r.json()
 
-        if r.status_code == 200 and not data["error"] :
+        if (r.status_code == 200 or r.status_code == 201 or r.status_code == 202) and not data["error"] :
             return data
         else :
             raise TransactionError(data["errorMessage"], action, data)

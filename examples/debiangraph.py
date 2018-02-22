@@ -29,7 +29,7 @@ from pyArango.graph import *
 from pyArango.theExceptions import *
 
 # Configure your ArangoDB server connection here
-conn = Connection(arangoURL="http://localhost:8529", username="USERNAME", password="SECRET")
+conn = Connection(arangoURL="http://localhost:8529", username="root", password="")
 
 db = None
 edgeCols = {}

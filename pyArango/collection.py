@@ -109,9 +109,10 @@ class DocumentCache(object) :
 
 class Field(object) :
     """The class for defining pyArango fields."""
-    def __init__(self, validators = []) :
+    def __init__(self, validators = [], default="") :
         "validators must be a list of validators"
         self.validators = validators
+        self.default = default
 
     def validate(self, value) :
         "checks the validity of 'value' given the lits of validators"
@@ -132,6 +133,7 @@ class Collection_metaclass(type) :
     _validationDefault = {
             'on_save' : False,
             'on_set' : False,
+            'on_load' : False,
             'allow_foreign_fields' : True
         }
 
@@ -217,12 +219,23 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
     _validation = {
         'on_save' : False,
         'on_set' : False,
+        'on_load' : False,
         'allow_foreign_fields' : True
     }
 
-    arangoPrivates = ["_id", "_key"]
+    arangoPrivates = ["_id", "_key", "_rev"]
 
     def __init__(self, database, jsonData) :
+
+        def getDefaultDoc(fields, dct) :
+            for k, v in fields.items() :
+                if isinstance(v, dict) :
+                    dct[k] = getDefaultDoc(fields[k], {})
+                elif isinstance(v, Field) :
+                    dct[k] = v.default
+                else :
+                    raise ValueError("Field '%s' is of invalid type '%s'" % (k, type(v)) )
+            return dct
 
         self.database = database
         self.connection = self.database.connection
@@ -242,6 +255,8 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
             "geo" : {},
             "fulltext" : {},
         }
+
+        self.defaultDocument = getDefaultDoc(self._fields, {})
 
     def getIndexes(self) :
         """Fills self.indexes with all the indexes associates with the collection and returns it"""
@@ -268,9 +283,34 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         if not r.status_code == 200 or data["error"] :
             raise DeletionError(data["errorMessage"], data)
 
-    def createDocument(self, initValues = {}) :
-        "create and returns a document"
-        return self.documentClass(self, initValues)
+    def createDocument(self, initDict = None) :
+        "create and returns a document populated with the defaults or with the values in initDict"
+        if initDict is not None :
+            return self.createDocument_(initDictt)
+        else :
+            if self._validation["on_load"] :
+                self._validation["on_load"] = False
+                return self.createDocument_(self.defaultDocument)
+                self._validation["on_load"] = True
+            else :
+                return self.createDocument_(self.defaultDocument)
+        
+    def createDocument_(self, initDict = None) :
+        "create and returns a completely empty document or one populated with initDict"
+        if initDict is None :
+            initV = {}
+        else :
+            initV = initDict
+
+        return self.documentClass(self, initV)
+
+    def importBulk(self, data):
+        url = "%s/import" % (self.database.URL)
+        payload = json.dumps(data)
+        r = self.connection.session.post(url , params = {"collection": self.name, "type": "auto"}, data = payload)
+        data = r.json()
+        if not r.status_code == 201 or data["error"] :
+            raise CreationError(data["errorMessage"], data)
 
     def ensureHashIndex(self, fields, unique = False, sparse = True) :
         """Creates a hash index if it does not already exist, and returns it"""
@@ -319,54 +359,64 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         self.indexes["fulltext"][ind.infos["id"]] = ind
         return ind
 
-    @classmethod
-    def validateField(cls, fieldName, value) :
-        """checks if 'value' is valid for field 'fieldName'. If the validation is unsuccessful, raises a SchemaViolation or a ValidationError.
-        for nested dicts ex: {address : { street: xxx} }, fieldName can take the form address.street
-        """
 
-        def _getValidators(cls, fieldName) :
-            path = fieldName.split(".")
-            v = cls._fields
-            for k in path :
-                try :
-                    v = v[k]
-                except KeyError :
-                    return None
-            return v
+    def validatePrivate(self, field, value) :
+        """validate a private field value"""
+        if field not in self.arangoPrivates :
+            raise ValueError("%s is not a private field of collection %s" % (field, self))
 
-        field = _getValidators(cls, fieldName)
-
-        if field is None and fieldName not in ("_id", "_key", "_rev", "_from", "_to") :
-            if not cls._validation["allow_foreign_fields"] :
-                raise SchemaViolation(cls, fieldName)
-        else :
-            return field.validate(value)
-
-    @classmethod
-    def validateDct(cls, dct) :
-        "validates a dictionary. The dictionary must be defined such as {field: value}. If the validation is unsuccefull, raises an InvalidDocument"
-        def _validate(dct, res, parentsStr="") :
-            for k, v in dct.items() :
-                if len(parentsStr) == 0 :
-                    ps = k
-                else :
-                    ps = "%s.%s" % (parentsStr, k)
-                
-                if type(v) is dict :
-                    _validate(v, res, ps)
-                elif k not in cls.arangoPrivates :
-                    try :
-                        cls.validateField(ps, v)
-                    except (ValidationError, SchemaViolation) as e:
-                        res[k] = str(e)
-
-        res = {}
-        _validate(dct, res)
-        if len(res) > 0 :
-            raise InvalidDocument(res)
-
+        if field in self._fields :
+            self._fields[field].validate(value)
         return True
+
+    # @classmethod
+    # def validateField(cls, fieldName, value) :
+    #     """checks if 'value' is valid for field 'fieldName'. If the validation is unsuccessful, raises a SchemaViolation or a ValidationError.
+    #     for nested dicts ex: {address : { street: xxx} }, fieldName can take the form address.street
+    #     """
+
+    #     def _getValidators(cls, fieldName) :
+    #         path = fieldName.split(".")
+    #         v = cls._fields
+    #         for k in path :
+    #             try :
+    #                 v = v[k]
+    #             except KeyError :
+    #                 return None
+    #         return v
+
+    #     field = _getValidators(cls, fieldName)
+
+    #     if field is None :
+    #         if not cls._validation["allow_foreign_fields"] :
+    #             raise SchemaViolation(cls, fieldName)
+    #     else :
+    #         return field.validate(value)
+
+    # @classmethod
+    # def validateDct(cls, dct) :
+    #     "validates a dictionary. The dictionary must be defined such as {field: value}. If the validation is unsuccefull, raises an InvalidDocument"
+    #     def _validate(dct, res, parentsStr="") :
+    #         for k, v in dct.items() :
+    #             if len(parentsStr) == 0 :
+    #                 ps = k
+    #             else :
+    #                 ps = "%s.%s" % (parentsStr, k)
+
+    #             if type(v) is dict :
+    #                 _validate(v, res, ps)
+    #             elif k not in cls.arangoPrivates :
+    #                 try :
+    #                     cls.validateField(ps, v)
+    #                 except (ValidationError, SchemaViolation) as e:
+    #                     res[k] = str(e)
+
+    #     res = {}
+    #     _validate(dct, res)
+    #     if len(res) > 0 :
+    #         raise InvalidDocument(res)
+
+    #     return True
 
     @classmethod
     def hasField(cls, fieldName) :
@@ -560,6 +610,14 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
             self.documentCache.cache(doc)
         return doc
 
+    def __contains__(self) :
+        """if doc in collection"""
+        try:
+            self.fetchDocument(key, rawResults = False)
+            return True
+        except KeyError as e:
+            return False
+
 class SystemCollection(Collection) :
     "for all collections with isSystem = True"
     def __init__(self, database, jsonData) :
@@ -568,7 +626,7 @@ class SystemCollection(Collection) :
 class Edges(Collection) :
     "The default edge collection. All edge Collections must inherit from it"
 
-    arangoPrivates = ["_id", "_key", "_to", "_from"]
+    arangoPrivates = ["_id", "_key", "_rev", "_to", "_from"]
 
     def __init__(self, database, jsonData) :
         "This one is meant to be called by the database"
@@ -590,9 +648,13 @@ class Edges(Collection) :
                 raise e
         return valValue
 
-    def createEdge(self, initValues = {}) :
-        "alias for createDocument, both functions create an edge"
-        return self.createDocument(initValues)
+    def createEdge(self) :
+        "Create an edge populated with defaults"
+        return self.createDocument()
+
+    def createEdge_(self, initValues = {}) :
+        "Create an edge populated with initValues"
+        return self.createDocument_(initValues)
 
     def getInEdges(self, vertex, rawResults = False) :
         "An alias for getEdges() that returns only the in Edges"

@@ -141,7 +141,9 @@ class AQLQuery(Query) :
         self.query = query
         self.database = database
         self.connection = self.database.connection
+        self.connection.reportStart(query)
         request = self.connection.session.post(database.cursorsURL, data = json.dumps(payload, cls=json_encoder))
+        self.connection.reportItem()
         Query.__init__(self, request, database, rawResults)
 
     def explain(self, bindVars={}, allPlans = False) :
