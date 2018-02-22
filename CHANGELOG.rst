@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-1.2.9
-=====
-
-* Added bulk import to connection
-* Added binvars to explain
-=======
 1.3.2
 =====
 
@@ -26,7 +19,12 @@
 * Fixed nested store patch update
 * REFACT: New DocumentStore class for taking care of storing document in a hierarchy of stores (nested objects) and validate them
 * Minor bug fixes
->>>>>>> f314570290f59c1f23aa74d5efd1324c2fcf3993
+
+1.2.9
+=====
+
+* Added bulk import to connection
+* Added binvars to explain
 
 1.2.8
 =====
