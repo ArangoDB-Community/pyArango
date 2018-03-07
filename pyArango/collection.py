@@ -304,10 +304,12 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
         return self.documentClass(self, initV)
 
-    def importBulk(self, data):
+    def importBulk(self, data, **addParams):
         url = "%s/import" % (self.database.URL)
         payload = json.dumps(data)
-        r = self.connection.session.post(url , params = {"collection": self.name, "type": "auto"}, data = payload)
+        params = {"collection": self.name, "type": "auto"}
+        params.update(addParams)
+        r = self.connection.session.post(url , params = params, data = payload)
         data = r.json()
         if not r.status_code == 201 or data["error"] :
             raise CreationError(data["errorMessage"], data)
@@ -358,6 +360,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         ind = Index(self, creationData = data)
         self.indexes["fulltext"][ind.infos["id"]] = ind
         return ind
+
 
     def validatePrivate(self, field, value) :
         """validate a private field value"""
@@ -471,6 +474,66 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         r = fct(self.URL + "/" + action, params = params)
         return r.json()
 
+    def bulkSave(self, docs, onDuplicate="error", **params) :
+        """Parameter docs must be either an iterrable of documents or dictionnaries.
+        This function will return the number of documents, created and updated, and will raise an UpdateError exception if there's at least one error.
+        params are any parameters from arango's documentation"""
+        
+        payload = []
+        for d in docs :
+            try:
+                payload.append(d.toJson())
+            except Exception as e:
+                payload.append(json.dumps(d))
+        payload = '\n'.join(payload)
+        # print payload
+
+        params["type"] = "documents"
+        params["onDuplicate"] = onDuplicate
+        params["collection"] = self.name
+        URL = "%s/import" % self.database.URL
+
+        r = self.connection.session.post(URL, params = params, data = payload)
+        data = r.json()
+        if (r.status_code == 201) and "error" not in data :
+            return True
+        else :
+            if data["errors"] > 0 :
+                raise UpdateError("%d documents could not be created" % data["errors"], data)
+
+        return data["updated"] + data["created"]
+
+    def bulkImport_json(self, filename, onDuplicate="error", formatType="auto", **params) :
+        """bulk import from a file repecting arango's key/value format"""
+
+        url = "%s/import" % self.database.URL
+        params["onDuplicate"] = onDuplicate
+        params["collection"] = self.name
+        params["type"] = formatType
+        with open(filename) as f:
+            data = f.read()
+            r = self.connection.session.post(URL, params = params, data = data)
+
+            try :
+                errorMessage = "At least: %d errors. The first one is: '%s'\n\n more in <this_exception>.data" % (len(data), data[0]["errorMessage"])
+            except KeyError:
+                raise UpdateError(data['errorMessage'], data)
+
+    def bulkImport_values(self, filename, onDuplicate="error", **params) :
+        """bulk import from a file repecting arango's json format"""
+        
+        url = "%s/import" % self.database.URL
+        params["onDuplicate"] = onDuplicate
+        params["collection"] = self.name
+        with open(filename) as f:
+            data = f.read()
+            r = self.connection.session.post(URL, params = params, data = data)
+
+            try :
+                errorMessage = "At least: %d errors. The first one is: '%s'\n\n more in <this_exception>.data" % (len(data), data[0]["errorMessage"])
+            except KeyError:
+                raise UpdateError(data['errorMessage'], data)
+
     def truncate(self) :
         "deletes every document in the collection"
         return self.action('PUT', 'truncate')
@@ -506,10 +569,6 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
     def figures(self) :
         "a more elaborate version of count, see arangodb docs for more infos"
         return self.action('GET', 'figures')
-
-    # def createEdges(self, className, **colArgs) :
-    #     "an alias of createCollection"
-    #     self.createCollection(className, **colArgs)
 
     def getType(self) :
         "returns a word describing the type of the collection (edges or ducments) instead of a number, if you prefer the number it's in self.type"
@@ -639,4 +698,6 @@ class Edges(Collection) :
                 return data["edges"]
         else :
             raise CreationError("Unable to return edges for vertex: %s" % vId, data)
+
+
 
