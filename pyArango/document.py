@@ -402,7 +402,7 @@ class Edge(Document) :
 
         if fromVertice.__class__ is Document :
             if not fromVertice._id :
-                fromVertice._id.save()
+                fromVertice.save()
 
             self._from = fromVertice._id
         elif (type(fromVertice) is bytes) or (type(fromVertice) is str) :
@@ -410,7 +410,7 @@ class Edge(Document) :
 
         if toVertice.__class__ is Document :
             if not toVertice._id :
-                toVertice._id.save()
+                toVertice.save()
 
             self._to = toVertice._id
         elif (type(toVertice) is bytes) or (type(toVertice) is str) :
