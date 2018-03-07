@@ -154,6 +154,36 @@ from **Validator** and implement a **validate()** method.
 
   collection = db.createCollection('Humans')
 
+
+In addition you can also define collection properties_ (creation arguments for ArangoDB) right inside the definition
+
+.. code:: python
+
+  class Humans(COL.Collection):
+
+    _properties = {
+        "keyOptions" : {
+            "allowUserKeys": False,
+            "type": "autoincrement",
+            "increment": 1,
+            "offset": 0,
+        }
+    }
+
+      _validation = {
+          'on_save': False,
+          'on_set': False,
+          'allow_foreign_fields': True  # allow fields that are not part of the schema
+      }
+
+      _fields = {
+          'name': Field(validators=[VAL.NotNull(), String_val()]),
+          'anything': Field(),
+          'species': Field(validators=[VAL.NotNull(), VAL.Length(5, 15), String_val()])
+      }
+
+.. _properties: https://docs.arangodb.com/3.1/HTTP/Collection/Creating.html
+
 A note on inheritence
 ----------------------
 

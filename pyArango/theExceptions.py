@@ -76,7 +76,12 @@ class QueryError(pyArangoException) :
 class AQLQueryError(pyArangoException) :
     """Something went wrong with an aql query"""
     def __init__(self, message, query, errors = {}) :
-        message = "Error in: %s.\n->%s" % (query, message)
+        lq = []
+        for i, ll in enumerate(query.split("\n")) :
+            lq.append("%s: %s" % (i+1, ll))
+        lq = '\n'.join(lq)
+
+        message = "Error in:\n%s.\n->%s" % (lq, message)
         pyArangoException.__init__(self, message, errors)
 
 class CursorError(pyArangoException) :

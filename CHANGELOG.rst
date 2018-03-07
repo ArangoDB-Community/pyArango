@@ -6,6 +6,8 @@
 * Fields can have default values
 * When creationg a new document, Collection will serve one populated with defaults
 * stastd support thx to: @dothebart
+* properties definition in schema
+* AQL errors now come with prints and line numbers for everyone's convenience
 
 1.3.1
 =====
