@@ -72,6 +72,19 @@ class pyArangoTests(unittest.TestCase):
         self.assertEqual(usersCollection.count(), len(users))
 
     # @unittest.skip("stand by")
+    def test_bulkSave(self) :
+        collection = self.db.createCollection(name = "lops")
+        nbUsers = 100
+        docs = []
+        for i in range(nbUsers) :
+            doc = collection.createDocument()
+            doc["name"] = "Tesla-%d" % i
+            docs.append(doc)
+
+        res = collection.bulkSave(docs)
+        self.assertEqual(res, nbUsers)
+
+    # @unittest.skip("stand by")
     def test_collection_create_delete(self) :
         col = self.db.createCollection(name = "to_be_erased")
         self.assertTrue(self.db.hasCollection("to_be_erased"))
@@ -83,18 +96,6 @@ class pyArangoTests(unittest.TestCase):
 
         self.db["to_be_erased"].delete()
         self.assertRaises(DeletionError, self.db["to_be_erased"].delete)
-
-    # @unittest.skip("stand by")
-    def test_bulkSave(self) :
-        collection = self.db.createCollection(name = "lops")
-        docs = []
-        for i in range(nbUsers) :
-            doc = collection.createDocument()
-            doc["name"] = "Tesla-%d" % i
-            docs.append(doc)
-
-        res = collection.bulkSave(docs)
-        self.assertEqual(res, 0)
 
     # @unittest.skip("stand by")
     def test_edges_create_delete(self) :

@@ -484,10 +484,9 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
             try:
                 payload.append(d.toJson())
             except Exception as e:
-                payload.append(json.dumps(d))
+                payload.append(json.dumps(d.getStore()))
         payload = '\n'.join(payload)
-        # print payload
-
+        
         params["type"] = "documents"
         params["onDuplicate"] = onDuplicate
         params["collection"] = self.name

@@ -247,12 +247,14 @@ class Document(object) :
                 payload = json.dumps(payload)
                 r = self.connection.session.post(self.documentsURL, params = params, data = payload)
                 update = False
+                data = r.json()
+                self.setPrivates(data)
             else :
                 payload = json.dumps(payload)
                 r = self.connection.session.put(self.URL, params = params, data = payload)
                 update = True
+                data = r.json()
 
-            data = r.json()
 
             if (r.status_code == 201 or r.status_code == 202) and "error" not in data :
                 if update :
