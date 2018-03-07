@@ -21,7 +21,7 @@ class NotNull(Validator) :
         return True
 
 class Email(Validator) :
-    """Checks that the Field has a non null value"""
+    """Checks if the field contains an emailaddress"""
     def validate(self, value) :
         import re
         pat = '^[A-z0-9._-]+@[A-z0-9.-]+\.[A-z]{2,4}$'
