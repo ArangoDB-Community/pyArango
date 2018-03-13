@@ -481,10 +481,14 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         
         payload = []
         for d in docs :
-            try:
-                payload.append(d.toJson())
-            except Exception as e:
-                payload.append(json.dumps(d.getStore()))
+            if type(d) is dict :
+                payload.append(d)
+            else :
+                try:
+                    payload.append(d.toJson())
+                except Exception as e:
+                    payload.append(json.dumps(d.getStore()))
+
         payload = '\n'.join(payload)
         
         params["type"] = "documents"
