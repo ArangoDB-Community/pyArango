@@ -482,7 +482,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         payload = []
         for d in docs :
             if type(d) is dict :
-                payload.append(d)
+                payload.append(json.dumps(d))
             else :
                 try:
                     payload.append(d.toJson())
