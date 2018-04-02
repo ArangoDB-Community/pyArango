@@ -342,7 +342,12 @@ class Document(object) :
 
     def getStore(self) :
         """return the store in a dict format"""
-        return self._store.getStore()
+        store = self._store.getStore()
+        for priv in self.privates :
+            v = getattr(self, priv)
+            if v :
+                store[priv] = v
+        return store
 
     def getPatches(self) :
         """return the patches in a dict format"""
