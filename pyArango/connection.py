@@ -145,7 +145,7 @@ class Connection(object) :
     def createDatabase(self, name, **dbArgs) :
         "use dbArgs for arguments other than name. for a full list of arguments please have a look at arangoDB's doc"
         dbArgs['name'] = name
-        payload = json.dumps(dbArgs)
+        payload = json.dumps(dbArgs, default=str)
         url = self.URL + "/database"
         r = self.session.post(url, data = payload)
         data = r.json()
