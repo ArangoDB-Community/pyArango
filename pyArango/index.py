@@ -22,7 +22,7 @@ Indexes have a .infos dictionary that stores all the infos about the index"""
     def _create(self, postData) :
         """Creates an index of any type according to postData"""
         if self.infos is None :
-            r = self.connection.session.post(self.indexesURL, params = {"collection" : self.collection.name}, data = json.dumps(postData))
+            r = self.connection.session.post(self.indexesURL, params = {"collection" : self.collection.name}, data = json.dumps(postData, default=str))
             data = r.json()
             if (r.status_code >= 400) or data['error'] :
                 raise CreationError(data['errorMessage'], data)
