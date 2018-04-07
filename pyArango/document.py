@@ -1,5 +1,4 @@
 import json, types
-
 from .theExceptions import (CreationError, DeletionError, UpdateError, ValidationError, SchemaViolation, InvalidDocument)
 
 __all__ = ["DocumentStore", "Document", "Edge"]
@@ -244,13 +243,13 @@ class Document(object) :
             if self.URL is None :
                 if self._key is not None :
                     payload["_key"] = self._key
-                payload = json.dumps(payload)
+                payload = json.dumps(payload, default=str)
                 r = self.connection.session.post(self.documentsURL, params = params, data = payload)
                 update = False
                 data = r.json()
                 self.setPrivates(data)
             else :
-                payload = json.dumps(payload)
+                payload = json.dumps(payload, default=str)
                 r = self.connection.session.put(self.URL, params = params, data = payload)
                 update = True
                 data = r.json()
@@ -299,7 +298,7 @@ class Document(object) :
         if len(payload) > 0 :
             params = dict(docArgs)
             params.update({'collection': self.collection.name, 'keepNull' : keepNull})
-            payload = json.dumps(payload)
+            payload = json.dumps(payload, default=str)
 
             r = self.connection.session.patch(self.URL, params = params, data = payload)
             data = r.json()
@@ -406,23 +405,24 @@ class Edge(Document) :
         An alias to save that updates the _from and _to attributes.
         fromVertice and toVertice, can be either strings or documents. It they are unsaved documents, they will be automatically saved.
         """
-
-        if fromVertice.__class__ is Document :
+        if fromVertice.__class__ is Document or getattr(fromVertice, 'document', None).__class__ is Document:
             if not fromVertice._id :
                 fromVertice.save()
-
             self._from = fromVertice._id
-        elif (type(fromVertice) is bytes) or (type(fromVertice) is str) :
+        elif (type(fromVertice) is bytes) or (type(fromVertice) is str):
             self._from  = fromVertice
-
-        if toVertice.__class__ is Document :
-            if not toVertice._id :
+        elif not self._from:
+            raise CreationError('fromVertice %s is invalid!' % str(fromVertice))
+        
+        if toVertice.__class__ is Document or getattr(toVertice, 'document', None).__class__ is Document:
+            if not toVertice._id:
                 toVertice.save()
-
             self._to = toVertice._id
-        elif (type(toVertice) is bytes) or (type(toVertice) is str) :
+        elif (type(toVertice) is bytes) or (type(toVertice) is str):
             self._to = toVertice
-
+        elif not self._to:
+            raise CreationError('toVertice %s is invalid!' % str(toVertice))
+        
         self.save(**edgeArgs)
 
     def save(self, **edgeArgs) :

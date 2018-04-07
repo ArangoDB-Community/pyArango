@@ -50,7 +50,7 @@ class User(object) :
         del(payload["username"])
         del(payload["password"])
 
-        payload = json.dumps(payload)
+        payload = json.dumps(payload, default=str)
         if not self.URL :
             if "username" not in self._store or "password" not in self._store :
                 raise KeyError("You must define self['name'] and self['password'] to be able to create a new user")    
@@ -86,7 +86,7 @@ class User(object) :
             raise KeyError("Unknown database: %s" % dbName)
 
         url = "%s/database/%s" % (self.URL, dbName)
-        r = self.connection.session.put(url, data = json.dumps({"grant": rights}))
+        r = self.connection.session.put(url, data = json.dumps({"grant": rights}, default=str))
         if r.status_code < 200 or r.status_code > 202 :
             raise CreationError("Unable to grant rights", r.content)
 

@@ -306,7 +306,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
     def importBulk(self, data, **addParams):
         url = "%s/import" % (self.database.URL)
-        payload = json.dumps(data)
+        payload = json.dumps(data, default=str)
         params = {"collection": self.name, "type": "auto"}
         params.update(addParams)
         r = self.connection.session.post(url , params = params, data = payload)
@@ -482,12 +482,12 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         payload = []
         for d in docs :
             if type(d) is dict :
-                payload.append(json.dumps(d))
+                payload.append(json.dumps(d, default=str))
             else :
                 try:
                     payload.append(d.toJson())
                 except Exception as e:
-                    payload.append(json.dumps(d.getStore()))
+                    payload.append(json.dumps(d.getStore(), default=str))
 
         payload = '\n'.join(payload)
         
