@@ -21,7 +21,7 @@ class RawCursor(object) :
         "returns the next batch"
         r = self.connection.session.put(self.URL)
         data = r.json()
-        if r.status_code == 400 :
+        if r.status_code in [400, 404] :
             raise CursorError(data["errorMessage"], self.id, data)
         return r.json()
 
