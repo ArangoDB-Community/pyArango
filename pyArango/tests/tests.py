@@ -74,6 +74,45 @@ class pyArangoTests(unittest.TestCase):
         self.assertEqual(usersCollection.count(), len(users))
 
     # @unittest.skip("stand by")
+    def test_bulk_import_exception(self):
+        usersCollection = self.db.createCollection(name="users")
+        nbUsers = 2
+        users = []
+        for i in range(nbUsers):
+            user = {}
+            user["_key"] = "tesla"
+            user["name"] = "Tesla-%d" % i
+            user["number"] = i
+            user["species"] = "human"
+            users.append(user)
+        with self.assertRaises(CreationError):
+            usersCollection.importBulk(users, onDuplicate="error", complete=True)
+        self.assertEqual(usersCollection.count(), 0)
+
+        # @unittest.skip("stand by")
+
+    def test_bulk_import_error_return_value(self):
+        usersCollection = self.db.createCollection(name="users")
+        nbUsers = 2
+        users = []
+        for i in range(nbUsers):
+            user = {}
+            user["_key"] = "tesla"
+            user["name"] = "Tesla-%d" % i
+            user["number"] = i
+            user["species"] = "human"
+            users.append(user)
+        result = usersCollection.importBulk(users, onDuplicate="error")
+        self.assertEqual(result, {
+            'created': 1,
+            'empty': 0,
+            'error': False,
+            'errors': 1,
+            'ignored': 0,
+            'updated': 0
+        })
+
+    # @unittest.skip("stand by")
     def test_bulkSave(self) :
         collection = self.db.createCollection(name = "lops")
         nbUsers = 100
