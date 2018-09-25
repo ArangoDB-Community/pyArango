@@ -1,3 +1,5 @@
+import json
+import types
 from future.utils import with_metaclass
 from . import consts as CONST
 
