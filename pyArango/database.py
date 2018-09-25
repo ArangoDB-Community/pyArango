@@ -146,21 +146,21 @@ class Database(object) :
         if not createCollections :
             _checkCollectionList(graphClass._orphanedCollections)
 
-	options = {}
-	if numberOfShards:
-		options['numberOfShards'] = numberOfShards
-	if smartGraphAttribute:
-		options['smartGraphAttribute'] = smartGraphAttribute
+        options = {}
+        if numberOfShards:
+            options['numberOfShards'] = numberOfShards
+        if smartGraphAttribute:
+        options['smartGraphAttribute'] = smartGraphAttribute
 
         payload = {
                 "name": name,
                 "edgeDefinitions": ed,
                 "orphanCollections": graphClass._orphanedCollections,
-		"isSmart": isSmart
+                "isSmart": isSmart
             }
 
-	if options:
-		payload['options'] = options
+        if options:
+            payload['options'] = options
 
         payload = json.dumps(payload)
         r = self.connection.session.post(self.graphsURL, data = payload)
