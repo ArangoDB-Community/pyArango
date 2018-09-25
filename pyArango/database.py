@@ -95,7 +95,7 @@ class Database(object) :
                 colProperties = dict(colClass._properties)
             except AttributeError :
                 colProperties = {}
-    
+
         if className != 'Collection' and className != 'Edges' :
             colProperties['name'] = className
         else :
@@ -153,7 +153,7 @@ class Database(object) :
         if numberOfShards:
             options['numberOfShards'] = numberOfShards
         if smartGraphAttribute:
-        options['smartGraphAttribute'] = smartGraphAttribute
+            options['smartGraphAttribute'] = smartGraphAttribute
 
         payload = {
                 "name": name,
