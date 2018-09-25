@@ -50,7 +50,7 @@ class Query(object) :
                 pass
 
             if "hasMore" in self.response and self.response["hasMore"] :
-		cursor_id = self.response.get("id","")
+                cursor_id = self.response.get("id","")
                 self.cursor = RawCursor(self.database, cursor_id)
             else :
                 self.cursor = None
