@@ -154,10 +154,12 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
         url = "%s/edge/%s" % (self.URL, collectionName)
         self.database[collectionName].validatePrivate("_from", _fromId)
         self.database[collectionName].validatePrivate("_to", _toId)
-        store = DOC.DocumentStore(self.database[collectionName], validators=self.database[collectionName]._fields, initDct=edgeAttributes)
-        store.validate()
         
-        payload = edgeAttributes
+        ed = self.database[collectionName].createEdge()
+        ed.set(edgeAttributes)
+        ed.validate()
+
+        payload = ed.getStore()
         payload.update({'_from' : _fromId, '_to' : _toId})
 
         r = self.connection.session.post(url, data = json.dumps(payload), params = {'waitForSync' : waitForSync})
@@ -169,10 +171,21 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
 
     def link(self, definition, doc1, doc2, edgeAttributes, waitForSync = False) :
         "A shorthand for createEdge that takes two documents as input"
-        if not doc1._id : doc1.save()
-        if not doc2._id : doc2.save()
+        if type(doc1) is DOC.Document :
+            if not doc1._id :
+                doc1.save()
+            doc1_id = doc1._id
+        else :
+            doc1_id = doc1
 
-        return self.createEdge(definition, doc1._id, doc2._id, edgeAttributes, waitForSync)
+        if type(doc2) is DOC.Document :
+            if not doc2._id :
+                doc2.save()
+            doc2_id = doc2._id
+        else :
+            doc2_id = doc2
+
+        return self.createEdge(definition, doc1_id, doc2_id, edgeAttributes, waitForSync)
 
     def unlink(self, definition, doc1, doc2) :
         "deletes all links between doc1 and doc2"
@@ -202,7 +215,12 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
         """
 
         url = "%s/traversal" % self.database.URL
-        payload = {    "startVertex": startVertex._id, "graphName" : self.name}
+        if type(startVertex) is DOC.Document :
+            startVertex_id = startVertex._id
+        else :
+            startVertex_id = startVertex
+
+        payload = {"startVertex": startVertex_id, "graphName" : self.name}
         if "expander" in kwargs :
             if "direction" in kwargs :
                     raise ValueError("""The function can't have both 'direction' and 'expander' as arguments""") 

@@ -1,3 +1,15 @@
+1.3.2
+=====
+
+* Validation bug fixes
+* New Numeric, Int, Bool, String, Enumeration, Range validators
+* Fields can have default values
+* When creationg a new document, Collection will serve one populated with defaults
+* stastd support thx to: @dothebart
+* properties definition in schema
+* AQL errors now come with prints and line numbers for everyone's convenience
+* Bulk save for Document objects and dicts
+
 1.3.1
 =====
 
@@ -10,6 +22,12 @@
 * Fixed nested store patch update
 * REFACT: New DocumentStore class for taking care of storing document in a hierarchy of stores (nested objects) and validate them
 * Minor bug fixes
+
+1.2.9
+=====
+
+* Added bulk import to connection
+* Added binvars to explain
 
 1.2.8
 =====

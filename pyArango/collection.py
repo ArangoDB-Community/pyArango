@@ -107,11 +107,12 @@ class DocumentCache(object) :
 
 class Field(object) :
     """The class for defining pyArango fields."""
-    def __init__(self, validators=None) :
+    def __init__(self, validators = None, default = "") :
         """validators must be a list of validators"""
         if not validators:
             validators = []
         self.validators = validators
+        self.default = default
 
     def validate(self, value) :
         """checks the validity of 'value' given the lits of validators"""
@@ -226,6 +227,16 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
     def __init__(self, database, jsonData) :
 
+        def getDefaultDoc(fields, dct) :
+            for k, v in fields.items() :
+                if isinstance(v, dict) :
+                    dct[k] = getDefaultDoc(fields[k], {})
+                elif isinstance(v, Field) :
+                    dct[k] = v.default
+                else :
+                    raise ValueError("Field '%s' is of invalid type '%s'" % (k, type(v)) )
+            return dct
+
         self.database = database
         self.connection = self.database.connection
         self.name = self.__class__.__name__
@@ -244,6 +255,8 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
             "geo" : {},
             "fulltext" : {},
         }
+
+        self.defaultDocument = getDefaultDoc(self._fields, {})
 
     def getIndexes(self) :
         """Fills self.indexes with all the indexes associates with the collection and returns it"""
@@ -270,19 +283,33 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         if not r.status_code == 200 or data["error"] :
             raise DeletionError(data["errorMessage"], data)
 
-    def createDocument(self, initValues = None) :
-        """create and returns a document"""
-        if initValues is None :
+    def createDocument(self, initDict = None) :
+        """create and returns a document populated with the defaults or with the values in initDict"""
+        if initDict is not None :
+            return self.createDocument_(initDict)
+        else :
+            if self._validation["on_load"] :
+                self._validation["on_load"] = False
+                return self.createDocument_(self.defaultDocument)
+                self._validation["on_load"] = True
+            else :
+                return self.createDocument_(self.defaultDocument)
+        
+    def createDocument_(self, initDict = None) :
+        "create and returns a completely empty document or one populated with initDict"
+        if initDict is None :
             initV = {}
         else :
-            initV = initValues
+            initV = initDict
 
         return self.documentClass(self, initV)
 
-    def importBulk(self, data):
+    def importBulk(self, data, **addParams):
         url = "%s/import" % (self.database.URL)
         payload = json.dumps(data)
-        r = self.connection.session.post(url , params = {"collection": self.name, "type": "auto"}, data = payload)
+        params = {"collection": self.name, "type": "auto"}
+        params.update(addParams)
+        r = self.connection.session.post(url , params = params, data = payload)
         data = r.json()
         if not r.status_code == 201 or data["error"] :
             raise CreationError(data["errorMessage"], data)
@@ -333,6 +360,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         ind = Index(self, creationData = data)
         self.indexes["fulltext"][ind.infos["id"]] = ind
         return ind
+
 
     def validatePrivate(self, field, value) :
         """validate a private field value"""
@@ -449,6 +477,69 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         r = fct(self.URL + "/" + action, params = params)
         return r.json()
 
+    def bulkSave(self, docs, onDuplicate="error", **params) :
+        """Parameter docs must be either an iterrable of documents or dictionnaries.
+        This function will return the number of documents, created and updated, and will raise an UpdateError exception if there's at least one error.
+        params are any parameters from arango's documentation"""
+        
+        payload = []
+        for d in docs :
+            if type(d) is dict :
+                payload.append(json.dumps(d))
+            else :
+                try:
+                    payload.append(d.toJson())
+                except Exception as e:
+                    payload.append(json.dumps(d.getStore()))
+
+        payload = '\n'.join(payload)
+        
+        params["type"] = "documents"
+        params["onDuplicate"] = onDuplicate
+        params["collection"] = self.name
+        URL = "%s/import" % self.database.URL
+
+        r = self.connection.session.post(URL, params = params, data = payload)
+        data = r.json()
+        if (r.status_code == 201) and "error" not in data :
+            return True
+        else :
+            if data["errors"] > 0 :
+                raise UpdateError("%d documents could not be created" % data["errors"], data)
+
+        return data["updated"] + data["created"]
+
+    def bulkImport_json(self, filename, onDuplicate="error", formatType="auto", **params) :
+        """bulk import from a file repecting arango's key/value format"""
+
+        url = "%s/import" % self.database.URL
+        params["onDuplicate"] = onDuplicate
+        params["collection"] = self.name
+        params["type"] = formatType
+        with open(filename) as f:
+            data = f.read()
+            r = self.connection.session.post(URL, params = params, data = data)
+
+            try :
+                errorMessage = "At least: %d errors. The first one is: '%s'\n\n more in <this_exception>.data" % (len(data), data[0]["errorMessage"])
+            except KeyError:
+                raise UpdateError(data['errorMessage'], data)
+
+    def bulkImport_values(self, filename, onDuplicate="error", **params) :
+        """bulk import from a file repecting arango's json format"""
+        
+        url = "%s/import" % self.database.URL
+        params["onDuplicate"] = onDuplicate
+        params["collection"] = self.name
+        with open(filename) as f:
+            data = f.read()
+            r = self.connection.session.post(URL, params = params, data = data)
+
+            try :
+                errorMessage = "At least: %d errors. The first one is: '%s'\n\n more in <this_exception>.data" % (len(data), data[0]["errorMessage"])
+            except KeyError:
+                raise UpdateError(data['errorMessage'], data)
+
     def truncate(self) :
         """deletes every document in the collection"""
         return self.action('PUT', 'truncate')
@@ -484,10 +575,6 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
     def figures(self) :
         "a more elaborate version of count, see arangodb docs for more infos"
         return self.action('GET', 'figures')
-
-    # def createEdges(self, className, **colArgs) :
-    #     "an alias of createCollection"
-    #     self.createCollection(className, **colArgs)
 
     def getType(self) :
         """returns a word describing the type of the collection (edges or ducments) instead of a number, if you prefer the number it's in self.type"""
@@ -531,6 +618,14 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
             self.documentCache.cache(doc)
         return doc
 
+    def __contains__(self) :
+        """if doc in collection"""
+        try:
+            self.fetchDocument(key, rawResults = False)
+            return True
+        except KeyError as e:
+            return False
+
 class SystemCollection(Collection) :
     """for all collections with isSystem = True"""
     def __init__(self, database, jsonData) :
@@ -561,11 +656,15 @@ class Edges(Collection) :
                 raise e
         return valValue
 
-    def createEdge(self, initValues = None) :
-        """alias for createDocument, both functions create an edge"""
+    def createEdge(self) :
+        """Create an edge populated with defaults"""
+        return self.createDocument()
+
+    def createEdge_(self, initValues = None) :
+        """Create an edge populated with initValues"""
         if not initValues:
             initValues = {}
-        return self.createDocument(initValues)
+        return self.createDocument_(initValues)
 
     def getInEdges(self, vertex, rawResults = False) :
         """An alias for getEdges() that returns only the in Edges"""

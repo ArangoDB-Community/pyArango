@@ -15,19 +15,73 @@ class Validator(object) :
 
 class NotNull(Validator) :
     """Checks that the Field has a non null value"""
-    def validate(self, value) :
-        if value is None or value == "" :
+    def validate(self, value, zero=True, emptyString=True) :
+        if value is None or (value == 0 is zero) or (value == "" and emptyString) :
             raise ValidationError("Field can't have a null value: '%s'" % value)
         return True
 
 class Email(Validator) :
-    """Checks that the Field has a non null value"""
+    """Checks if the field contains an emailaddress"""
     def validate(self, value) :
         import re
         pat = '^[A-z0-9._-]+@[A-z0-9.-]+\.[A-z]{2,4}$'
         if re.match(pat, value) is None :
             raise ValidationError("The email address: %s is invalid" % value)
         return True
+
+class Numeric(Validator) :
+    """checks if the value is numerical"""
+    def validate(self, value) :
+        try :
+            float(value)
+        except :
+            raise ValidationError("%s is not valid numerical value" % value)
+        return True
+
+class Int(Validator) :
+    """The value must be an integer"""
+    def validate(self, value) :
+        if not isinstance(value, int) :
+            raise ValidationError("%s is not a valid integer" % value)
+        return True
+
+class Bool(Validator) :
+    """The value must be a boolean"""
+    def validate(self, value) :
+        if not isinstance(value, bool) :
+            raise ValidationError("%s is not a valid boolean" % value)
+        return True
+
+class String(Validator) :
+    """The value must be a string or unicode"""
+    def validate(self, value) :
+        if not isinstance(value, str) and not isinstance(value, unicode) :
+            raise ValidationError("%s is not a valid string" % value)
+        return True
+
+class Enumeration(Validator) :
+    """The value must be in the allowed ones"""
+    def __init__(self, allowed) :
+        self.allowed = set(allowed)
+  
+    def validate(self, value) :
+        if value not in self.allowed :
+            raise ValidationError("%s is not among the allowed values %s" % (value, self.allowed))
+        return True
+
+class Range(Validator) :
+    """The value must une [lower, upper] range"""
+    def __init__(self, lower, upper) :
+        self.lower = lower
+        self.upper = upper
+
+    def validate(self, value) :
+        if value < self.lower or value > self.upper :
+            raise ValidationError("%s is not in [%s, %s]" % (value, self.lower, self.upper))
+    
+    def __str__(self) :
+        return "%s[%s, %s]" % (self.__class__.__name__, self.minLen, self.maxLen)
+
 
 class Length(Validator) :
     """validates that the value length is between given bounds"""

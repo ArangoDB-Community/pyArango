@@ -1,5 +1,4 @@
 import json, types
-
 from .theExceptions import (CreationError, DeletionError, UpdateError, ValidationError, SchemaViolation, InvalidDocument)
 
 __all__ = ["DocumentStore", "Document", "Edge"]
@@ -8,22 +7,28 @@ class DocumentStore(object) :
     """Store all the data of a document in hierarchy of stores and handles validation.
     Does not store private information, these are in the document."""
 
-    def __init__(self, collection, validators={}, initDct={}, patch=False, subStore=False) :
+    def __init__(self, collection, validators={}, initDct={}, patch=False, subStore=False, validateInit=False) :
         self.store = {}
         self.patchStore = {}
         self.collection = collection
         self.validators = validators
-        
+        self.validateInit = validateInit
+        self.isSubStore = subStore
+        self.subStores = {}
+        self.patching = patch
+
         self.mustValidate = False
+        if not self.validateInit :
+            self.set(initDct)
+
         for v in self.collection._validation.values() :
             if v :
                 self.mustValidate = True
                 break
+
+        if self.validateInit :
+            self.set(initDct)
         
-        self.isSubStore = subStore
-        self.subStores = {}
-        self.patching = patch
-        self.set(initDct)
         self.patching = True
 
     def resetPatch(self) :
@@ -63,12 +68,19 @@ class DocumentStore(object) :
             if field in self.patchStore :
                 return self.validators[field].validate(self.patchStore[field])
             else :
-                return self.validators[field].validate(self.store[field])
-
+                try :
+                    return self.validators[field].validate(self.store[field])
+                except ValidationError as e:
+                    raise ValidationError( "'%s' -> %s" % ( field, str(e)) )
+                except AttributeError:
+                    if isinstance(self.validators[field], dict) and not isinstance(self.store[field], dict) :
+                        raise ValueError("Validator expected a sub document for field '%s', got '%s' instead" % (field, self.store[field]) )
+                    else :
+                        raise
         return True
 
     def validate(self) :
-        """Validate the hole document"""
+        """Validate the whole document"""
         if not self.mustValidate :
             return True
 
@@ -76,7 +88,7 @@ class DocumentStore(object) :
         for field in self.validators.keys() :
             try :
                 if isinstance(self.validators[field], dict) and field not in self.store :
-                    self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, subStore=True)
+                    self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, subStore=True, validateInit=self.validateInit)
                 self.validateField(field)
             except InvalidDocument as e :
                 res.update(e.errors)
@@ -90,10 +102,10 @@ class DocumentStore(object) :
 
     def set(self, dct) :
         """Set the store using a dictionary"""
-        if not self.mustValidate :
-            self.store = dct
-            self.patchStore = dct
-            return
+        # if not self.mustValidate :
+        #     self.store = dct
+        #     self.patchStore = dct
+        #     return
 
         for field, value in dct.items() :
             if field not in self.collection.arangoPrivates :
@@ -102,7 +114,7 @@ class DocumentStore(object) :
                         vals = self.validators[field]
                     else :
                         vals = {}
-                    self[field] = DocumentStore(self.collection, validators = vals, initDct = value, patch = self.patching, subStore=True)
+                    self[field] = DocumentStore(self.collection, validators = vals, initDct = value, patch = self.patching, subStore=True, validateInit=self.validateInit)
                     self.subStores[field] = self.store[field]
                 else :
                     self[field] = value
@@ -110,7 +122,7 @@ class DocumentStore(object) :
     def __getitem__(self, field) :
         """Get an element from the store"""
         if (field in self.validators) and isinstance(self.validators[field], dict) and (field not in self.store) :
-            self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, patch = self.patching, subStore=True)
+            self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, patch = self.patching, subStore=True, validateInit=self.validateInit)
             self.subStores[field] = self.store[field]
             self.patchStore[field] = self.store[field]
 
@@ -135,7 +147,7 @@ class DocumentStore(object) :
                 vals = self.validators[field]
             else :
                 vals = {}
-            self.store[field] = DocumentStore(self.collection, validators = vals, initDct = value, patch = self.patching, subStore=True)
+            self.store[field] = DocumentStore(self.collection, validators = vals, initDct = value, patch = self.patching, subStore=True, validateInit=self.validateInit)
             
             self.subStores[field] = self.store[field]
         else :
@@ -144,7 +156,7 @@ class DocumentStore(object) :
         if self.patching :
             self.patchStore[field] = self.store[field]
 
-        if self.collection._validation['on_set'] :
+        if self.mustValidate and self.collection._validation['on_set'] :
             self.validateField(field)
 
     def __delitem__(self, k) :
@@ -172,6 +184,7 @@ class Document(object) :
     def __init__(self, collection, jsonFieldInit = None) :
         if jsonFieldInit is None :
             jsonFieldInit = {}
+        self.privates = ["_id", "_key", "_rev"]
         self.reset(collection, jsonFieldInit)
         self.typeName = "ArangoDoc"
 
@@ -183,6 +196,8 @@ class Document(object) :
         self.connection = self.collection.connection
         self.documentsURL = self.collection.documentsURL
 
+
+        self.URL = None
         self.setPrivates(jsonFieldInit)
         self._store = DocumentStore(self.collection, validators=self.collection._fields, initDct=jsonFieldInit)
         if self.collection._validation['on_load']:
@@ -192,7 +207,6 @@ class Document(object) :
 
     def validate(self) :
         """validate the document"""
-        # print self._store
         self._store.validate()
         for pField in self.collection.arangoPrivates :
             self.collection.validatePrivate(pField, getattr(self, pField))
@@ -200,14 +214,14 @@ class Document(object) :
     def setPrivates(self, fieldDict) :
         """will set self._id, self._rev and self._key field."""
         
-        try :
-            for priv in ["_id", "_key", "_rev"] :
+        for priv in self.privates :
+            if priv in fieldDict :
                 setattr(self, priv, fieldDict[priv])
-            self.URL = "%s/%s" % (self.documentsURL, self._id)
-        except KeyError :
-            for priv in ["_id", "_key", "_rev"] :
+            else :
                 setattr(self, priv, None)
-            self.URL = None
+        
+        if self._id is not None :
+            self.URL = "%s/%s" % (self.documentsURL, self._id)
 
     def set(self, fieldDict) :
         """set the document with a dictionary"""
@@ -236,18 +250,20 @@ class Document(object) :
                 payload = json.dumps(payload)
                 r = self.connection.session.post(self.documentsURL, params = params, data = payload)
                 update = False
+                data = r.json()
+                self.setPrivates(data)
             else :
                 payload = json.dumps(payload)
                 r = self.connection.session.put(self.URL, params = params, data = payload)
                 update = True
+                data = r.json()
 
-            data = r.json()
 
             if (r.status_code == 201 or r.status_code == 202) and "error" not in data :
                 if update :
                     self._rev = data['_rev']
                 else :
-                    self.setPrivates(data)
+                    self.set(data)
             else :
                 if update :
                     raise UpdateError(data['errorMessage'], data)
@@ -370,6 +386,7 @@ class Edge(Document) :
         if not jsonFieldInit:
             return {}
         self.typeName = "ArangoEdge"
+        self.privates = ["_id", "_key", "_rev", "_from", "_to"]
         self.reset(edgeCollection, jsonFieldInit)
 
     def reset(self, edgeCollection, jsonFieldInit=None) :
@@ -377,37 +394,38 @@ class Edge(Document) :
             jsonFieldInit = {}
         Document.reset(self, edgeCollection, jsonFieldInit)
 
-    def setPrivates(self, fieldDict) :
-        """set _id, _key, _rev, _from, _to"""
-        super(Edge, self).setPrivates(fieldDict)
-        if "_from" in fieldDict :
-            self._from = fieldDict["_from"]
+    # def setPrivates(self, fieldDict) :
+    #     """set _id, _key, _rev, _from, _to"""
+    #     super(Edge, self).setPrivates(fieldDict)
+    #     if "_from" in fieldDict :
+    #         self._from = fieldDict["_from"]
         
-        if "_to" in fieldDict :
-            self._to = fieldDict["_to"]
+    #     if "_to" in fieldDict :
+    #         self._to = fieldDict["_to"]
 
     def links(self, fromVertice, toVertice, **edgeArgs) :
         """
         An alias to save that updates the _from and _to attributes.
         fromVertice and toVertice, can be either strings or documents. It they are unsaved documents, they will be automatically saved.
         """
-
-        if fromVertice.__class__ is Document :
+        if fromVertice.__class__ is Document or getattr(fromVertice, 'document', None).__class__ is Document:
             if not fromVertice._id :
-                fromVertice._id.save()
-
+                fromVertice.save()
             self._from = fromVertice._id
-        elif (type(fromVertice) is bytes) or (type(fromVertice) is str) :
+        elif (type(fromVertice) is bytes) or (type(fromVertice) is str):
             self._from  = fromVertice
-
-        if toVertice.__class__ is Document :
-            if not toVertice._id :
-                toVertice._id.save()
-
+        elif not self._from:
+            raise CreationError('fromVertice %s is invalid!' % str(fromVertice))
+        
+        if toVertice.__class__ is Document or getattr(toVertice, 'document', None).__class__ is Document:
+            if not toVertice._id:
+                toVertice.save()
             self._to = toVertice._id
-        elif (type(toVertice) is bytes) or (type(toVertice) is str) :
+        elif (type(toVertice) is bytes) or (type(toVertice) is str):
             self._to = toVertice
-
+        elif not self._to:
+            raise CreationError('toVertice %s is invalid!' % str(toVertice))
+        
         self.save(**edgeArgs)
 
     def save(self, **edgeArgs) :

@@ -21,7 +21,7 @@ class RawCursor(object) :
         "returns the next batch"
         r = self.connection.session.put(self.URL)
         data = r.json()
-        if r.status_code == 400 :
+        if r.status_code in [400, 404] :
             raise CursorError(data["errorMessage"], self.id, data)
         return r.json()
 
@@ -142,12 +142,18 @@ class AQLQuery(Query) :
         self.query = query
         self.database = database
         self.connection = self.database.connection
+        self.connection.reportStart(query)
         request = self.connection.session.post(database.cursorsURL, data = json.dumps(payload, cls=json_encoder))
-        Query.__init__(self, request, database, rawResults)
+        self.connection.reportItem()
 
-    def explain(self, allPlans = False) :
+        try :
+            Query.__init__(self, request, database, rawResults)
+        except QueryError as e:
+            raise AQLQueryError( message = e.message, query = self.query, errors = e.errors)
+
+    def explain(self, bindVars={}, allPlans = False) :
         """Returns an explanation of the query. Setting allPlans to True will result in ArangoDB returning all possible plans. False returns only the optimal plan"""
-        return self.database.explainAQLQuery(self.query, allPlans)
+        return self.database.explainAQLQuery(self.query, bindVars, allPlans)
 
     def _raiseInitFailed(self, request) :
         data = request.json()

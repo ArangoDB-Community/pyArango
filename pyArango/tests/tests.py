@@ -72,6 +72,32 @@ class pyArangoTests(unittest.TestCase):
         self.assertEqual(usersCollection.count(), len(users))
 
     # @unittest.skip("stand by")
+    def test_bulkSave(self) :
+        collection = self.db.createCollection(name = "lops")
+        nbUsers = 100
+        docs = []
+        for i in range(nbUsers) :
+            doc = collection.createDocument()
+            doc["name"] = "Tesla-%d" % i
+            docs.append(doc)
+
+        res = collection.bulkSave(docs)
+        self.assertEqual(res, nbUsers)
+
+    # @unittest.skip("stand by")
+    def test_bulkSave_dict(self) :
+        collection = self.db.createCollection(name = "lops")
+        nbUsers = 100
+        docs = []
+        for i in range(nbUsers) :
+            doc = {}
+            doc["name"] = "Tesla-%d" % i
+            docs.append(doc)
+
+        res = collection.bulkSave(docs)
+        self.assertEqual(res, nbUsers)
+
+    # @unittest.skip("stand by")
     def test_collection_create_delete(self) :
         col = self.db.createCollection(name = "to_be_erased")
         self.assertTrue(self.db.hasCollection("to_be_erased"))
@@ -103,7 +129,7 @@ class pyArangoTests(unittest.TestCase):
 
         self.db.reloadCollections()
         ed = self.db.collections["to_be_erased"]
-        e1 = ed.createEdge({"name": 'tesla-edge'})
+        e1 = ed.createEdge_({"name": 'tesla-edge'})
         e1.links(d1, d2)
 
         e2 = ed.createEdge()
@@ -147,6 +173,17 @@ class pyArangoTests(unittest.TestCase):
         doc.save()
         doc2 = collection.fetchDocument(doc._key)
         self.assertEqual(doc._id, doc2._id)
+
+    # @unittest.skip("stand by")
+    def test_document_set_private_w_rest(self) :
+        collection = self.db.createCollection(name = "lala")
+        data = {
+            "_key": "key",
+            "name": "iop"
+        }
+        doc = collection.createDocument_(data)
+        self.assertEqual(doc["_key"], doc._key)
+        self.assertEqual(doc["_key"], data["_key"])
 
     # @unittest.skip("stand by")
     def test_document_has_field(self) :
