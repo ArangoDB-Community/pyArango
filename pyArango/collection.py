@@ -451,7 +451,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
             raise Exception("Unable to find document with _key: %s, response: %s" % key, r.json())
 
     def fetchByExample(self, exampleDict, batchSize, rawResults = False, **queryArgs) :
-        """exampleDict should be something like {'age': 28}"""
+        """exampleDict should be something like {'age' : 28}"""
         return self.simpleQuery('by-example', rawResults, example = exampleDict, batchSize = batchSize, **queryArgs)
 
     def fetchFirstExample(self, exampleDict, rawResults = False) :

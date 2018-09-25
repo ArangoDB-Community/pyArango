@@ -389,7 +389,7 @@ class Edge(Document) :
         self.privates = ["_id", "_key", "_rev", "_from", "_to"]
         self.reset(edgeCollection, jsonFieldInit)
 
-    def reset(self, edgeCollection, jsonFieldInit=None) :
+    def reset(self, edgeCollection, jsonFieldInit = None) :
         if jsonFieldInit is None:
             jsonFieldInit = {}
         Document.reset(self, edgeCollection, jsonFieldInit)

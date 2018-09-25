@@ -55,7 +55,7 @@ class ValidationError(pyArangoException) :
 
 class SchemaViolation(pyArangoException) :
     """Raised when someone tries to add a new field to an object belonging a to a Collection with enforced schema"""
-    def __init__(self, collection, field, errors=None):
+    def __init__(self, collection, field, errors = None) :
         if errors is None:
             errors = {}
         message = "Collection '%s' does not have a field '%s' in it's schema" % (collection.__name__, field)
@@ -81,7 +81,7 @@ class InvalidDocument(pyArangoException) :
 
 class SimpleQueryError(pyArangoException) :
     """Something went wrong with a simple query"""
-    def __init__(self, message, errors=None) :
+    def __init__(self, message, errors = None) :
         if errors is None :
             errors = {}
         pyArangoException.__init__(self, message, errors)
@@ -106,7 +106,7 @@ class AQLQueryError(pyArangoException) :
         message = "Error in:\n%s.\n->%s" % (lq, message)
         pyArangoException.__init__(self, message, errors)
 
-class CursorError(pyArangoException):
+class CursorError(pyArangoException) :
     """Something went wrong when trying to fetch data with a cursor"""
     def __init__(self, message, cursorId, errors = None) :
         if errors is None :
