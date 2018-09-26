@@ -110,7 +110,7 @@ class DocumentStore(object) :
         for field, value in dct.items() :
             if field not in self.collection.arangoPrivates :
                 if isinstance(value, dict) :
-                    if field in self.validators :
+                    if field in self.validators and isinstance(self.validators[field], dict):
                         vals = self.validators[field]
                     else :
                         vals = {}
@@ -143,7 +143,7 @@ class DocumentStore(object) :
             raise ValueError("DocumentStore cannot contain private field (got %s)" % field)
 
         if isinstance(value, dict) :
-            if field in self.validators :
+            if field in self.validators and isinstance(self.validators[field], dict):
                 vals = self.validators[field]
             else :
                 vals = {}
