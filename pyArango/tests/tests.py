@@ -814,7 +814,6 @@ class pyArangoTests(unittest.TestCase):
 
         Connection(arangoURL=ARANGODB_URL, username="pyArangoTest_tesla", password="newpass")
 
-
 if __name__ == "__main__" :
     # Change default username/password in bash like this:
     # export ARANGODB_ROOT_USERNAME=myUserName

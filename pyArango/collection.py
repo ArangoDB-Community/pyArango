@@ -672,9 +672,9 @@ class Edges(Collection) :
     def getEdges(self, vertex, inEdges = True, outEdges = True, rawResults = False) :
         """returns in, out, or both edges liked to a given document. vertex can be either a Document object or a string for an _id.
         If rawResults a arango results will be return as fetched, if false, will return a liste of Edge objects"""
-        if vertex.__class__ is Document :
+        if isinstance(vertex, Document):
             vId = vertex._id
-        elif (type(vertex) is str) or (type(vertex) is bytes) :
+        elif (type(vertex) is str) or (type(vertex) is bytes):
             vId = vertex
         else :
             raise ValueError("Vertex is neither a Document nor a String")
