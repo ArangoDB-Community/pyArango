@@ -111,7 +111,7 @@ class Query(object) :
 
     def __getitem__(self, i) :
         "returns a ith result of the query."
-        if not self.rawResults and (self.result[i].__class__ is not Edge and self.result[i].__class__ is not Document) : 
+        if not self.rawResults and (not isinstance(self.result[i], (Edge, Document))):
             self._developDoc(i)
         return self.result[i]
 

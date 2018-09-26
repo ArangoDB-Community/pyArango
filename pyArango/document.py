@@ -110,7 +110,7 @@ class DocumentStore(object) :
         for field, value in dct.items() :
             if field not in self.collection.arangoPrivates :
                 if isinstance(value, dict) :
-                    if field in self.validators :
+                    if field in self.validators and isinstance(self.validators[field], dict):
                         vals = self.validators[field]
                     else :
                         vals = {}
@@ -143,7 +143,7 @@ class DocumentStore(object) :
             raise ValueError("DocumentStore cannot contain private field (got %s)" % field)
 
         if isinstance(value, dict) :
-            if field in self.validators :
+            if field in self.validators and isinstance(self.validators[field], dict):
                 vals = self.validators[field]
             else :
                 vals = {}
@@ -400,7 +400,7 @@ class Edge(Document) :
         An alias to save that updates the _from and _to attributes.
         fromVertice and toVertice, can be either strings or documents. It they are unsaved documents, they will be automatically saved.
         """
-        if fromVertice.__class__ is Document or getattr(fromVertice, 'document', None).__class__ is Document:
+        if isinstance(fromVertice, Document) or isinstance(getattr(fromVertice, 'document', None), Document):
             if not fromVertice._id :
                 fromVertice.save()
             self._from = fromVertice._id
@@ -409,7 +409,7 @@ class Edge(Document) :
         elif not self._from:
             raise CreationError('fromVertice %s is invalid!' % str(fromVertice))
         
-        if toVertice.__class__ is Document or getattr(toVertice, 'document', None).__class__ is Document:
+        if isinstance(toVertice, Document) or isinstance(getattr(toVertice, 'document', None), Document):
             if not toVertice._id:
                 toVertice.save()
             self._to = toVertice._id

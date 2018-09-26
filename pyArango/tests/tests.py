@@ -400,7 +400,7 @@ class pyArangoTests(unittest.TestCase):
         import types
         class String_val(VAL.Validator) :
 
-            def validate(self, value) :
+            def validate(self, value):
                 if not isinstance(value, bytes) and not isinstance(value, str) :
                     raise ValidationError("Field value must be a string")
                 return True
@@ -445,6 +445,48 @@ class pyArangoTests(unittest.TestCase):
         self.assertTrue(len(doc._store.getPatches()) > 0)
         doc.patch()
         self.assertEqual(myCol[doc._key]._store.getStore(),  doc._store.getStore())
+
+    # @unittest.skip("stand by")
+    def test_unvalidated_nested_fields(self):
+        import pyArango.validation as VAL
+        class String_val(VAL.Validator) :
+
+            def validate(self, value):
+                if not isinstance(value, bytes) and not isinstance(value, str) :
+                    raise ValidationError("Field value must be a string")
+                return True
+
+        class Col_on_save(Collection):
+            _validation = {
+                "on_save": True,
+                "on_set": False,
+                "allow_foreign_fields": True
+            }
+
+            _fields = {
+                "str": Field(validators=[String_val()]),
+                "nestedSomething": Field()
+            }
+
+        myCol = self.db.createCollection('Col_on_save')
+        doc = myCol.createDocument()
+        doc["str"] = 3
+        doc["nestedSomething"] = {
+            "some_nested_data": "data"
+        }
+        self.assertRaises(InvalidDocument, doc.save)
+
+        doc = myCol.createDocument()
+        doc["str"] = "string"
+        doc["nestedSomething"] = {
+            "some_nested_data": "data"
+        }
+        doc.save()
+        self.assertEqual(myCol[doc._key]._store.getStore(), doc._store.getStore())
+        doc["nestedSomething"]["some_nested_data"] = "data"
+        self.assertTrue(len(doc._store.getPatches()) > 0)
+        doc.patch()
+        self.assertEqual(myCol[doc._key]._store.getStore(), doc._store.getStore())
 
     # @unittest.skip("stand by")
     def test_document_cache(self) :
@@ -810,7 +852,6 @@ class pyArangoTests(unittest.TestCase):
         u.save()
 
         Connection(arangoURL=ARANGODB_URL, username="pyArangoTest_tesla", password="newpass")
-
 
 if __name__ == "__main__" :
     # Change default username/password in bash like this:
