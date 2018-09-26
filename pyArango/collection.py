@@ -314,7 +314,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         if not r.status_code == 201 or data["error"] :
             raise CreationError(data["errorMessage"], data)
 
-    def ensureHashIndex(self, fields, unique = False, sparse = True, deduplicate = True) :
+    def ensureHashIndex(self, fields, unique = False, sparse = True, deduplicate = False) :
         """Creates a hash index if it does not already exist, and returns it"""
         data = {
             "type" : "hash",
@@ -327,7 +327,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         self.indexes["hash"][ind.infos["id"]] = ind
         return ind
 
-    def ensureSkiplistIndex(self, fields, unique = False, sparse = True, deduplicate = True) :
+    def ensureSkiplistIndex(self, fields, unique = False, sparse = True, deduplicate = False) :
         """Creates a skiplist index if it does not already exist, and returns it"""
         data = {
             "type" : "skiplist",
