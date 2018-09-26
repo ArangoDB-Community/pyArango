@@ -158,9 +158,11 @@ class Database(object) :
         payload = {
                 "name": name,
                 "edgeDefinitions": ed,
-                "orphanCollections": graphClass._orphanedCollections,
-                "isSmart": isSmart
+                "orphanCollections": graphClass._orphanedCollections
             }
+
+        if isSmart :
+                payload['isSmart'] = isSmart
 
         if options:
             payload['options'] = options
