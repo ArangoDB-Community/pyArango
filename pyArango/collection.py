@@ -313,6 +313,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         data = r.json()
         if not r.status_code == 201 or data["error"] :
             raise CreationError(data["errorMessage"], data)
+        return data
 
     def ensureHashIndex(self, fields, unique = False, sparse = True) :
         """Creates a hash index if it does not already exist, and returns it"""
