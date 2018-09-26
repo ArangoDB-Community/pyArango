@@ -120,7 +120,7 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
         # self.database[collectionName].validateDct(docAttributes)
         store.validate()
 
-        r = self.connection.session.post(url, data = json.dumps(docAttributes), params = {'waitForSync' : waitForSync})
+        r = self.connection.session.post(url, data = json.dumps(docAttributes, default=str), params = {'waitForSync' : waitForSync})
 
         data = r.json()
         if r.status_code == 201 or r.status_code == 202 :
@@ -162,7 +162,7 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
         payload = ed.getStore()
         payload.update({'_from' : _fromId, '_to' : _toId})
 
-        r = self.connection.session.post(url, data = json.dumps(payload), params = {'waitForSync' : waitForSync})
+        r = self.connection.session.post(url, data = json.dumps(payload, default=str), params = {'waitForSync' : waitForSync})
         data = r.json()
         if r.status_code == 201 or r.status_code == 202 :
             return self.database[collectionName][data["edge"]["_key"]]
@@ -229,7 +229,7 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
 
         payload.update(kwargs)
 
-        r = self.connection.session.post(url, data = json.dumps(payload))
+        r = self.connection.session.post(url, data = json.dumps(payload, default=str))
         data = r.json()
         if r.status_code < 200 or r.status_code > 202 or data["error"] :
             raise TraversalError(data["errorMessage"], data)

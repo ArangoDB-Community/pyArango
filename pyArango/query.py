@@ -142,7 +142,7 @@ class AQLQuery(Query) :
         self.database = database
         self.connection = self.database.connection
         self.connection.reportStart(query)
-        request = self.connection.session.post(database.cursorsURL, data = json.dumps(payload, cls=json_encoder))
+        request = self.connection.session.post(database.cursorsURL, data = json.dumps(payload, cls=json_encoder, default=str))
         self.connection.reportItem()
 
         try :
@@ -182,7 +182,7 @@ class SimpleQuery(Query) :
 
         payload = {'collection' : collection.name}
         payload.update(queryArgs)
-        payload = json.dumps(payload, cls=json_encoder)
+        payload = json.dumps(payload, cls=json_encoder, default=str)
         URL = "%s/simple/%s" % (collection.database.URL, queryType)
         request = self.connection.session.put(URL, data = payload)
 

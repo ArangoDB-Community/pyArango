@@ -4,7 +4,7 @@ from future.utils import with_metaclass
 from . import consts as CONST
 
 from .document import Document, Edge
-from .theExceptions import ValidationError, SchemaViolation, CreationError, UpdateError, DeletionError, InvalidDocument
+from .theExceptions import ValidationError, SchemaViolation, CreationError, UpdateError, DeletionError, InvalidDocument, ExportError
 from .query import SimpleQuery
 from .index import Index
 
@@ -306,7 +306,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
     def importBulk(self, data, **addParams):
         url = "%s/import" % (self.database.URL)
-        payload = json.dumps(data)
+        payload = json.dumps(data, default=str)
         params = {"collection": self.name, "type": "auto"}
         params.update(addParams)
         r = self.connection.session.post(url , params = params, data = payload)
@@ -314,6 +314,17 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         if not r.status_code == 201 or data["error"] :
             raise CreationError(data["errorMessage"], data)
         return data
+
+    def exportDocs( self, **data):
+        url = "%s/export" % (self.database.URL)
+        params = {"collection": self.name}
+        payload = json.dumps(data)
+        r = self.connection.session.post(url, params = params, data = payload)
+        data = r.json()
+        if not r.status_code == 201 or data["error"] :
+          raise ExportError( data["errorMessage"], data ) 
+        docs = data['result']
+        return docs
 
     def ensureHashIndex(self, fields, unique = False, sparse = True, deduplicate = False) :
         """Creates a hash index if it does not already exist, and returns it"""
@@ -485,12 +496,12 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         payload = []
         for d in docs :
             if type(d) is dict :
-                payload.append(json.dumps(d))
+                payload.append(json.dumps(d, default=str))
             else :
                 try:
                     payload.append(d.toJson())
                 except Exception as e:
-                    payload.append(json.dumps(d.getStore()))
+                    payload.append(json.dumps(d.getStore(), default=str))
 
         payload = '\n'.join(payload)
         

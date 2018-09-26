@@ -243,13 +243,13 @@ class Document(object) :
             if self.URL is None :
                 if self._key is not None :
                     payload["_key"] = self._key
-                payload = json.dumps(payload)
+                payload = json.dumps(payload, default=str)
                 r = self.connection.session.post(self.documentsURL, params = params, data = payload)
                 update = False
                 data = r.json()
                 self.setPrivates(data)
             else :
-                payload = json.dumps(payload)
+                payload = json.dumps(payload, default=str)
                 r = self.connection.session.put(self.URL, params = params, data = payload)
                 update = True
                 data = r.json()
@@ -298,7 +298,7 @@ class Document(object) :
         if len(payload) > 0 :
             params = dict(docArgs)
             params.update({'collection': self.collection.name, 'keepNull' : keepNull})
-            payload = json.dumps(payload)
+            payload = json.dumps(payload, default=str)
 
             r = self.connection.session.patch(self.URL, params = params, data = payload)
             data = r.json()
@@ -342,7 +342,12 @@ class Document(object) :
 
     def getStore(self) :
         """return the store in a dict format"""
-        return self._store.getStore()
+        store = self._store.getStore()
+        for priv in self.privates :
+            v = getattr(self, priv)
+            if v :
+                store[priv] = v
+        return store
 
     def getPatches(self) :
         """return the patches in a dict format"""

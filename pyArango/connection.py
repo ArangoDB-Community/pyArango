@@ -27,13 +27,17 @@ class AikidoSession(object) :
     """
 
     class Holder(object) :
-        def __init__(self, fct, auth) :
+        def __init__(self, fct, auth, verify=True) :
             self.fct = fct
             self.auth = auth
+            if verify != None:
+              self.verify = verify 
 
         def __call__(self, *args, **kwargs) :
             if self.auth :
                 kwargs["auth"] = self.auth
+            if self.verify != True:
+                kwargs["verify"] = self.verify
 
             try :
                 ret = self.fct(*args, **kwargs)
@@ -49,12 +53,13 @@ class AikidoSession(object) :
             ret.json = JsonHook(ret)
             return ret
 
-    def __init__(self, username, password) :
+    def __init__(self, username, password, verify=True) :
         if username :
             self.auth = (username, password)
         else :
             self.auth = None
 
+        self.verify = verify 
         self.session = requests.Session()
         self.log = {}
         self.log["nb_request"] = 0
@@ -68,6 +73,7 @@ class AikidoSession(object) :
 
         holdClass = object.__getattribute__(self, "Holder")
         auth = object.__getattribute__(self, "auth")
+        verify = object.__getattribute__(self, "verify")
         log = object.__getattribute__(self, "log")
         log["nb_request"] += 1
         try :
@@ -75,7 +81,7 @@ class AikidoSession(object) :
         except :
             log["requests"][reqFct.__name__] = 1
 
-        return holdClass(reqFct, auth)
+        return holdClass(reqFct, auth, verify)
 
     def disconnect(self) :
         try:
@@ -85,7 +91,7 @@ class AikidoSession(object) :
 
 class Connection(object) :
     """This is the entry point in pyArango and directly handles databases."""
-    def __init__(self, arangoURL = 'http://127.0.0.1:8529', username = None, password = None, verbose = False, statsdClient = None, reportFileName = None) :
+    def __init__(self, arangoURL = 'http://127.0.0.1:8529', username = None, password = None, verify = True, verbose = False, statsdClient = None, reportFileName = None) :
         self.databases = {}
         self.verbose = verbose
         if arangoURL[-1] == "/" :
@@ -98,7 +104,7 @@ class Connection(object) :
         self.identifier = None
         self.startTime = None
         self.session = None
-        self.resetSession(username, password)
+        self.resetSession(username, password, verify)
 
         self.URL = '%s/_api' % self.arangoURL
         if not self.session.auth :
@@ -120,10 +126,10 @@ class Connection(object) :
         if self.session: 
             self.session.disconnect()
 
-    def resetSession(self, username=None, password=None) :
+    def resetSession(self, username=None, password=None, verify=True) :
         """resets the session"""
         self.disconnectSession()
-        self.session = AikidoSession(username, password)
+        self.session = AikidoSession(username, password, verify)
         
     def reload(self) :
         """Reloads the database list.
@@ -145,7 +151,7 @@ class Connection(object) :
     def createDatabase(self, name, **dbArgs) :
         "use dbArgs for arguments other than name. for a full list of arguments please have a look at arangoDB's doc"
         dbArgs['name'] = name
-        payload = json.dumps(dbArgs)
+        payload = json.dumps(dbArgs, default=str)
         url = self.URL + "/database"
         r = self.session.post(url, data = payload)
         data = r.json()
