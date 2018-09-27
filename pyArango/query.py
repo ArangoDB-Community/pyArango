@@ -34,14 +34,14 @@ class Query(object) :
 
         self.rawResults = rawResults
         self.response = request.json()
-        if self.response["error"] and self.response["errorMessage"] != "no match" :
+        if self.response.get("error") and self.response["errorMessage"] != "no match" :
             raise QueryError(self.response["errorMessage"], self.response)
 
         self.request = request
         self.database = database
         self.connection = self.database.connection
         self.currI = 0
-        if request.status_code == 201 or request.status_code == 200:
+        if request.status_code == 201 or request.status_code == 200 or request.status_code == 202 :
             self.batchNumber = 1
             try : #if there's only one element
                 self.response = {"result" : [self.response["document"]], 'hasMore' : False}
@@ -50,7 +50,8 @@ class Query(object) :
                 pass
 
             if "hasMore" in self.response and self.response["hasMore"] :
-                self.cursor = RawCursor(self.database, self.id)
+                cursor_id = self.response.get("id","")
+                self.cursor = RawCursor(self.database, cursor_id)
             else :
                 self.cursor = None
         elif request.status_code == 404 :

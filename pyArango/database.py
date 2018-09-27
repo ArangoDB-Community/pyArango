@@ -95,7 +95,7 @@ class Database(object) :
                 colProperties = dict(colClass._properties)
             except AttributeError :
                 colProperties = {}
-    
+
         if className != 'Collection' and className != 'Edges' :
             colProperties['name'] = className
         else :
@@ -126,7 +126,7 @@ class Database(object) :
         sid = _id.split("/")
         return self[sid[0]][sid[1]]
 
-    def createGraph(self, name) :
+    def createGraph(self, name, createCollections = True, isSmart = False, numberOfShards = None, smartGraphAttribute = None) :
         """Creates a graph and returns it. 'name' must be the name of a class inheriting from Graph.
         Checks will be performed to make sure that every collection mentionned in the edges definition exist. Raises a ValueError in case of
         a non-existing collection."""
@@ -149,13 +149,26 @@ class Database(object) :
 
         _checkCollectionList(graphClass._orphanedCollections)
 
+        options = {}
+        if numberOfShards:
+            options['numberOfShards'] = numberOfShards
+        if smartGraphAttribute:
+            options['smartGraphAttribute'] = smartGraphAttribute
+
         payload = {
                 "name": name,
                 "edgeDefinitions": ed,
                 "orphanCollections": graphClass._orphanedCollections
             }
 
-        payload = json.dumps(payload, default=str)
+        if isSmart :
+                payload['isSmart'] = isSmart
+
+        if options:
+            payload['options'] = options
+
+        payload = json.dumps(payload)
+
         r = self.connection.session.post(self.graphsURL, data = payload)
         data = r.json()
 
@@ -196,8 +209,12 @@ class Database(object) :
         request = self.connection.session.post(self.explainURL, data = json.dumps(payload, default=str))
         return request.json()
 
-    def validateAQLQuery(self, query, bindVars = {}, options = {}) :
+    def validateAQLQuery(self, query, bindVars = None, options = None) :
         "returns the server answer is the query is valid. Raises an AQLQueryError if not"
+        if bindVars is None :
+            bindVars = {}
+        if options is None :
+            options = {}
         payload = {'query' : query, 'bindVars' : bindVars, 'options' : options}
         r = self.connection.session.post(self.cursorsURL, data = json.dumps(payload, default=str))
         data = r.json()
@@ -225,7 +242,7 @@ class Database(object) :
 
         data = r.json()
 
-        if (r.status_code == 200 or r.status_code == 201 or r.status_code == 202) and not data["error"] :
+        if (r.status_code == 200 or r.status_code == 201 or r.status_code == 202) and not data.get("error") :
             return data
         else :
             raise TransactionError(data["errorMessage"], action, data)

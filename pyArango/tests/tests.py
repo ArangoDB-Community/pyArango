@@ -89,8 +89,7 @@ class pyArangoTests(unittest.TestCase):
             usersCollection.importBulk(users, onDuplicate="error", complete=True)
         self.assertEqual(usersCollection.count(), 0)
 
-        # @unittest.skip("stand by")
-
+    # @unittest.skip("stand by")
     def test_bulk_import_error_return_value(self):
         usersCollection = self.db.createCollection(name="users")
         nbUsers = 2
