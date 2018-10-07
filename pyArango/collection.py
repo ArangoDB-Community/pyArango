@@ -466,7 +466,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         elif r.status_code == 404 :
             raise DocumentNotFoundError("Unable to find document with _key: %s" % key, r.json())
         else :
-            raise Exception("Unable to find document with _key: %s, response: %s" % key, r.json())
+            raise DocumentNotFoundError("Unable to find document with _key: %s, response: %s" % (key, r.json()), r.json())
 
     def fetchByExample(self, exampleDict, batchSize, rawResults = False, **queryArgs) :
         """exampleDict should be something like {'age' : 28}"""
