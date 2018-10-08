@@ -21,21 +21,33 @@ class Database(object) :
         self.connection = connection
         self.collections = {}
 
-        self.URL = '%s/_db/%s/_api' % (self.connection.arangoURL, self.name)
-        self.collectionsURL = '%s/collection' % (self.URL)
-        self.cursorsURL = '%s/cursor' % (self.URL)
-        self.explainURL = '%s/explain' % (self.URL)
-        self.graphsURL = "%s/gharial" % self.URL
-        self.transactionURL = "%s/transaction" % self.URL
 
         self.collections = {}
         self.graphs = {}
 
         self.reload()
 
+    def getURL(self) :
+        return '%s/_db/%s/_api' % (self.connection.getEnpointURL(), self.name)
+
+    def getCollectionsURL(self) :
+        return '%s/collection' % (self.getURL())
+    
+    def getCursorsURL()(self) :
+        return '%s/cursor' % (self.getURL())
+        
+    def getExplainURL(self) :
+        return '%s/explain' % (self.getURL())
+        
+    def getGraphsURL(self) :
+        return "%s/gharial" % self.getURL()
+    
+    def getTransactionURL(self) :
+        return  "%s/transaction" % self.getURL()
+    
     def reloadCollections(self) :
         "reloads the collection list."
-        r = self.connection.session.get(self.collectionsURL)
+        r = self.connection.session.get(self.getCollectionsURL())
         data = r.json()
         if r.status_code == 200 :
             self.collections = {}
@@ -63,7 +75,7 @@ class Database(object) :
 
     def reloadGraphs(self) :
         "reloads the graph list"
-        r = self.connection.session.get(self.graphsURL)
+        r = self.connection.session.get(self.getGraphsURL())
         data = r.json()
         if r.status_code == 200 :
             self.graphs = {}
@@ -111,7 +123,7 @@ class Database(object) :
             colProperties["type"] = CONST.COLLECTION_DOCUMENT_TYPE
 
         payload = json.dumps(colProperties, default=str)
-        r = self.connection.session.post(self.collectionsURL, data = payload)
+        r = self.connection.session.post(self.getCollectionsURL(), data = payload)
         data = r.json()
 
         if r.status_code == 200 and not data["error"] :
@@ -169,7 +181,7 @@ class Database(object) :
 
         payload = json.dumps(payload)
 
-        r = self.connection.session.post(self.graphsURL, data = payload)
+        r = self.connection.session.post(self.getGraphsURL(), data = payload)
         data = r.json()
 
         if r.status_code == 201 or r.status_code == 202 :
@@ -206,7 +218,7 @@ class Database(object) :
     def explainAQLQuery(self, query, bindVars={}, allPlans = False) :
         """Returns an explanation of the query. Setting allPlans to True will result in ArangoDB returning all possible plans. False returns only the optimal plan"""
         payload = {'query' : query, 'bindVars' : bindVars, 'allPlans' : allPlans}
-        request = self.connection.session.post(self.explainURL, data = json.dumps(payload, default=str))
+        request = self.connection.session.post(self.getExplainURL(), data = json.dumps(payload, default=str))
         return request.json()
 
     def validateAQLQuery(self, query, bindVars = None, options = None) :
@@ -216,7 +228,7 @@ class Database(object) :
         if options is None :
             options = {}
         payload = {'query' : query, 'bindVars' : bindVars, 'options' : options}
-        r = self.connection.session.post(self.cursorsURL, data = json.dumps(payload, default=str))
+        r = self.connection.session.post(self.getCursorsURL(), data = json.dumps(payload, default=str))
         data = r.json()
         if r.status_code == 201 and not data["error"] :
             return data
@@ -236,7 +248,7 @@ class Database(object) :
 
         self.connection.reportStart(action)
 
-        r = self.connection.session.post(self.transactionURL, data = json.dumps(payload, default=str))
+        r = self.connection.session.post(self.geTransactionURL(), data = json.dumps(payload, default=str))
 
         self.connection.reportItem()
 

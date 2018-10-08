@@ -247,8 +247,6 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         for k in jsonData :
             setattr(self, k, jsonData[k])
 
-        self.URL = "%s/collection/%s" % (self.database.URL, self.name)
-        self.documentsURL = "%s/document" % (self.database.URL)
         self.documentCache = None
 
         self.documentClass = Document
@@ -261,6 +259,12 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         }
 
         self.defaultDocument = getDefaultDoc(self._fields, {})
+
+    def getURL(self) :
+        return "%s/collection/%s" % (self.database.getURL(), self.name)
+    
+    def getDocumentsURL(self) :
+        return "%s/document" % (self.database.getURL())
 
     def getIndexes(self) :
         """Fills self.indexes with all the indexes associates with the collection and returns it"""

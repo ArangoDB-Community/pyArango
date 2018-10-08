@@ -15,11 +15,13 @@ class RawCursor(object) :
         self.database = database
         self.connection = self.database.connection
         self.id = cursorId
-        self.URL = "%s/cursor/%s" % (self.database.URL, self.id)
+
+    def getURL(self) :
+        return "%s/%s" % (self.database.getCursorsURL(), self.id)
 
     def __next__(self) :
         "returns the next batch"
-        r = self.connection.session.put(self.URL)
+        r = self.connection.session.put(self.getURL())
         data = r.json()
         if r.status_code in [400, 404] :
             raise CursorError(data["errorMessage"], self.id, data)

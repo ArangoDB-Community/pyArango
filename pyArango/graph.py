@@ -110,7 +110,8 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
                 raise KeyError("'%s' is not a valid edge collection" % de.edgesCollection)
             self.definitions[de.edgesCollection] = de
 
-        self.URL = "%s/%s" % (self.database.graphsURL, self._key)
+    def getURL(self) :
+        return "%s/%s" % (self.database.getGraphsURL(), self._key)
 
     def createVertex(self, collectionName, docAttributes, waitForSync = False) :
         """adds a vertex to the graph and returns it"""
