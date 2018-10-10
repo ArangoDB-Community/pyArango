@@ -204,7 +204,10 @@ class AikidoSession(object) :
             pass
 
 class Connection(object) :
-    """This is the entry point in pyArango and directly handles databases. use_grequests allows for running concurent requets."""
+    """This is the entry point in pyArango and directly handles databases.
+    @param arangoURL: can be either a string url or a list of string urls to different coordinators 
+    @param use_grequests: allows for running concurent requets."""
+    
     def __init__(self,
         arangoURL = 'http://127.0.0.1:8529',
         username = None,
