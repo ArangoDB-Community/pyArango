@@ -8,84 +8,106 @@ from .database import Database, DBHandle
 from .theExceptions import CreationError, ConnectionError
 from .users import Users
 
-from gevent import monkey
-monkey.patch_all()
-from gevent import GreenletExit
-# import gevent
 import grequests
 
-# connection_urls = ["http://127.0.0.1:8529"]
-# auth_token = None
 
-# USERNAME = "root"
-# PASSWORD = "password"
+class JWTAuth(requests.auth.AuthBase):
+    def __init__(self, token):
+        self.token = token
 
-# class JWTAuth(requests.auth.AuthBase):
-#     def __init__(self, token):
-#         self.token = token
+    def __call__(self, r):
+        # Implement JWT authentication
+        r.headers['Authorization'] = 'Bearer %s' % self.token
+        return r
 
-#     def __call__(self, r):
-#         # Implement JWT authentication
-#         r.headers['Authorization'] = 'Bearer %s' % self.token
-#         return r
+class AikidoSession_GRequests(object):
+    def __init__(self, username, password, urls):
+        if username:
+            token = self._get_auth_token(username, password, urls)    
+            self.auth = JWTAuth(token)
+        else:
+            self.auth = None
 
-# class AikidoSession(object):
-#     def __init__(self, session_username, session_password):
-#         if session_username:
-#             self.auth = JWTAuth(session_password)
-#         else:
-#             self.auth = None
+        self.batching = False
+        self.batchedRequests = []
 
-#     def post(self, url, data=None, json=None, **kwargs):
-#         if data is not None:
-#             kwargs['data'] = data
-#         if json is not None:
-#             kwargs['json'] = json
+    def _get_auth_token(self, username, password, urls) :
+        kwargs = {'data': '{"username":"%s","password":"%s"}' % (username, password)}
+        for connection_url in urls:
+            response = requests.post('%s/_open/auth' % connection_url, **kwargs)
+            if response.ok:
+                json_data = response.content
+                if json_data:
+                    data_dict = json_mod.loads(json_data.decode("utf-8"))
+                    auth_token = data_dict.get('jwt')
+                    break
+        
+        return auth_token
 
-#         kwargs['auth'] = self.auth
-#         return grequests.map([grequests.post(url, **kwargs)])[0]
+    def startBatching(self) :
+        self.batching = True
+    
+    def stopBatching(self) :
+        self.batching = False
 
-#     def get(self, url, **kwargs):
-#         kwargs['auth'] = self.auth
-#         result = grequests.map([grequests.get(url, **kwargs)])[0]
-#         return result
+    def _run(self, req) :
+        if self.batching :
+            self.batchedRequests.append(req)
+            return True
+        return grequests.map([req])[0]
+    
+    def runBatch(self, exception_handler=None) :
+        ret = requests.map(self.batchedRequests, exception_handler=exception_handler)
+        self.batchedRequests = []
+        return ret
 
-#     def put(self, url, data=None, **kwargs):
-#         if data is not None:
-#             kwargs['data'] = data
-#         kwargs['auth'] = self.auth
-#         return grequests.map([grequests.put(url, **kwargs)])[0]
+    def post(self, url, data=None, json=None, **kwargs):
+        if data is not None:
+            kwargs['data'] = data
+        if json is not None:
+            kwargs['json'] = json
 
-#     def head(self, url, **kwargs):
-#         kwargs['auth'] = self.auth
-#         return grequests.map([grequests.put(url, **kwargs)])[0]
+        kwargs['auth'] = self.auth
 
-#     def options(self, url, **kwargs):
-#         kwargs['auth'] = self.auth
-#         return grequests.map([grequests.options(url, **kwargs)])[0]
+        req = grequests.post(url, **kwargs)
+        return self._run(req)
+        
+    def get(self, url, **kwargs):
+        kwargs['auth'] = self.auth
+        req = grequests.get(url, **kwargs)
+        return self._run(req)
 
-#     def patch(self, url, data=None, **kwargs):
-#         if data is not None:
-#             kwargs['data'] = data
-#         kwargs['auth'] = self.auth
-#         return grequests.map([grequests.patch(url, **kwargs)])[0]
+    def put(self, url, data=None, **kwargs):
+        if data is not None:
+            kwargs['data'] = data
+        kwargs['auth'] = self.auth
+        req = grequests.put(url, **kwargs)
+        return self._run(req)
 
-#     def delete(self, url, **kwargs):
-#         kwargs['auth'] = self.auth
-#         return grequests.map([grequests.delete(url, **kwargs)])[0]
+    def head(self, url, **kwargs):
+        kwargs['auth'] = self.auth
+        req = grequests.put(url, **kwargs)
+        return self._run(req)
 
-#     def disconnect(self):
-#         pass
+    def options(self, url, **kwargs):
+        kwargs['auth'] = self.auth
+        req = grequests.options(url, **kwargs)
+        return self._run(req)
 
-# # Monkey patch the connection object:
-# pyArango.connection.AikidoSession = AikidoSession
+    def patch(self, url, data=None, **kwargs):
+        if data is not None:
+            kwargs['data'] = data
+        kwargs['auth'] = self.auth
+        req = grequests.patch(url, **kwargs)
+        return self._run(req)
 
-# conncetion = pyArango.connection.Connection(
-#     username=USERNAME,
-#     password=get_auth_token()
-# )
+    def delete(self, url, **kwargs):
+        kwargs['auth'] = self.auth
+        req = grequests.delete(url, **kwargs)
+        return self._run(req)
 
-# print(conncetion['_system'].collections)
+    def disconnect(self):
+        pass
 
 class JsonHook(object) :
     """This one replaces requests' original json() function. If a call to json() fails, it will print a message with the request content"""
@@ -144,24 +166,6 @@ class AikidoSession(object) :
         self.log["nb_request"] = 0
         self.log["requests"] = {}
 
-    def get_auth_token() :
-        global auth_token, connection_urls
-
-        if auth_token:
-            return auth_token
-
-        kwargs = {'data': '{"username":"%s","password":"%s"}' % (USERNAME, PASSWORD)}
-        for connection_url in connection_urls:
-            response = requests.post('%s/_open/auth' % connection_url, **kwargs)
-            if response.ok:
-                json_data = response.content
-                if json_data:
-                    data_dict = json_mod.loads(json_data)
-                    auth_token = data_dict.get('jwt')
-                    break
-        print(auth_token)
-        return auth_token
-
     def __getattr__(self, k) :
         try :
             reqFct = getattr(object.__getattribute__(self, "session"), k)
@@ -196,7 +200,8 @@ class Connection(object) :
         verbose = False,
         statsdClient = None,
         reportFileName = None,
-        loadBalancing = "round-robin"
+        loadBalancing = "round-robin",
+        use_grequests = True
     ) :
         
         loadBalancingMethods = ["round-robin", "random"]
@@ -206,6 +211,7 @@ class Connection(object) :
         self.loadBalancing = loadBalancing
         self.currentURLId = 0
         self.username = username
+        self.use_grequests = use_grequests
 
         self.databases = {}
         self.verbose = verbose
@@ -217,12 +223,8 @@ class Connection(object) :
 
         for i, url in enumerate(self.arangoURL) :
             if url[-1] == "/" :
-                # if ('url' not in vars()):
-                    # raise Exception("you either need to define `url` or make arangoURL contain an HTTP-Host")
                 self.arangoURL[i] = url[:-1]
-            # else :
-                # self.arangoURL = arangoURL
-
+            
         self.identifier = None
         self.startTime = None
         self.session = None
@@ -267,7 +269,10 @@ class Connection(object) :
     def resetSession(self, username=None, password=None, verify=True) :
         """resets the session"""
         self.disconnectSession()
-        self.session = AikidoSession(username, password, verify)
+        if self.use_grequests :
+            self.session = AikidoSession_GRequests(username, password, self.arangoURL)
+        else :
+            self.session = AikidoSession(username, password, verify)
         
     def reload(self) :
         """Reloads the database list.
