@@ -115,7 +115,7 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
 
     def createVertex(self, collectionName, docAttributes, waitForSync = False) :
         """adds a vertex to the graph and returns it"""
-        url = "%s/vertex/%s" % (self.URL, collectionName)
+        url = "%s/vertex/%s" % (self.getURL(), collectionName)
 
         store = DOC.DocumentStore(self.database[collectionName], validators=self.database[collectionName]._fields, initDct=docAttributes)
         # self.database[collectionName].validateDct(docAttributes)
@@ -131,7 +131,7 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
 
     def deleteVertex(self, document, waitForSync = False) :
         """deletes a vertex from the graph as well as al linked edges"""
-        url = "%s/vertex/%s" % (self.URL, document._id)
+        url = "%s/vertex/%s" % (self.getURL(), document._id)
 
         r = self.connection.session.delete(url, params = {'waitForSync' : waitForSync})
         data = r.json()
@@ -152,7 +152,7 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
         if collectionName not in self.definitions :
             raise KeyError("'%s' is not among the edge definitions" % collectionName)
 
-        url = "%s/edge/%s" % (self.URL, collectionName)
+        url = "%s/edge/%s" % (self.getURL(), collectionName)
         self.database[collectionName].validatePrivate("_from", _fromId)
         self.database[collectionName].validatePrivate("_to", _toId)
         
@@ -196,7 +196,7 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
 
     def deleteEdge(self, edge, waitForSync = False) :
         """removes an edge from the graph"""
-        url = "%s/edge/%s" % (self.URL, edge._id)
+        url = "%s/edge/%s" % (self.getURL(), edge._id)
         r = self.connection.session.delete(url, params = {'waitForSync' : waitForSync})
         if r.status_code == 200 or r.status_code == 202 :
             return True
@@ -204,7 +204,7 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
 
     def delete(self) :
         """deletes the graph"""
-        r = self.connection.session.delete(self.URL)
+        r = self.connection.session.delete(self.getURL())
         data = r.json()
         if r.status_code < 200 or r.status_code > 202 or data["error"] :
             raise DeletionError(data["errorMessage"], data)
@@ -215,7 +215,7 @@ class Graph(with_metaclass(Graph_metaclass, object)) :
         The function can't have both 'direction' and 'expander' as arguments.
         """
 
-        url = "%s/traversal" % self.database.URL
+        url = "%s/traversal" % self.database.getURL()
         if type(startVertex) is DOC.Document :
             startVertex_id = startVertex._id
         else :

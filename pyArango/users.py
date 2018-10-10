@@ -60,7 +60,7 @@ class User(object) :
             if "username" not in self._store or "password" not in self._store :
                 raise KeyError("You must define self['name'] and self['password'] to be able to create a new user")
 
-            r = self.connection.session.post(self.users.URL, data = payload)
+            r = self.connection.session.post(self.users.getURL(), data = payload)
             data = r.json()
             if r.status_code == 201 :
                 self._set(data)
@@ -122,7 +122,7 @@ class Users(object) :
         self.connection = connection
     
     def getURL(self) :
-        return "%s/user" % (self.connection.URL)
+        return "%s/user" % (self.connection.getURL())
 
     def createUser(self, username, password) :
         u = User(self)

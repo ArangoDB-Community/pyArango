@@ -268,7 +268,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
     def getIndexes(self) :
         """Fills self.indexes with all the indexes associates with the collection and returns it"""
-        url = "%s/index" % self.database.URL
+        url = "%s/index" % self.database.getURL()
         r = self.connection.session.get(url, params = {"collection": self.name})
         data = r.json()
         for ind in data["indexes"] :
@@ -286,7 +286,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
     def delete(self) :
         """deletes the collection from the database"""
-        r = self.connection.session.delete(self.URL)
+        r = self.connection.session.delete(self.getURL())
         data = r.json()
         if not r.status_code == 200 or data["error"] :
             raise DeletionError(data["errorMessage"], data)
@@ -313,7 +313,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         return self.documentClass(self, initV)
 
     def importBulk(self, data, **addParams):
-        url = "%s/import" % (self.database.URL)
+        url = "%s/import" % (self.database.getURL())
         payload = json.dumps(data, default=str)
         params = {"collection": self.name, "type": "auto"}
         params.update(addParams)
@@ -324,7 +324,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         return data
 
     def exportDocs( self, **data):
-        url = "%s/export" % (self.database.URL)
+        url = "%s/export" % (self.database.getURL())
         params = {"collection": self.name}
         payload = json.dumps(data)
         r = self.connection.session.post(url, params = params, data = payload)
@@ -457,7 +457,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
     def fetchDocument(self, key, rawResults = False, rev = None) :
         """Fetches a document from the collection given it's key. This function always goes straight to the db and bypasses the cache. If you
         want to take advantage of the cache use the __getitem__ interface: collection[key]"""
-        url = "%s/%s/%s" % (self.documentsURL, self.name, key)
+        url = "%s/%s/%s" % (self.getDocumentsURL(), self.name, key)
         if rev is not None :
             r = self.connection.session.get(url, params = {'rev' : rev})
         else :
@@ -496,7 +496,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
     def action(self, method, action, **params) :
         """a generic fct for interacting everything that doesn't have an assigned fct"""
         fct = getattr(self.connection.session, method.lower())
-        r = fct(self.URL + "/" + action, params = params)
+        r = fct(self.getURL() + "/" + action, params = params)
         return r.json()
 
     def bulkSave(self, docs, onDuplicate="error", **params) :
@@ -519,7 +519,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         params["type"] = "documents"
         params["onDuplicate"] = onDuplicate
         params["collection"] = self.name
-        URL = "%s/import" % self.database.URL
+        URL = "%s/import" % self.database.getURL()
 
         r = self.connection.session.post(URL, params = params, data = payload)
         data = r.json()
@@ -534,7 +534,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
     def bulkImport_json(self, filename, onDuplicate="error", formatType="auto", **params) :
         """bulk import from a file repecting arango's key/value format"""
 
-        url = "%s/import" % self.database.URL
+        url = "%s/import" % self.database.getURL()
         params["onDuplicate"] = onDuplicate
         params["collection"] = self.name
         params["type"] = formatType
@@ -550,7 +550,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
     def bulkImport_values(self, filename, onDuplicate="error", **params) :
         """bulk import from a file repecting arango's json format"""
         
-        url = "%s/import" % self.database.URL
+        url = "%s/import" % self.database.getURL()
         params["onDuplicate"] = onDuplicate
         params["collection"] = self.name
         with open(filename) as f:
@@ -662,7 +662,7 @@ class Edges(Collection) :
         """This one is meant to be called by the database"""
         Collection.__init__(self, database, jsonData)
         self.documentClass = Edge
-        self.edgesURL = "%s/edges/%s" % (self.database.URL, self.name)
+        self.edgesURL = "%s/edges/%s" % (self.database.getURL(), self.name)
 
     @classmethod
     def validateField(cls, fieldName, value) :

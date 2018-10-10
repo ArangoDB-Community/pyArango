@@ -28,12 +28,12 @@ class Database(object) :
         self.reload()
 
     def getURL(self) :
-        return '%s/_db/%s/_api' % (self.connection.getEnpointURL(), self.name)
+        return '%s/_db/%s/_api' % (self.connection.getEndpointURL(), self.name)
 
     def getCollectionsURL(self) :
         return '%s/collection' % (self.getURL())
     
-    def getCursorsURL()(self) :
+    def getCursorsURL(self) :
         return '%s/cursor' % (self.getURL())
         
     def getExplainURL(self) :
@@ -248,7 +248,7 @@ class Database(object) :
 
         self.connection.reportStart(action)
 
-        r = self.connection.session.post(self.geTransactionURL(), data = json.dumps(payload, default=str))
+        r = self.connection.session.post(self.getTransactionURL(), data = json.dumps(payload, default=str))
 
         self.connection.reportItem()
 

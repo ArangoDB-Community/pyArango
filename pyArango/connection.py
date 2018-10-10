@@ -14,78 +14,78 @@ from gevent import GreenletExit
 # import gevent
 import grequests
 
-connection_urls = ["http://127.0.0.1:8529"]
-auth_token = None
+# connection_urls = ["http://127.0.0.1:8529"]
+# auth_token = None
 
-USERNAME = "root"
-PASSWORD = "password"
+# USERNAME = "root"
+# PASSWORD = "password"
 
-class JWTAuth(requests.auth.AuthBase):
-    def __init__(self, token):
-        self.token = token
+# class JWTAuth(requests.auth.AuthBase):
+#     def __init__(self, token):
+#         self.token = token
 
-    def __call__(self, r):
-        # Implement JWT authentication
-        r.headers['Authorization'] = 'Bearer %s' % self.token
-        return r
+#     def __call__(self, r):
+#         # Implement JWT authentication
+#         r.headers['Authorization'] = 'Bearer %s' % self.token
+#         return r
 
-class AikidoSession(object):
-    def __init__(self, session_username, session_password):
-        if session_username:
-            self.auth = JWTAuth(session_password)
-        else:
-            self.auth = None
+# class AikidoSession(object):
+#     def __init__(self, session_username, session_password):
+#         if session_username:
+#             self.auth = JWTAuth(session_password)
+#         else:
+#             self.auth = None
 
-    def post(self, url, data=None, json=None, **kwargs):
-        if data is not None:
-            kwargs['data'] = data
-        if json is not None:
-            kwargs['json'] = json
+#     def post(self, url, data=None, json=None, **kwargs):
+#         if data is not None:
+#             kwargs['data'] = data
+#         if json is not None:
+#             kwargs['json'] = json
 
-        kwargs['auth'] = self.auth
-        return grequests.map([grequests.post(url, **kwargs)])[0]
+#         kwargs['auth'] = self.auth
+#         return grequests.map([grequests.post(url, **kwargs)])[0]
 
-    def get(self, url, **kwargs):
-        kwargs['auth'] = self.auth
-        result = grequests.map([grequests.get(url, **kwargs)])[0]
-        return result
+#     def get(self, url, **kwargs):
+#         kwargs['auth'] = self.auth
+#         result = grequests.map([grequests.get(url, **kwargs)])[0]
+#         return result
 
-    def put(self, url, data=None, **kwargs):
-        if data is not None:
-            kwargs['data'] = data
-        kwargs['auth'] = self.auth
-        return grequests.map([grequests.put(url, **kwargs)])[0]
+#     def put(self, url, data=None, **kwargs):
+#         if data is not None:
+#             kwargs['data'] = data
+#         kwargs['auth'] = self.auth
+#         return grequests.map([grequests.put(url, **kwargs)])[0]
 
-    def head(self, url, **kwargs):
-        kwargs['auth'] = self.auth
-        return grequests.map([grequests.put(url, **kwargs)])[0]
+#     def head(self, url, **kwargs):
+#         kwargs['auth'] = self.auth
+#         return grequests.map([grequests.put(url, **kwargs)])[0]
 
-    def options(self, url, **kwargs):
-        kwargs['auth'] = self.auth
-        return grequests.map([grequests.options(url, **kwargs)])[0]
+#     def options(self, url, **kwargs):
+#         kwargs['auth'] = self.auth
+#         return grequests.map([grequests.options(url, **kwargs)])[0]
 
-    def patch(self, url, data=None, **kwargs):
-        if data is not None:
-            kwargs['data'] = data
-        kwargs['auth'] = self.auth
-        return grequests.map([grequests.patch(url, **kwargs)])[0]
+#     def patch(self, url, data=None, **kwargs):
+#         if data is not None:
+#             kwargs['data'] = data
+#         kwargs['auth'] = self.auth
+#         return grequests.map([grequests.patch(url, **kwargs)])[0]
 
-    def delete(self, url, **kwargs):
-        kwargs['auth'] = self.auth
-        return grequests.map([grequests.delete(url, **kwargs)])[0]
+#     def delete(self, url, **kwargs):
+#         kwargs['auth'] = self.auth
+#         return grequests.map([grequests.delete(url, **kwargs)])[0]
 
-    def disconnect(self):
-        pass
+#     def disconnect(self):
+#         pass
 
-# Monkey patch the connection object:
-pyArango.connection.AikidoSession = AikidoSession
+# # Monkey patch the connection object:
+# pyArango.connection.AikidoSession = AikidoSession
 
-conncetion = pyArango.connection.Connection(
-    username=USERNAME,
-    password=get_auth_token()
-)
+# conncetion = pyArango.connection.Connection(
+#     username=USERNAME,
+#     password=get_auth_token()
+# )
 
-print(conncetion['_system'].collections)
+# print(conncetion['_system'].collections)
 
 class JsonHook(object) :
     """This one replaces requests' original json() function. If a call to json() fails, it will print a message with the request content"""
@@ -205,12 +205,15 @@ class Connection(object) :
         
         self.loadBalancing = loadBalancing
         self.currentURLId = 0
+        self.username = username
 
         self.databases = {}
         self.verbose = verbose
         
         if type(arangoURL) is str :
-            self.arangoURL  = [arangoURL]
+            self.arangoURL = [arangoURL]
+        else :
+            self.arangoURL = arangoURL
 
         for i, url in enumerate(self.arangoURL) :
             if url[-1] == "/" :
@@ -244,14 +247,14 @@ class Connection(object) :
             import random
             return random.choice(self.arangoURL)
 
-    def getURL()
+    def getURL(self) :
         return '%s/_api' % self.getEndpointURL()
 
     def getDatabasesURL(self) :
         if not self.session.auth :
             return '%s/database/user' % self.getURL()
         else :
-            return '%s/user/%s/database' % (self.getURL(), username)
+            return '%s/user/%s/database' % (self.getURL(), self.username)
     
     def updateEndpoints(self, coordinatorURL = None) :
         """udpdates the list of available endpoints from the server"""
@@ -272,7 +275,7 @@ class Connection(object) :
         only handles are loaded when this function is called. The full databases are loaded on demand when accessed
         """
 
-        r = self.session.get(self.databasesURL)
+        r = self.session.get(self.getDatabasesURL())
 
         data = r.json()
         if r.status_code == 200 and not data["error"] :
@@ -281,13 +284,13 @@ class Connection(object) :
                 if dbName not in self.databases :
                     self.databases[dbName] = DBHandle(self, dbName)
         else :
-            raise ConnectionError(data["errorMessage"], self.databasesURL, r.status_code, r.content)
+            raise ConnectionError(data["errorMessage"], self.getDatabasesURL(), r.status_code, r.content)
 
     def createDatabase(self, name, **dbArgs) :
         "use dbArgs for arguments other than name. for a full list of arguments please have a look at arangoDB's doc"
         dbArgs['name'] = name
         payload = json_mod.dumps(dbArgs, default=str)
-        url = self.URL + "/database"
+        url = self.getURL() + "/database"
         r = self.session.post(url, data = payload)
         data = r.json()
         if r.status_code == 201 and not data["error"] :
