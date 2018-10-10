@@ -21,6 +21,8 @@ class JWTAuth(requests.auth.AuthBase):
         return r
 
 class AikidoSession_GRequests(object):
+    """A version of Aikido that uses grequests and can bacth several requests together"""
+
     def __init__(self, username, password, urls):
         if username:
             token = self._get_auth_token(username, password, urls)    
@@ -45,23 +47,28 @@ class AikidoSession_GRequests(object):
         return auth_token
 
     def startBatching(self) :
+        """start batching all requests"""
         self.batching = True
     
     def stopBatching(self) :
+        """stop batching all requests"""
         self.batching = False
 
     def _run(self, req) :
+        """run request or append it to the the current batch"""
         if self.batching :
             self.batchedRequests.append(req)
             return True
         return grequests.map([req])[0]
     
     def runBatch(self, exception_handler=None) :
+        """Run the current batch of requests"""
         ret = requests.map(self.batchedRequests, exception_handler=exception_handler)
         self.batchedRequests = []
         return ret
 
     def post(self, url, data=None, json=None, **kwargs):
+        """HTTP Method"""
         if data is not None:
             kwargs['data'] = data
         if json is not None:
@@ -73,11 +80,13 @@ class AikidoSession_GRequests(object):
         return self._run(req)
         
     def get(self, url, **kwargs):
+        """HTTP Method"""
         kwargs['auth'] = self.auth
         req = grequests.get(url, **kwargs)
         return self._run(req)
 
     def put(self, url, data=None, **kwargs):
+        """HTTP Method"""
         if data is not None:
             kwargs['data'] = data
         kwargs['auth'] = self.auth
@@ -85,16 +94,19 @@ class AikidoSession_GRequests(object):
         return self._run(req)
 
     def head(self, url, **kwargs):
+        """HTTP Method"""
         kwargs['auth'] = self.auth
         req = grequests.put(url, **kwargs)
         return self._run(req)
 
     def options(self, url, **kwargs):
+        """HTTP Method"""
         kwargs['auth'] = self.auth
         req = grequests.options(url, **kwargs)
         return self._run(req)
 
     def patch(self, url, data=None, **kwargs):
+        """HTTP Method"""
         if data is not None:
             kwargs['data'] = data
         kwargs['auth'] = self.auth
@@ -102,6 +114,7 @@ class AikidoSession_GRequests(object):
         return self._run(req)
 
     def delete(self, url, **kwargs):
+        """HTTP Method"""
         kwargs['auth'] = self.auth
         req = grequests.delete(url, **kwargs)
         return self._run(req)
@@ -191,7 +204,7 @@ class AikidoSession(object) :
             pass
 
 class Connection(object) :
-    """This is the entry point in pyArango and directly handles databases."""
+    """This is the entry point in pyArango and directly handles databases. use_grequests allows for running concurent requets."""
     def __init__(self,
         arangoURL = 'http://127.0.0.1:8529',
         username = None,
@@ -241,6 +254,7 @@ class Connection(object) :
         self.reload()
 
     def getEndpointURL(self) :
+        """return an endpoint url applying load balacing strategy"""
         if self.loadBalancing == "round-robin" :
             url = self.arangoURL[self.currentURLId]
             self.currentURLId = (self.currentURLId + 1) % len(self.arangoURL)
@@ -250,9 +264,11 @@ class Connection(object) :
             return random.choice(self.arangoURL)
 
     def getURL(self) :
+        """return an URL for the connection"""
         return '%s/_api' % self.getEndpointURL()
 
     def getDatabasesURL(self) :
+        """return an URL to the databases"""
         if not self.session.auth :
             return '%s/database/user' % self.getURL()
         else :
