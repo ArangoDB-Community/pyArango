@@ -26,9 +26,8 @@ class JWTAuth(requests.auth.AuthBase):
         self.reset_token()
 
     def __parse_token(self):
-        decoded_token = b64decode(self.token.encode()).decode()
-        json_token_str = decoded_token.split('}')[1] + '}'
-        return json_mod.loads(json_token_str)
+        decoded_token = b64decode(self.token.split('.')[1].encode())
+        return json_mod.loads(decoded_token)
 
     def __get_auth_token(self):
         auth_token = None
@@ -46,12 +45,20 @@ class JWTAuth(requests.auth.AuthBase):
 
     def reset_token(self):
         self.token = self.__get_auth_token()
-        self.parsed_token = self.__parse_token()
+        self.parsed_token = \
+            self.__parse_token() if self.token is not None else {}
+
+
+    def is_token_expired(self):
+        return (
+            self.parsed_token.get("exp", 0) - time.time() <
+            JWTAuth.REAUTH_TIME_INTERVEL
+        )
 
     def __call__(self, r):
         # Implement JWT authentication
 
-        if self.parsed_token['exp'] - time.time() < JWTAuth.REAUTH_TIME_INTERVEL:
+        if self.is_token_expired():
             if self.lock_for_reseting_jwt is not None:
                 self.lock_for_reseting_jwt.aquire()
             self.reset_token()
