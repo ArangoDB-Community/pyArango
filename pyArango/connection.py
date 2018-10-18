@@ -27,7 +27,7 @@ class JWTAuth(requests.auth.AuthBase):
 
     def __parse_token(self):
         decoded_token = b64decode(self.token.split('.')[1].encode())
-        return json_mod.loads(decoded_token)
+        return json_mod.loads(decoded_token.decode())
 
     def __get_auth_token(self):
         auth_token = None
