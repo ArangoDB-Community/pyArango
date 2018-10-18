@@ -1,4 +1,4 @@
-import base64
+from base64 import b64decode
 import requests
 import time
 import uuid
@@ -26,8 +26,8 @@ class JWTAuth(requests.auth.AuthBase):
         self.reset_token()
 
     def __parse_token(self):
-        decoded_token = base64.decodebytes(self.token.encode())
-        json_token_str = decoded_token.split(b'}')[1] + b'}'
+        decoded_token = b64decode(self.token.encode()).decode()
+        json_token_str = decoded_token.split('}')[1] + '}'
         return json_mod.loads(json_token_str)
 
     def __get_auth_token(self):
