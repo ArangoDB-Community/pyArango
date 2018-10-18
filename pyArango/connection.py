@@ -1,4 +1,6 @@
+import base64
 import requests
+import time
 import uuid
 import json as json_mod
 
@@ -12,39 +14,66 @@ import grequests
 
 
 class JWTAuth(requests.auth.AuthBase):
-    def __init__(self, token):
-        self.token = token
 
-    def __call__(self, r):
-        # Implement JWT authentication
-        r.headers['Authorization'] = 'Bearer %s' % self.token
-        return r
+    # 2 days before the actual expiration.
+    REAUTH_TIME_INTERVEL = 172800
 
-class AikidoSession_GRequests(object):
-    """A version of Aikido that uses grequests and can bacth several requests together"""
+    def __init__(self, username, password, urls, lock_for_reseting_jwt):
+        self.username = username
+        self.password = password
+        self.urls = urls
+        self.lock_for_reseting_jwt = lock_for_reseting_jwt
+        self.reset_token()
 
-    def __init__(self, username, password, urls):
-        if username:
-            token = self._get_auth_token(username, password, urls)    
-            self.auth = JWTAuth(token)
-        else:
-            self.auth = None
+    def __parse_token(self):
+        decoded_token = base64.decodebytes(self.token.encode())
+        json_token_str = decoded_token.split(b'}')[1] + b'}'
+        return json_mod.loads(json_token_str)
 
-        self.batching = False
-        self.batchedRequests = []
-
-    def _get_auth_token(self, username, password, urls) :
-        kwargs = {'data': '{"username":"%s","password":"%s"}' % (username, password)}
-        for connection_url in urls:
-            response = requests.post('%s/_open/auth' % connection_url, **kwargs)
+    def __get_auth_token(self):
+        auth_token = None
+        request_data = '{"username":"%s","password":"%s"}' % (self.username, self.password)
+        for connection_url in self.urls:
+            response = requests.post('%s/_open/auth' % connection_url, data=request_data)
             if response.ok:
                 json_data = response.content
                 if json_data:
                     data_dict = json_mod.loads(json_data.decode("utf-8"))
                     auth_token = data_dict.get('jwt')
                     break
-        
+
         return auth_token
+
+    def reset_token(self):
+        self.token = self.__get_auth_token()
+        self.parsed_token = self.__parse_token()
+
+    def __call__(self, r):
+        # Implement JWT authentication
+
+        if self.parsed_token['exp'] - time.time() < JWTAuth.REAUTH_TIME_INTERVEL:
+            if self.lock_for_reseting_jwt is not None:
+                self.lock_for_reseting_jwt.aquire()
+            self.reset_token()
+            r.headers['Authorization'] = 'Bearer %s' % self.token
+            if self.lock_for_reseting_jwt is not None:
+                self.lock_for_reseting_jwt.release()
+            return r
+        r.headers['Authorization'] = 'Bearer %s' % self.token
+        return r
+
+
+class AikidoSession_GRequests(object):
+    """A version of Aikido that uses grequests and can bacth several requests together"""
+
+    def __init__(self, username, password, urls, lock_for_reseting_jwt):
+        if username:
+            self.auth = JWTAuth(username, password, urls, lock_for_reseting_jwt)
+        else:
+            self.auth = None
+
+        self.batching = False
+        self.batchedRequests = []
 
     def startBatching(self) :
         """start batching all requests"""
@@ -217,7 +246,8 @@ class Connection(object) :
         statsdClient = None,
         reportFileName = None,
         loadBalancing = "round-robin",
-        use_grequests = True
+        use_grequests = True,
+        lock_for_reseting_jwt=None
     ) :
         
         loadBalancingMethods = ["round-robin", "random"]
@@ -228,6 +258,7 @@ class Connection(object) :
         self.currentURLId = 0
         self.username = username
         self.use_grequests = use_grequests
+        self.lock_for_reseting_jwt = lock_for_reseting_jwt
 
         self.databases = {}
         self.verbose = verbose
@@ -289,7 +320,7 @@ class Connection(object) :
         """resets the session"""
         self.disconnectSession()
         if self.use_grequests :
-            self.session = AikidoSession_GRequests(username, password, self.arangoURL)
+            self.session = AikidoSession_GRequests(username, password, self.arangoURL, self.lock_for_reseting_jwt)
         else :
             self.session = AikidoSession(username, password, verify)
         
