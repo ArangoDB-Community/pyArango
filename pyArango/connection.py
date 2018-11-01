@@ -1,5 +1,6 @@
 from base64 import b64decode
 import requests
+from requests import exceptions as requests_exceptions
 import time
 import uuid
 import json as json_mod
@@ -11,43 +12,63 @@ from .theExceptions import CreationError, ConnectionError
 from .users import Users
 
 import grequests
+import gevent
+import logging
 
 
 class JWTAuth(requests.auth.AuthBase):
 
-    # 2 days before the actual expiration.
-    REAUTH_TIME_INTERVEL = 172800
+    # Half a day before the actual expiration.
+    REAUTH_TIME_INTERVEL = 43200
 
-    def __init__(self, username, password, urls, lock_for_reseting_jwt):
+    def __init__(
+            self, username, password, urls, lock_for_reseting_jwt,
+            max_retries=5
+    ):
         self.username = username
         self.password = password
         self.urls = urls
         self.lock_for_reseting_jwt = lock_for_reseting_jwt
-        self.reset_token()
+        self.__init_request_session(max_retries)
+        self.__set_token()
+
+    def __init_request_session(self, max_retries):
+        self.max_retries = max_retries
+        self.session = requests.Session()
+        http = requests.adapters.HTTPAdapter(max_retries=max_retries)
+        https = requests.adapters.HTTPAdapter(max_retries=max_retries)
+        self.session.mount('http://', http)
+        self.session.mount('https://', https)
 
     def __parse_token(self):
         decoded_token = b64decode(self.token.split('.')[1].encode())
         return json_mod.loads(decoded_token.decode())
 
     def __get_auth_token(self):
-        auth_token = None
         request_data = '{"username":"%s","password":"%s"}' % (self.username, self.password)
         for connection_url in self.urls:
-            response = requests.post('%s/_open/auth' % connection_url, data=request_data)
-            if response.ok:
-                json_data = response.content
-                if json_data:
-                    data_dict = json_mod.loads(json_data.decode("utf-8"))
-                    auth_token = data_dict.get('jwt')
-                    break
+            try:
+                response = self.session.post('%s/_open/auth' % connection_url, data=request_data)
+                if response.ok:
+                    json_data = response.content
+                    if json_data:
+                        data_dict = json_mod.loads(json_data.decode("utf-8"))
+                        return data_dict.get('jwt')
+            except requests_exceptions.ConnectionError:
+                logging.critical(
+                    "Unable to connect to %s trying another", connection_url
+                )
+        return None
 
-        return auth_token
-
-    def reset_token(self):
+    def __set_token(self):
         self.token = self.__get_auth_token()
         self.parsed_token = \
             self.__parse_token() if self.token is not None else {}
+        self.token_last_updated = time.time()
 
+    def reset_token(self):
+        logging.warning("Reseting the token.")
+        self.__set_token()
 
     def is_token_expired(self):
         return (
@@ -57,15 +78,13 @@ class JWTAuth(requests.auth.AuthBase):
 
     def __call__(self, r):
         # Implement JWT authentication
-
         if self.is_token_expired():
             if self.lock_for_reseting_jwt is not None:
                 self.lock_for_reseting_jwt.aquire()
-            self.reset_token()
-            r.headers['Authorization'] = 'Bearer %s' % self.token
+            if self.is_token_expired():
+                self.reset_token()
             if self.lock_for_reseting_jwt is not None:
                 self.lock_for_reseting_jwt.release()
-            return r
         r.headers['Authorization'] = 'Bearer %s' % self.token
         return r
 
@@ -73,35 +92,36 @@ class JWTAuth(requests.auth.AuthBase):
 class AikidoSession_GRequests(object):
     """A version of Aikido that uses grequests and can bacth several requests together"""
 
-    def __init__(self, username, password, urls, lock_for_reseting_jwt):
+    def __init__(self, username, password, urls, lock_for_reseting_jwt, max_retries=5):
+        self.max_retries = max_retries
         if username:
-            self.auth = JWTAuth(username, password, urls, lock_for_reseting_jwt)
+            self.auth = JWTAuth(
+                username, password, urls, lock_for_reseting_jwt, max_retries
+            )
         else:
             self.auth = None
 
-        self.batching = False
-        self.batchedRequests = []
+    def __reset_auth(self):
+        if self.auth.lock_for_reseting_jwt is not None:
+            self.auth.lock_for_reseting_jwt.aquire()
+        self.auth.reset_token()
+        if self.auth.lock_for_reseting_jwt is not None:
+            self.auth.lock_for_reseting_jwt.release()
 
-    def startBatching(self) :
-        """start batching all requests"""
-        self.batching = True
-    
-    def stopBatching(self) :
-        """stop batching all requests"""
-        self.batching = False
-
-    def _run(self, req) :
-        """run request or append it to the the current batch"""
-        if self.batching :
-            self.batchedRequests.append(req)
-            return True
-        return grequests.map([req])[0]
-    
-    def runBatch(self, exception_handler=None) :
-        """Run the current batch of requests"""
-        ret = requests.map(self.batchedRequests, exception_handler=exception_handler)
-        self.batchedRequests = []
-        return ret
+    def _run(self, req):
+        """Run request or append it to the the current batch"""
+        for _ in range(self.max_retries):
+            gevent.joinall([gevent.spawn(req.send)])
+            if req.response.status_code == 401:
+                logging.critical("Invalid authentication token provided, will try to reset the auth and request again.")
+                self.__reset_auth()
+            elif hasattr(req, 'exception'):
+                logging.critical("%s is raised, will try to reset the auth and request again.", req.exception)
+                self.__reset_auth()
+            else:
+                return req.response
+        logging.critical("Tried to send the request max number of times.")
+        return req.response
 
     def post(self, url, data=None, json=None, **kwargs):
         """HTTP Method"""
@@ -114,7 +134,7 @@ class AikidoSession_GRequests(object):
 
         req = grequests.post(url, **kwargs)
         return self._run(req)
-        
+
     def get(self, url, **kwargs):
         """HTTP Method"""
         kwargs['auth'] = self.auth
@@ -158,32 +178,32 @@ class AikidoSession_GRequests(object):
     def disconnect(self):
         pass
 
-class JsonHook(object) :
+class JsonHook(object):
     """This one replaces requests' original json() function. If a call to json() fails, it will print a message with the request content"""
-    def __init__(self, ret) :
+    def __init__(self, ret):
         self.ret = ret
         self.ret.json_originalFct = self.ret.json
-    
-    def __call__(self, *args, **kwargs) :
+
+    def __call__(self, *args, **kwargs):
         try :
             return self.ret.json_originalFct(*args, **kwargs)
         except Exception as e :
             print( "Unable to get json for request: %s. Content: %s" % (self.ret.url, self.ret.content) )
-            raise e 
+            raise e
 
-class AikidoSession(object) :
+class AikidoSession(object):
     """Magical Aikido being that you probably do not need to access directly that deflects every http request to requests in the most graceful way.
     It will also save basic stats on requests in it's attribute '.log'.
     """
 
-    class Holder(object) :
-        def __init__(self, fct, auth, verify=True) :
+    class Holder(object):
+        def __init__(self, fct, auth, verify=True):
             self.fct = fct
             self.auth = auth
             if verify != None:
-              self.verify = verify 
+              self.verify = verify
 
-        def __call__(self, *args, **kwargs) :
+        def __call__(self, *args, **kwargs):
             if self.auth :
                 kwargs["auth"] = self.auth
             if self.verify != True:
@@ -203,19 +223,24 @@ class AikidoSession(object) :
             ret.json = JsonHook(ret)
             return ret
 
-    def __init__(self, username, password, verify=True) :
+    def __init__(self, username, password, verify=True, max_retries=5):
         if username :
             self.auth = (username, password)
         else :
             self.auth = None
 
-        self.verify = verify 
+        self.verify = verify
         self.session = requests.Session()
+        http = requests.adapters.HTTPAdapter(max_retries=max_retries)
+        https = requests.adapters.HTTPAdapter(max_retries=max_retries)
+        self.session.mount('http://', http)
+        self.session.mount('https://', https)
+
         self.log = {}
         self.log["nb_request"] = 0
         self.log["requests"] = {}
 
-    def __getattr__(self, k) :
+    def __getattr__(self, k):
         try :
             reqFct = getattr(object.__getattribute__(self, "session"), k)
         except :
@@ -233,17 +258,19 @@ class AikidoSession(object) :
 
         return holdClass(reqFct, auth, verify)
 
-    def disconnect(self) :
+    def disconnect(self):
         try:
             self.session.close()
         except Exception :
             pass
 
-class Connection(object) :
+class Connection(object):
     """This is the entry point in pyArango and directly handles databases.
-    @param arangoURL: can be either a string url or a list of string urls to different coordinators 
+    @param arangoURL: can be either a string url or a list of string urls to different coordinators
     @param use_grequests: allows for running concurent requets."""
-    
+
+    LOAD_BLANCING_METHODS = {'round-robin', 'random'}
+
     def __init__(self,
         arangoURL = 'http://127.0.0.1:8529',
         username = None,
@@ -254,31 +281,32 @@ class Connection(object) :
         reportFileName = None,
         loadBalancing = "round-robin",
         use_grequests = True,
-        lock_for_reseting_jwt=None
-    ) :
-        
-        loadBalancingMethods = ["round-robin", "random"]
-        if loadBalancing not in loadBalancingMethods :
-            raise ValueError("loadBalancing should be one of : %s, got %s" % (loadBalancingMethods, loadBalancing) )
-        
+        lock_for_reseting_jwt=None,
+        max_retries=5
+    ):
+
+        if loadBalancing not in Connection.LOAD_BLANCING_METHODS:
+            raise ValueError("loadBalancing should be one of : %s, got %s" % (Connection.LOAD_BLANCING_METHODS, loadBalancing) )
+
         self.loadBalancing = loadBalancing
         self.currentURLId = 0
         self.username = username
         self.use_grequests = use_grequests
         self.lock_for_reseting_jwt = lock_for_reseting_jwt
+        self.max_retries = max_retries
 
         self.databases = {}
         self.verbose = verbose
-        
+
         if type(arangoURL) is str :
             self.arangoURL = [arangoURL]
         else :
             self.arangoURL = arangoURL
 
-        for i, url in enumerate(self.arangoURL) :
+        for i, url in enumerate(self.arangoURL):
             if url[-1] == "/" :
                 self.arangoURL[i] = url[:-1]
-            
+
         self.identifier = None
         self.startTime = None
         self.session = None
@@ -294,7 +322,7 @@ class Connection(object) :
         self.statsdc = statsdClient
         self.reload()
 
-    def getEndpointURL(self) :
+    def getEndpointURL(self):
         """return an endpoint url applying load balacing strategy"""
         if self.loadBalancing == "round-robin" :
             url = self.arangoURL[self.currentURLId]
@@ -304,34 +332,34 @@ class Connection(object) :
             import random
             return random.choice(self.arangoURL)
 
-    def getURL(self) :
+    def getURL(self):
         """return an URL for the connection"""
         return '%s/_api' % self.getEndpointURL()
 
-    def getDatabasesURL(self) :
+    def getDatabasesURL(self):
         """return an URL to the databases"""
         if not self.session.auth :
             return '%s/database/user' % self.getURL()
         else :
             return '%s/user/%s/database' % (self.getURL(), self.username)
-    
-    def updateEndpoints(self, coordinatorURL = None) :
+
+    def updateEndpoints(self, coordinatorURL = None):
         """udpdates the list of available endpoints from the server"""
         raise NotImplemented("Not done yet.")
 
-    def disconnectSession(self) :
-        if self.session: 
+    def disconnectSession(self):
+        if self.session:
             self.session.disconnect()
 
-    def resetSession(self, username=None, password=None, verify=True) :
+    def resetSession(self, username=None, password=None, verify=True):
         """resets the session"""
         self.disconnectSession()
         if self.use_grequests :
-            self.session = AikidoSession_GRequests(username, password, self.arangoURL, self.lock_for_reseting_jwt)
+            self.session = AikidoSession_GRequests(username, password, self.arangoURL, self.lock_for_reseting_jwt, self.max_retries)
         else :
-            self.session = AikidoSession(username, password, verify)
-        
-    def reload(self) :
+            self.session = AikidoSession(username, password, verify, self.max_retries)
+
+    def reload(self):
         """Reloads the database list.
         Because loading a database triggers the loading of all collections and graphs within,
         only handles are loaded when this function is called. The full databases are loaded on demand when accessed
@@ -348,7 +376,7 @@ class Connection(object) :
         else :
             raise ConnectionError(data["errorMessage"], self.getDatabasesURL(), r.status_code, r.content)
 
-    def createDatabase(self, name, **dbArgs) :
+    def createDatabase(self, name, **dbArgs):
         "use dbArgs for arguments other than name. for a full list of arguments please have a look at arangoDB's doc"
         dbArgs['name'] = name
         payload = json_mod.dumps(dbArgs, default=str)
@@ -362,11 +390,11 @@ class Connection(object) :
         else :
             raise CreationError(data["errorMessage"], r.content)
 
-    def hasDatabase(self, name) :
+    def hasDatabase(self, name):
         """returns true/false wether the connection has a database by the name of 'name'"""
         return name in self.databases
 
-    def __getitem__(self, dbName) :
+    def __getitem__(self, dbName):
         """Collection[dbName] returns a database by the name of 'dbName', raises a KeyError if not found"""
         try :
             return self.databases[dbName]
