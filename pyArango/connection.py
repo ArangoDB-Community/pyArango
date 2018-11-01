@@ -13,6 +13,7 @@ from .users import Users
 
 import grequests
 import gevent
+from gevent.threading import Lock
 import logging
 
 
@@ -22,13 +23,13 @@ class JWTAuth(requests.auth.AuthBase):
     REAUTH_TIME_INTERVEL = 43200
 
     def __init__(
-            self, username, password, urls, lock_for_reseting_jwt,
+            self, username, password, urls, use_lock_for_reseting_jwt=True,
             max_retries=5
     ):
         self.username = username
         self.password = password
         self.urls = urls
-        self.lock_for_reseting_jwt = lock_for_reseting_jwt
+        self.lock_for_reseting_jwt = Lock() if use_lock_for_reseting_jwt else None
         self.__init_request_session(max_retries)
         self.__set_token()
 
@@ -77,34 +78,34 @@ class JWTAuth(requests.auth.AuthBase):
             JWTAuth.REAUTH_TIME_INTERVEL
         )
 
-    def __call__(self, r):
+    def __call__(self, req):
         # Implement JWT authentication
         if self.is_token_expired():
             if self.lock_for_reseting_jwt is not None:
-                self.lock_for_reseting_jwt.aquire()
+                self.lock_for_reseting_jwt.acquire()
             if self.is_token_expired():
                 self.reset_token()
             if self.lock_for_reseting_jwt is not None:
                 self.lock_for_reseting_jwt.release()
-        r.headers['Authorization'] = 'Bearer %s' % self.token
-        return r
+        req.headers['Authorization'] = 'Bearer %s' % self.token
+        return req
 
 
 class AikidoSession_GRequests(object):
     """A version of Aikido that uses grequests and can bacth several requests together"""
 
-    def __init__(self, username, password, urls, lock_for_reseting_jwt, max_retries=5):
+    def __init__(self, username, password, urls, use_lock_for_reseting_jwt=True, max_retries=5):
         self.max_retries = max_retries
         if username:
             self.auth = JWTAuth(
-                username, password, urls, lock_for_reseting_jwt, max_retries
+                username, password, urls, use_lock_for_reseting_jwt, max_retries
             )
         else:
             self.auth = None
 
     def __reset_auth(self):
         if self.auth.lock_for_reseting_jwt is not None:
-            self.auth.lock_for_reseting_jwt.aquire()
+            self.auth.lock_for_reseting_jwt.acquire()
         self.auth.reset_token()
         if self.auth.lock_for_reseting_jwt is not None:
             self.auth.lock_for_reseting_jwt.release()
@@ -113,11 +114,11 @@ class AikidoSession_GRequests(object):
         """Run request or append it to the the current batch"""
         for _ in range(self.max_retries):
             gevent.joinall([gevent.spawn(req.send)])
-            if req.response.status_code == 401:
-                logging.critical("Invalid authentication token provided, will try to reset the auth and request again.")
-                self.__reset_auth()
-            elif hasattr(req, 'exception'):
+            if hasattr(req, 'exception'):
                 logging.critical("%s is raised, will try to reset the auth and request again.", req.exception)
+                self.__reset_auth()
+            elif req.response.status_code == 401:
+                logging.critical("Invalid authentication token provided, will try to reset the auth and request again.")
                 self.__reset_auth()
             else:
                 return req.response
@@ -282,7 +283,7 @@ class Connection(object):
         reportFileName = None,
         loadBalancing = "round-robin",
         use_grequests = True,
-        lock_for_reseting_jwt=None,
+        use_lock_for_reseting_jwt=True,
         max_retries=5
     ):
 
@@ -293,7 +294,7 @@ class Connection(object):
         self.currentURLId = 0
         self.username = username
         self.use_grequests = use_grequests
-        self.lock_for_reseting_jwt = lock_for_reseting_jwt
+        self.use_lock_for_reseting_jwt = use_lock_for_reseting_jwt
         self.max_retries = max_retries
 
         self.databases = {}
@@ -356,7 +357,7 @@ class Connection(object):
         """resets the session"""
         self.disconnectSession()
         if self.use_grequests :
-            self.session = AikidoSession_GRequests(username, password, self.arangoURL, self.lock_for_reseting_jwt, self.max_retries)
+            self.session = AikidoSession_GRequests(username, password, self.arangoURL, self.use_lock_for_reseting_jwt, self.max_retries)
         else :
             self.session = AikidoSession(username, password, verify, self.max_retries)
 
