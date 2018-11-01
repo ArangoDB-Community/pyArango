@@ -55,10 +55,11 @@ class JWTAuth(requests.auth.AuthBase):
                         data_dict = json_mod.loads(json_data.decode("utf-8"))
                         return data_dict.get('jwt')
             except requests_exceptions.ConnectionError:
-                logging.critical(
-                    "Unable to connect to %s trying another", connection_url
-                )
-        return None
+                if connection_url is not self.urls[-1]:
+                    logging.critical("Unable to connect to %s trying another", connection_url)
+                else:
+                    logging.critical("Unable to connect to any of the urls: %s", self.urls)
+                    raise
 
     def __set_token(self):
         self.token = self.__get_auth_token()
