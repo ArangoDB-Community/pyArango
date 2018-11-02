@@ -3,7 +3,7 @@ import json
 from future.utils import implements_iterator
 
 from .document import Document, Edge
-from .theExceptions import QueryError, AQLQueryError, SimpleQueryError, CreationError
+from .theExceptions import QueryError, AQLQueryError, SimpleQueryError, CreationError, CursorError
 from . import consts as CONST
 
 __all__ = ["Query", "AQLQuery", "SimpleQuery", "Cursor", "RawCursor"]
