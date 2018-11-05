@@ -54,46 +54,43 @@ class AikidoSession(object):
             ret.json = JsonHook(ret)
             return ret
 
-    def __init__(self, username, password, verify=True, max_retries=5):
-        if username :
+    def __init__(self, username, password, verify=True, max_retries=5, log_requests=False):
+        if username:
             self.auth = (username, password)
-        else :
+        else:
             self.auth = None
 
         self.verify = verify
-        self.session = requests.Session()
-        http = requests.adapters.HTTPAdapter(max_retries=max_retries)
-        https = requests.adapters.HTTPAdapter(max_retries=max_retries)
-        self.session.mount('http://', http)
-        self.session.mount('https://', https)
+        self.max_retries = max_retries
+        self.log_requests = log_requests
 
-        self.log = {}
-        self.log["nb_request"] = 0
-        self.log["requests"] = {}
+        if log_requests:
+            self.log = {}
+            self.log["nb_request"] = 0
+            self.log["requests"] = {}
 
-    def __getattr__(self, k):
-        try :
-            reqFct = getattr(object.__getattribute__(self, "session"), k)
-        except :
-            raise AttributeError("Attribute '%s' not found (no Aikido move available)" % k)
+    def __getattr__(self, requestion_function_name):
+        try:
+            session = requests.Session()
+            http = requests.adapters.HTTPAdapter(max_retries=self.max_retries)
+            https = requests.adapters.HTTPAdapter(max_retries=self.max_retries)
+            session.mount('http://', http)
+            session.mount('https://', https)
+            request_function = getattr(session, requestion_function_name)
+        except AttributeError:
+            raise AttributeError("Attribute '%s' not found (no Aikido move available)" % requestion_function_name)
 
-        holdClass = object.__getattribute__(self, "Holder")
         auth = object.__getattribute__(self, "auth")
         verify = object.__getattribute__(self, "verify")
-        log = object.__getattribute__(self, "log")
-        log["nb_request"] += 1
-        try :
-            log["requests"][reqFct.__name__] += 1
-        except :
-            log["requests"][reqFct.__name__] = 1
+        if self.log_requests:
+            log = object.__getattribute__(self, "log")
+            log["nb_request"] += 1
+            log["requests"][request_function.__name__] += 1
 
-        return holdClass(reqFct, auth, verify)
+        return AikidoSession.Holder(request_function, auth, verify)
 
     def disconnect(self):
-        try:
-            self.session.close()
-        except Exception :
-            pass
+        pass
 
 class Connection(object):
     """This is the entry point in pyArango and directly handles databases.
@@ -129,7 +126,7 @@ class Connection(object):
         self.databases = {}
         self.verbose = verbose
 
-        if type(arangoURL) is str :
+        if isinstance(arangoURL, str):
             self.arangoURL = [arangoURL]
         else :
             self.arangoURL = arangoURL
@@ -176,7 +173,7 @@ class Connection(object):
 
     def updateEndpoints(self, coordinatorURL = None):
         """udpdates the list of available endpoints from the server"""
-        raise NotImplemented("Not done yet.")
+        raise NotImplementedError("Not done yet.")
 
     def disconnectSession(self):
         if self.session:
