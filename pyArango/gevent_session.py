@@ -93,7 +93,7 @@ class AikidoSession_GRequests(object):
 
     def __init__(
             self, username, password, urls, use_jwt_authentication=False,
-            use_lock_for_reseting_jwt=True, max_retries=5
+            use_lock_for_reseting_jwt=True, max_retries=5, verify=None
     ):
         self.max_retries = max_retries
         self.use_jwt_authentication = use_jwt_authentication
@@ -105,6 +105,8 @@ class AikidoSession_GRequests(object):
                 )
             else:
                 self.auth = (username, password)
+                if verify is not None:
+                    self.verify = verify
         else:
             self.auth = None
 
@@ -119,6 +121,8 @@ class AikidoSession_GRequests(object):
 
     def _run(self, req):
         """Run request or append it to the the current batch"""
+        if not self.use_jwt_authentication and self.verify is not None:
+            req.kwargs['verify'] = self.verify
         for _ in range(self.max_retries):
             gevent.joinall([gevent.spawn(req.send)])
             if self.use_jwt_authentication:

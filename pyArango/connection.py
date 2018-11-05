@@ -189,7 +189,8 @@ class Connection(object):
             self.session = AikidoSession_GRequests(
                 username, password, self.arangoURL,
                 self.use_jwt_authentication,
-                self.use_lock_for_reseting_jwt, self.max_retries
+                self.use_lock_for_reseting_jwt, self.max_retries,
+                verify
             )
         else :
             self.session = AikidoSession(username, password, verify, self.max_retries)
