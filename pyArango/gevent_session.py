@@ -20,7 +20,7 @@ class JWTAuth(requests.auth.AuthBase):
     REAUTH_TIME_INTERVEL = 43200
 
     def __init__(
-            self, username, password, urls, use_lock_for_reseting_jwt=True,
+            self, username, password, urls, use_lock_for_reseting_jwt=False,
             max_retries=5
     ):
         self.username = username
@@ -91,16 +91,26 @@ class JWTAuth(requests.auth.AuthBase):
 class AikidoSession_GRequests(object):
     """A version of Aikido that uses grequests and can bacth several requests together"""
 
-    def __init__(self, username, password, urls, use_lock_for_reseting_jwt=True, max_retries=5):
+    def __init__(
+            self, username, password, urls, use_jwt_authentication=False,
+            use_lock_for_reseting_jwt=True, max_retries=5
+    ):
         self.max_retries = max_retries
+        self.use_jwt_authentication = use_jwt_authentication
         if username:
-            self.auth = JWTAuth(
-                username, password, urls, use_lock_for_reseting_jwt, max_retries
-            )
+            if self.use_jwt_authentication:
+                self.auth = JWTAuth(
+                    username, password, urls,
+                    use_lock_for_reseting_jwt, max_retries
+                )
+            else:
+                self.auth = (username, password)
         else:
             self.auth = None
 
     def __reset_auth(self):
+        if not self.use_jwt_authentication:
+            return
         if self.auth.lock_for_reseting_jwt is not None:
             self.auth.lock_for_reseting_jwt.acquire()
         self.auth.reset_token()
@@ -111,14 +121,22 @@ class AikidoSession_GRequests(object):
         """Run request or append it to the the current batch"""
         for _ in range(self.max_retries):
             gevent.joinall([gevent.spawn(req.send)])
-            if hasattr(req, 'exception'):
-                logging.critical("%s is raised, will try to reset the auth and request again.", req.exception)
-                self.__reset_auth()
-            elif req.response.status_code == 401:
-                logging.critical("Invalid authentication token provided, will try to reset the auth and request again.")
-                self.__reset_auth()
+            if self.use_jwt_authentication:
+                if hasattr(req, 'exception'):
+                    logging.critical("%s is raised, will try to reset the auth and request again.", req.exception)
+                    self.__reset_auth()
+                elif req.response.status_code == 401:
+                    logging.critical("Invalid authentication token provided, will try to reset the auth and request again.")
+                    self.__reset_auth()
+                else:
+                    return req.response
             else:
-                return req.response
+                if hasattr(req, 'exception'):
+                    logging.critical("%s is raised, will try to request again", req.exception)
+                elif req.response.status_code == 401:
+                    logging.critical("Unauthorized access, you must supply a (username, password) with the correct credentials")
+                else:
+                    return req.response
         logging.critical("Tried to send the request max number of times.")
         return req.response
 

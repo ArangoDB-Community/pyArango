@@ -109,6 +109,7 @@ class Connection(object):
         reportFileName = None,
         loadBalancing = "round-robin",
         use_grequests = True,
+        use_jwt_authentication=False,
         use_lock_for_reseting_jwt=True,
         max_retries=5
     ):
@@ -120,6 +121,7 @@ class Connection(object):
         self.currentURLId = 0
         self.username = username
         self.use_grequests = use_grequests
+        self.use_jwt_authentication = use_jwt_authentication
         self.use_lock_for_reseting_jwt = use_lock_for_reseting_jwt
         self.max_retries = max_retries
 
@@ -184,7 +186,11 @@ class Connection(object):
         self.disconnectSession()
         if self.use_grequests :
             from .gevent_session import AikidoSession_GRequests
-            self.session = AikidoSession_GRequests(username, password, self.arangoURL, self.use_lock_for_reseting_jwt, self.max_retries)
+            self.session = AikidoSession_GRequests(
+                username, password, self.arangoURL,
+                self.use_jwt_authentication,
+                self.use_lock_for_reseting_jwt, self.max_retries
+            )
         else :
             self.session = AikidoSession(username, password, verify, self.max_retries)
 
