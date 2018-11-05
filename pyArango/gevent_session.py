@@ -175,4 +175,4 @@ class AikidoSession_GRequests(object):
         return self._run(req)
 
     def disconnect(self):
-        self.auth = None
+        pass
