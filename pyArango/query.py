@@ -64,7 +64,7 @@ class Query(object) :
 
     def _raiseInitFailed(self, request) :
         "must be implemented in child, this called if the __init__ fails"
-        raise NotImplemented("Must be implemented in child")
+        raise NotImplementedError("Must be implemented in child")
 
     def _developDoc(self, i) :
         """private function that transforms a json returned by ArangoDB into a pyArango Document or Edge"""
