@@ -170,6 +170,11 @@ class DocumentStore(object) :
             del(self.patchStore[k])
         except :
             pass
+        
+        try:
+            del(self.subStores[k])
+        except:
+            pass
 
     def __contains__(self, k) :
         """returns true or false weither the store has a key k"""
