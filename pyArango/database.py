@@ -1,4 +1,5 @@
 import json
+import logging
 import types
 
 from . import collection as COL
@@ -8,7 +9,7 @@ from . import graph as GR
 from .document import Document
 from .graph import Graph
 from .query import AQLQuery
-from .theExceptions import CreationError, UpdateError, AQLQueryError, TransactionError
+from .theExceptions import CreationError, UpdateError, AQLQueryError, TransactionError, AQLFetchError
 
 __all__ = ["Database", "DBHandle"]
 
@@ -214,6 +215,234 @@ class Database(object) :
         You can use **moreArgs to pass more arguments supported by the api, such as ttl=60 (time to live)"""
         return AQLQuery(self, query, rawResults = rawResults, batchSize = batchSize, bindVars  = bindVars, options = options, count = count, fullCount = fullCount,
                         json_encoder = json_encoder, **moreArgs)
+
+    def __get_logger(self, logger, log_level):
+        if logger is None:
+            return None
+        return getattr(logger, logging.getLevelName(log_level).lower())
+
+    def fetch_element(
+            self, aql_query, bind_vars=None, dont_raise_error_if_empty=False,
+            default_output=None, logger=None, log_level=logging.DEBUG
+    ):
+        """Fetch element by running a query.
+
+        Parameters
+        ----------
+        aql_query : str
+            aql query string.
+        bind_vars : dict, optional
+            dictonary of bind variables (the default is None)
+        dont_raise_error_if_empty: bool, optional
+            do not raise error if the returned is empty. (the default is False)
+        default_output: dict, optional
+            default output if no value is returned. (the default is None)
+        logger : Logger, optional
+            logger to log the query and result.
+            (the default is None means don't log)
+        log_level: Logger.loglevel, optional
+            level of the log. (the default is logging.DEBUG)
+
+        Raises
+        ------
+        AQLFetchError
+            When unable to fetch results or more than one 1 results returned.
+
+        Returns
+        -------
+        any
+            an element returned by query.
+
+        """
+        log = self.__get_logger(logger, log_level)
+        if log is not None:
+            log(aql_query)
+        if bind_vars is None:
+            bind_vars = {}
+        response = self.AQLQuery(
+            aql_query, bindVars=bind_vars, rawResults=True
+        ).response
+        if log is not None:
+            log(response["result"])
+        num_results = len(response["result"])
+        if num_results == 1:
+            return response["result"][0]
+        if dont_raise_error_if_empty and num_results == 0:
+            return default_output
+        raise AQLFetchError(
+            "No results matched for query." if num_results == 0
+            else "More than one results received"
+        )
+
+    def fetch_list(
+            self, aql_query, bind_vars=None, batch_size=200,
+            dont_raise_error_if_empty=False, logger=None,
+            log_level=logging.DEBUG
+    ):
+        """Fetch list of elements by running a query and merging all the batches.
+
+        Parameters
+        ----------
+        aql_query : str
+            aql query string.
+        bind_vars : dict, optional
+            dictonary of bind variables (the default is None)
+        batch_size : int, optional
+            fetching batch size (the default is 200)
+        dont_raise_error_if_empty: bool, optional
+            do not raise error if the returned is empty. (the default is False)
+        logger : Logger, optional
+            logger to log the query and result.
+            (the default is None means don't log)
+        log_level: Logger.loglevel, optional
+            level of the log. (the default is logging.DEBUG)
+
+        Raises
+        ------
+        AQLFetchError
+            When unable to fetch results
+
+        Returns
+        -------
+        list(any)
+            a list returned by query.
+
+        """
+        try:
+            log = self.__get_logger(logger, log_level)
+            if log is not None:
+                log(aql_query)
+            query = self.AQLQuery(
+                aql_query, batchSize=batch_size, rawResults=True,
+                bindVars=(bind_vars if bind_vars is not None else {})
+            )
+            batch_index = 0
+            result = []
+            while True:
+                if len(query.response['result']) is 0:
+                    break
+                result.extend(query.response['result'])
+                batch_index += 1
+                query.nextBatch()
+        except StopIteration:
+            if log is not None:
+                log(result)
+            if len(result) is not 0:
+                return result
+        except:
+            raise
+        if batch_index == 0 and dont_raise_error_if_empty:
+            return []
+        raise AQLFetchError(
+            "No results matched for query in fetching the batch index: %s." % (
+                batch_index
+            )
+        )
+
+    def fetch_list_as_batches(
+            self, aql_query, bind_vars=None, batch_size=200,
+            dont_raise_error_if_empty=False, logger=None,
+            log_level=logging.DEBUG
+    ):
+        """Fetch list of elements as batches by running the query.
+
+        Generator which yeilds each batch as result.
+
+        Parameters
+        ----------
+        aql_query : str
+            aql query string.
+        bind_vars : dict, optional
+            dictonary of bind variables (the default is None)
+        batch_size : int, optional
+            fetching batch size (the default is 200)
+        dont_raise_error_if_empty: bool, optional
+            do not raise error if the returned is empty. (the default is False)
+        logger : Logger, optional
+            logger to log the query and result.
+            (the default is None means don't log)
+        log_level: Logger.loglevel, optional
+            level of the log. (the default is logging.DEBUG)
+
+        Raises
+        ------
+        AQLFetchError
+            When unable to fetch results
+
+        Returns
+        -------
+        list(any)
+            a list returned by query.
+
+        """
+        try:
+            log = self.__get_logger(logger, log_level)
+            if log is not None:
+                log(aql_query)
+            query = self.AQLQuery(
+                aql_query, batchSize=batch_size, rawResults=True,
+                bindVars=(bind_vars if bind_vars is not None else {})
+            )
+            batch_index = 0
+            while True:
+                if len(query.response['result']) is 0:
+                    break
+                if log is not None:
+                    log(
+                        "batch_result for index '%s': %s",
+                        batch_index, query.response['result']
+                    )
+                yield query.response['result']
+                batch_index += 1
+                query.nextBatch()
+        except StopIteration:
+            return
+        except:
+            raise
+        if batch_index == 0 and dont_raise_error_if_empty:
+            return
+        raise AQLFetchError(
+            "No results matched for query in fetching the batch index: %s." % (
+                batch_index
+            )
+        )
+
+    def no_fetch_run(
+            self, aql_query, bind_vars=None, logger=None,
+            log_level=logging.DEBUG
+    ):
+        """Run query which doesn't have a return.
+
+        Parameters
+        ----------
+        aql_query : str
+            aql query string.
+        bind_vars : dict, optional
+            dictonary of bind variables (the default is None)
+        logger : Logger, optional
+            logger to log the query and result.
+            (the default is None means don't log)
+        log_level: Logger.loglevel, optional
+            level of the log. (the default is logging.DEBUG)
+
+        Raises
+        ------
+        AQLFetchError
+            When able to fetch results.
+
+        """
+        log = self.__get_logger(logger, log_level)
+        if log is not None:
+            log(aql_query)
+        response = self.AQLQuery(
+            aql_query, rawResults=True,
+            bindVars=(bind_vars if bind_vars is not None else {})
+        ).response
+        if log is not None:
+            log(response["result"])
+        if len(response["result"]) is 0:
+            return
+        raise AQLFetchError("No results should be returned for the query.")
 
     def explainAQLQuery(self, query, bindVars={}, allPlans = False) :
         """Returns an explanation of the query. Setting allPlans to True will result in ArangoDB returning all possible plans. False returns only the optimal plan"""
