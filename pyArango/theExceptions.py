@@ -142,19 +142,3 @@ class DocumentNotFoundError(pyArangoException) :
         if errors is None :
             errors = {}
         pyArangoException.__init__(self, message, errors)
-
-
-class AQLFetchError(Exception):
-    """Raised error when fetching the data."""
-
-    def __init__(self, err_message):
-        """Error when unable to fetch.
-
-        Parameters
-        ----------
-        err_message : str
-            error message.
-
-        """
-        Exception.__init__(self, err_message)
-

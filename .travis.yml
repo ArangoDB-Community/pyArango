@@ -7,7 +7,7 @@ python:
 before_install:
 - echo arangodb3 arangodb/password password root | sudo debconf-set-selections
 - echo arangodb3 arangodb/password_again password root | sudo debconf-set-selections
-- curl -s -L https://raw.githubusercontent.com/brennv/arangodb-travis/master/setup_arangodb.sh -o setup.sh
+- curl -s -L https://raw.githubusercontent.com/brennv/arangodb-travis/v3.0.3/setup_arangodb.sh -o setup.sh
 - chmod +x setup.sh
 - ./setup.sh
 - pip install coverage
