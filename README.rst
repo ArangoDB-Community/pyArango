@@ -55,7 +55,7 @@ Full documentation
 
 This is the quickstart guide, you can find the full documentation here_.
 
-.. _here: http://bioinfo.iric.ca/~daoudat/pyArango/
+.. _here: https://pyarango.readthedocs.io/en/stable/
 
 Initialization and document saving
 -------------------------------------

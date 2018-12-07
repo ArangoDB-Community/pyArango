@@ -112,7 +112,7 @@ class Query(object) :
 
     def __getitem__(self, i) :
         "returns a ith result of the query."
-        if not self.rawResults and (self.result[i].__class__ is not Edge and self.result[i].__class__ is not Document) : 
+        if not self.rawResults and (not isinstance(self.result[i], (Edge, Document))):
             self._developDoc(i)
         return self.result[i]
 
@@ -143,7 +143,7 @@ class AQLQuery(Query) :
         self.database = database
         self.connection = self.database.connection
         self.connection.reportStart(query)
-        request = self.connection.session.post(database.cursorsURL, data = json.dumps(payload, cls=json_encoder))
+        request = self.connection.session.post(database.cursorsURL, data = json.dumps(payload, cls=json_encoder, default=str))
         self.connection.reportItem()
 
         try :
@@ -183,7 +183,7 @@ class SimpleQuery(Query) :
 
         payload = {'collection' : collection.name}
         payload.update(queryArgs)
-        payload = json.dumps(payload, cls=json_encoder)
+        payload = json.dumps(payload, cls=json_encoder, default=str)
         URL = "%s/simple/%s" % (collection.database.URL, queryType)
         request = self.connection.session.put(URL, data = payload)
 

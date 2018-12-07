@@ -132,6 +132,11 @@ class AbstractInstanciationError(Exception) :
     def __str__(self) :
         return self.message
 
+class ExportError(pyArangoException) :
+    """ Something went wrong using the export cursor """
+    def __init__(self, message, errors = {} ):
+        pyArangoException.__init__(self, message, errors)
+
 class DocumentNotFoundError(pyArangoException) :
     def __init__(self, message, errors = None) :
         if errors is None :

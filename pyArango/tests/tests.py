@@ -15,13 +15,15 @@ class pyArangoTests(unittest.TestCase):
 
     def setUp(self):
         if __name__ == "__main__":
+            global ARANGODB_URL
             global ARANGODB_ROOT_USERNAME
             global ARANGODB_ROOT_PASSWORD
         else:
+            ARANGODB_URL = os.getenv('ARANGODB_URL', 'http://127.0.0.1:8529')
             ARANGODB_ROOT_USERNAME = os.getenv('ARANGODB_ROOT_USERNAME', 'root')
             ARANGODB_ROOT_PASSWORD = os.getenv('ARANGODB_ROOT_PASSWORD', 'root')
 
-        self.conn = Connection(username=ARANGODB_ROOT_USERNAME, password=ARANGODB_ROOT_PASSWORD)
+        self.conn = Connection(arangoURL=ARANGODB_URL, username=ARANGODB_ROOT_USERNAME, password=ARANGODB_ROOT_PASSWORD)
         try :
             self.conn.createDatabase(name = "test_db_2")
         except CreationError :
@@ -70,6 +72,44 @@ class pyArangoTests(unittest.TestCase):
             users.append(user)
         usersCollection.importBulk(users)
         self.assertEqual(usersCollection.count(), len(users))
+
+    # @unittest.skip("stand by")
+    def test_bulk_import_exception(self):
+        usersCollection = self.db.createCollection(name="users")
+        nbUsers = 2
+        users = []
+        for i in range(nbUsers):
+            user = {}
+            user["_key"] = "tesla"
+            user["name"] = "Tesla-%d" % i
+            user["number"] = i
+            user["species"] = "human"
+            users.append(user)
+        with self.assertRaises(CreationError):
+            usersCollection.importBulk(users, onDuplicate="error", complete=True)
+        self.assertEqual(usersCollection.count(), 0)
+
+    # @unittest.skip("stand by")
+    def test_bulk_import_error_return_value(self):
+        usersCollection = self.db.createCollection(name="users")
+        nbUsers = 2
+        users = []
+        for i in range(nbUsers):
+            user = {}
+            user["_key"] = "tesla"
+            user["name"] = "Tesla-%d" % i
+            user["number"] = i
+            user["species"] = "human"
+            users.append(user)
+        result = usersCollection.importBulk(users, onDuplicate="error")
+        self.assertEqual(result, {
+            'created': 1,
+            'empty': 0,
+            'error': False,
+            'errors': 1,
+            'ignored': 0,
+            'updated': 0
+        })
 
     # @unittest.skip("stand by")
     def test_bulkSave(self) :
@@ -359,7 +399,7 @@ class pyArangoTests(unittest.TestCase):
         import types
         class String_val(VAL.Validator) :
 
-            def validate(self, value) :
+            def validate(self, value):
                 if not isinstance(value, bytes) and not isinstance(value, str) :
                     raise ValidationError("Field value must be a string")
                 return True
@@ -404,6 +444,48 @@ class pyArangoTests(unittest.TestCase):
         self.assertTrue(len(doc._store.getPatches()) > 0)
         doc.patch()
         self.assertEqual(myCol[doc._key]._store.getStore(),  doc._store.getStore())
+
+    # @unittest.skip("stand by")
+    def test_unvalidated_nested_fields(self):
+        import pyArango.validation as VAL
+        class String_val(VAL.Validator) :
+
+            def validate(self, value):
+                if not isinstance(value, bytes) and not isinstance(value, str) :
+                    raise ValidationError("Field value must be a string")
+                return True
+
+        class Col_on_save(Collection):
+            _validation = {
+                "on_save": True,
+                "on_set": False,
+                "allow_foreign_fields": True
+            }
+
+            _fields = {
+                "str": Field(validators=[String_val()]),
+                "nestedSomething": Field()
+            }
+
+        myCol = self.db.createCollection('Col_on_save')
+        doc = myCol.createDocument()
+        doc["str"] = 3
+        doc["nestedSomething"] = {
+            "some_nested_data": "data"
+        }
+        self.assertRaises(InvalidDocument, doc.save)
+
+        doc = myCol.createDocument()
+        doc["str"] = "string"
+        doc["nestedSomething"] = {
+            "some_nested_data": "data"
+        }
+        doc.save()
+        self.assertEqual(myCol[doc._key]._store.getStore(), doc._store.getStore())
+        doc["nestedSomething"]["some_nested_data"] = "data"
+        self.assertTrue(len(doc._store.getPatches()) > 0)
+        doc.patch()
+        self.assertEqual(myCol[doc._key]._store.getStore(), doc._store.getStore())
 
     # @unittest.skip("stand by")
     def test_document_cache(self) :
@@ -602,9 +684,8 @@ class pyArangoTests(unittest.TestCase):
 
         g.link('Friend', h4, h1, {})
         g.link('Friend', h4, h2, {})
-        g.link('Friend', h4, h3, {})
-        g.unlink('Friend', h4, h3)
-        self.assertEqual(len(h4.getEdges(rels)), 2)
+        g.unlink('Friend', h4, h2)
+        self.assertEqual(len(h4.getEdges(rels)), 1)
 
         h5 = g.createVertex('Humans', {"name" : "simba5"})
         h6 = g.createVertex('Humans', {"name" : "simba6"})
@@ -742,19 +823,18 @@ class pyArangoTests(unittest.TestCase):
     # @unittest.skip("stand by")
     def test_users_credentials(self) :
 
-        class persons(Collection) :
+        class persons(Collection):
             pass
-
-        pers = self.db.createCollection("persons")
 
         u = self.conn.users.createUser("pyArangoTest_tesla", "secure")
         u.save()
 
         u.setPermissions("test_db_2", True)
-        conn = Connection(username="pyArangoTest_tesla", password="secure")
+        global ARANGODB_URL
+        conn = Connection(arangoURL=ARANGODB_URL, username="pyArangoTest_tesla", password="secure")
 
-        self.assertRaises( KeyError, conn.__getitem__, "_system" )
-        self.assertTrue( conn.hasDatabase("test_db_2") )
+        self.assertRaises(KeyError, conn.__getitem__, "_system")
+        self.assertTrue(conn.hasDatabase("test_db_2"))
 
     # @unittest.skip("stand by")
     def test_users_update(self) :
@@ -763,22 +843,27 @@ class pyArangoTests(unittest.TestCase):
         u.save()
 
         u.setPermissions("test_db_2", True)
-        conn = Connection(username="pyArangoTest_tesla", password="secure")
+
+        global ARANGODB_URL
+        Connection(arangoURL=ARANGODB_URL, username="pyArangoTest_tesla", password="secure")
 
         u["password"] = "newpass"
         u.save()
-        conn = Connection(username="pyArangoTest_tesla", password="newpass")
+
+        Connection(arangoURL=ARANGODB_URL, username="pyArangoTest_tesla", password="newpass")
 
 if __name__ == "__main__" :
-
     # Change default username/password in bash like this:
     # export ARANGODB_ROOT_USERNAME=myUserName
     # export ARANGODB_ROOT_PASSWORD=myPassword
+    # export ARANGODB_URL=myURL
     global ARANGODB_ROOT_USERNAME
     global ARANGODB_ROOT_PASSWORD
+    global ARANGODB_URL
 
     ARANGODB_ROOT_USERNAME = os.getenv('ARANGODB_ROOT_USERNAME', None)
     ARANGODB_ROOT_PASSWORD = os.getenv('ARANGODB_ROOT_PASSWORD', None)
+    ARANGODB_URL = os.getenv('ARANGODB_URL', 'http://127.0.0.1:8529')
 
     if ARANGODB_ROOT_USERNAME is None :
         try :

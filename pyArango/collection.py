@@ -4,7 +4,9 @@ from future.utils import with_metaclass
 from . import consts as CONST
 
 from .document import Document, Edge
-from .theExceptions import ValidationError, SchemaViolation, CreationError, DeletionError, InvalidDocument, DocumentNotFoundError
+
+from .theExceptions import ValidationError, SchemaViolation, CreationError, UpdateError, DeletionError, InvalidDocument, ExportError, DocumentNotFoundError
+
 from .query import SimpleQuery
 from .index import Index
 
@@ -296,7 +298,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
                 self._validation["on_load"] = True
             else :
                 return self.createDocument_(self.defaultDocument)
-        
+
     def createDocument_(self, initDict = None) :
         "create and returns a completely empty document or one populated with initDict"
         if initDict is None :
@@ -308,33 +310,47 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
     def importBulk(self, data, **addParams):
         url = "%s/import" % (self.database.URL)
-        payload = json.dumps(data)
+        payload = json.dumps(data, default=str)
         params = {"collection": self.name, "type": "auto"}
         params.update(addParams)
         r = self.connection.session.post(url , params = params, data = payload)
         data = r.json()
         if not r.status_code == 201 or data["error"] :
             raise CreationError(data["errorMessage"], data)
+        return data
 
-    def ensureHashIndex(self, fields, unique = False, sparse = True) :
+    def exportDocs( self, **data):
+        url = "%s/export" % (self.database.URL)
+        params = {"collection": self.name}
+        payload = json.dumps(data)
+        r = self.connection.session.post(url, params = params, data = payload)
+        data = r.json()
+        if not r.status_code == 201 or data["error"] :
+          raise ExportError( data["errorMessage"], data )
+        docs = data['result']
+        return docs
+
+    def ensureHashIndex(self, fields, unique = False, sparse = True, deduplicate = False) :
         """Creates a hash index if it does not already exist, and returns it"""
         data = {
             "type" : "hash",
             "fields" : fields,
             "unique" : unique,
             "sparse" : sparse,
+            "deduplicate": deduplicate
         }
         ind = Index(self, creationData = data)
         self.indexes["hash"][ind.infos["id"]] = ind
         return ind
 
-    def ensureSkiplistIndex(self, fields, unique = False, sparse = True) :
+    def ensureSkiplistIndex(self, fields, unique = False, sparse = True, deduplicate = False) :
         """Creates a skiplist index if it does not already exist, and returns it"""
         data = {
             "type" : "skiplist",
             "fields" : fields,
             "unique" : unique,
             "sparse" : sparse,
+            "deduplicate": deduplicate
         }
         ind = Index(self, creationData = data)
         self.indexes["skiplist"][ind.infos["id"]] = ind
@@ -450,7 +466,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         elif r.status_code == 404 :
             raise DocumentNotFoundError("Unable to find document with _key: %s" % key, r.json())
         else :
-            raise Exception("Unable to find document with _key: %s, response: %s" % key, r.json())
+            raise DocumentNotFoundError("Unable to find document with _key: %s, response: %s" % (key, r.json()), r.json())
 
     def fetchByExample(self, exampleDict, batchSize, rawResults = False, **queryArgs) :
         """exampleDict should be something like {'age' : 28}"""
@@ -483,19 +499,19 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         """Parameter docs must be either an iterrable of documents or dictionnaries.
         This function will return the number of documents, created and updated, and will raise an UpdateError exception if there's at least one error.
         params are any parameters from arango's documentation"""
-        
+
         payload = []
         for d in docs :
             if type(d) is dict :
-                payload.append(json.dumps(d))
+                payload.append(json.dumps(d, default=str))
             else :
                 try:
                     payload.append(d.toJson())
                 except Exception as e:
-                    payload.append(json.dumps(d.getStore()))
+                    payload.append(json.dumps(d.getStore(), default=str))
 
         payload = '\n'.join(payload)
-        
+
         params["type"] = "documents"
         params["onDuplicate"] = onDuplicate
         params["collection"] = self.name
@@ -529,7 +545,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
     def bulkImport_values(self, filename, onDuplicate="error", **params) :
         """bulk import from a file repecting arango's json format"""
-        
+
         url = "%s/import" % self.database.URL
         params["onDuplicate"] = onDuplicate
         params["collection"] = self.name
@@ -620,12 +636,12 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
             self.documentCache.cache(doc)
         return doc
 
-    def __contains__(self) :
+    def __contains__(self, key) :
         """if doc in collection"""
         try:
             self.fetchDocument(key, rawResults = False)
             return True
-        except KeyError as e:
+        except DocumentNotFoundError as e:
             return False
 
 class SystemCollection(Collection) :
@@ -679,9 +695,9 @@ class Edges(Collection) :
     def getEdges(self, vertex, inEdges = True, outEdges = True, rawResults = False) :
         """returns in, out, or both edges liked to a given document. vertex can be either a Document object or a string for an _id.
         If rawResults a arango results will be return as fetched, if false, will return a liste of Edge objects"""
-        if vertex.__class__ is Document :
+        if isinstance(vertex, Document):
             vId = vertex._id
-        elif (type(vertex) is str) or (type(vertex) is bytes) :
+        elif (type(vertex) is str) or (type(vertex) is bytes):
             vId = vertex
         else :
             raise ValueError("Vertex is neither a Document nor a String")

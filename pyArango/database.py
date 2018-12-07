@@ -110,7 +110,7 @@ class Database(object) :
         else :
             colProperties["type"] = CONST.COLLECTION_DOCUMENT_TYPE
 
-        payload = json.dumps(colProperties)
+        payload = json.dumps(colProperties, default=str)
         r = self.connection.session.post(self.collectionsURL, data = payload)
         data = r.json()
 
@@ -168,6 +168,7 @@ class Database(object) :
             payload['options'] = options
 
         payload = json.dumps(payload)
+
         r = self.connection.session.post(self.graphsURL, data = payload)
         data = r.json()
 
@@ -205,7 +206,7 @@ class Database(object) :
     def explainAQLQuery(self, query, bindVars={}, allPlans = False) :
         """Returns an explanation of the query. Setting allPlans to True will result in ArangoDB returning all possible plans. False returns only the optimal plan"""
         payload = {'query' : query, 'bindVars' : bindVars, 'allPlans' : allPlans}
-        request = self.connection.session.post(self.explainURL, data = json.dumps(payload))
+        request = self.connection.session.post(self.explainURL, data = json.dumps(payload, default=str))
         return request.json()
 
     def validateAQLQuery(self, query, bindVars = None, options = None) :
@@ -215,7 +216,7 @@ class Database(object) :
         if options is None :
             options = {}
         payload = {'query' : query, 'bindVars' : bindVars, 'options' : options}
-        r = self.connection.session.post(self.cursorsURL, data = json.dumps(payload))
+        r = self.connection.session.post(self.cursorsURL, data = json.dumps(payload, default=str))
         data = r.json()
         if r.status_code == 201 and not data["error"] :
             return data
@@ -235,7 +236,7 @@ class Database(object) :
 
         self.connection.reportStart(action)
 
-        r = self.connection.session.post(self.transactionURL, data = json.dumps(payload))
+        r = self.connection.session.post(self.transactionURL, data = json.dumps(payload, default=str))
 
         self.connection.reportItem()
 
