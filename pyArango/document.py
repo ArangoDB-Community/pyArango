@@ -216,7 +216,7 @@ class Document(object) :
                 setattr(self, priv, fieldDict[priv])
             else :
                 setattr(self, priv, None)
-    
+        
     def getURL(self) :
         if self._id is None :
             return AttributeError("An unsaved document cannot have an URL")
@@ -224,6 +224,7 @@ class Document(object) :
 
     def set(self, fieldDict) :
         """set the document with a dictionary"""
+        self.setPrivates(fieldDict)
         self._store.set(fieldDict)
 
     def save(self, waitForSync = False, **docArgs) :
