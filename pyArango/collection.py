@@ -549,13 +549,8 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
     def bulkImport_values(self, filename, onDuplicate="error", **params) :
         """bulk import from a file repecting arango's json format"""
-<<<<<<< HEAD
         
         url = "%s/import" % self.database.getURL()
-=======
-
-        url = "%s/import" % self.database.URL
->>>>>>> master
         params["onDuplicate"] = onDuplicate
         params["collection"] = self.name
         with open(filename) as f:
