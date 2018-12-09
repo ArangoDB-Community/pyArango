@@ -34,7 +34,7 @@ You can be 100% permissive or enforce schemas and validate fields, on set, on sa
 Installation
 ------------
 
-Supports python 2.7 and 3.4.
+Supports python 2.7 and 3.5.
 
 From PyPi:
 
@@ -55,7 +55,7 @@ Full documentation
 
 This is the quickstart guide, you can find the full documentation here_.
 
-.. _here: http://bioinfo.iric.ca/~daoudat/pyArango/
+.. _here: https://pyarango.readthedocs.io/en/stable/
 
 Initialization and document saving
 -------------------------------------

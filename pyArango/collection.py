@@ -302,7 +302,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
                 self._validation["on_load"] = True
             else :
                 return self.createDocument_(self.defaultDocument)
-        
+
     def createDocument_(self, initDict = None) :
         "create and returns a completely empty document or one populated with initDict"
         if initDict is None :
@@ -330,7 +330,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         r = self.connection.session.post(url, params = params, data = payload)
         data = r.json()
         if not r.status_code == 201 or data["error"] :
-          raise ExportError( data["errorMessage"], data ) 
+          raise ExportError( data["errorMessage"], data )
         docs = data['result']
         return docs
 
@@ -503,7 +503,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         """Parameter docs must be either an iterrable of documents or dictionnaries.
         This function will return the number of documents, created and updated, and will raise an UpdateError exception if there's at least one error.
         params are any parameters from arango's documentation"""
-        
+
         payload = []
         for d in docs :
             if type(d) is dict :
@@ -515,7 +515,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
                     payload.append(json.dumps(d.getStore(), default=str))
 
         payload = '\n'.join(payload)
-        
+
         params["type"] = "documents"
         params["onDuplicate"] = onDuplicate
         params["collection"] = self.name
@@ -549,8 +549,13 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
     def bulkImport_values(self, filename, onDuplicate="error", **params) :
         """bulk import from a file repecting arango's json format"""
+<<<<<<< HEAD
         
         url = "%s/import" % self.database.getURL()
+=======
+
+        url = "%s/import" % self.database.URL
+>>>>>>> master
         params["onDuplicate"] = onDuplicate
         params["collection"] = self.name
         with open(filename) as f:
@@ -640,12 +645,12 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
             self.documentCache.cache(doc)
         return doc
 
-    def __contains__(self) :
+    def __contains__(self, key) :
         """if doc in collection"""
         try:
             self.fetchDocument(key, rawResults = False)
             return True
-        except KeyError as e:
+        except DocumentNotFoundError as e:
             return False
 
 class SystemCollection(Collection) :

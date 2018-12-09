@@ -1,16 +1,17 @@
+sudo: required
 language: python
+
+services:
+- docker
 
 python:
   - "2.7"
   - "3.5"
 
-before_install:
-- echo arangodb3 arangodb/password password root | sudo debconf-set-selections
-- echo arangodb3 arangodb/password_again password root | sudo debconf-set-selections
-- curl -s -L https://raw.githubusercontent.com/brennv/arangodb-travis/master/setup_arangodb.sh -o setup.sh
-- chmod +x setup.sh
-- ./setup.sh
-- pip install coverage
+before_script:
+  - chmod 777 ./pyArango/tests/setup_arangodb.sh
+  - ./pyArango/tests/setup_arangodb.sh
+  - pip install coverage
 
 install: python setup.py install
 
