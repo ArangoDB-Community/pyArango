@@ -116,7 +116,10 @@ class Query(object) :
         "returns a ith result of the query."
         if not self.rawResults and (not isinstance(self.result[i], (Edge, Document))):
             self._developDoc(i)
-        return self.result[i]
+        try:
+            return self.result[i]
+        except IndexError as e:
+            return []
 
     def __len__(self) :
         """Returns the number of elements in the query results"""
