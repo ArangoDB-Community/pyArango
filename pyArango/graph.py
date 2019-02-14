@@ -5,236 +5,294 @@ from .theExceptions import (CreationError, DeletionError, UpdateError, Traversal
 from . import collection as COL
 from . import document as DOC
 
-__all__ = ["Graph", "getGraphClass", "isGraph", "getGraphClasses", "Graph_metaclass", "EdgeDefinition"]
+__all__ = [
+        "Graph",
+        "get_graph_class",
+        "is_graph",
+        "get_graph_classes",
+        "GraphMetaclass",
+        "EdgeDefinition"
+        ]
 
-class Graph_metaclass(type) :
-    """Keeps track of all graph classes and does basic validations on fields"""
-    graphClasses = {}
 
-    def __new__(cls, name, bases, attrs) :
-        clsObj = type.__new__(cls, name, bases, attrs)
-        if name != 'Graph' :
-            try :
-                if len(attrs['_edgeDefinitions']) < 1 :
+class GraphMetaclass(type):
+    """
+    Keeps track of all graph classes and does basic validations on fields
+    """
+    graph_classes = {}
+
+    def __new__(cls, name, bases, attrs):
+        obj = type.__new__(cls, name, bases, attrs)
+        if name != 'Graph':
+            try:
+                if len(attrs['_edge_definitions']) < 1:
                     raise CreationError("Graph class '%s' has no edge definition" % name)
-            except KeyError :
-                raise CreationError("Graph class '%s' has no field _edgeDefinition" % name)
+            except KeyError:
+                raise CreationError("Graph class '%s' has no field _edge_definitions" % name)
 
-        if name != "Graph" :
-            Graph_metaclass.graphClasses[name] = clsObj
-        return clsObj
+        if name != "Graph":
+            GraphMetaclass.graph_classes[name] = obj
+        return obj
 
     @classmethod
-    def getGraphClass(cls, name) :
-        """return a graph class by its name"""
-        try :
-            return cls.graphClasses[name]
-        except KeyError :
+    def get_graph_class(cls, name):
+        """
+        return a graph class by its name
+        """
+        try:
+            return cls.graph_classes[name]
+        except KeyError:
             raise KeyError("There's no child of Graph by the name of: %s" % name)
 
     @classmethod
-    def isGraph(cls, name) :
-        """returns true/false depending if there is a graph called name"""
-        return name in cls.graphClasses
+    def is_graph(cls, name):
+        """
+        returns true/false depending if there is a graph called name
+        """
+        return name in cls.graph_classes
 
-def getGraphClass(name) :
-    """alias for Graph_metaclass.getGraphClass()"""
-    return Graph_metaclass.getGraphClass(name)
+def get_graph_class(name):
+    """
+    alias for GraphMetaclass.getGraphClass()
+    """
+    return GraphMetaclass.get_graph_class(name)
 
-def isGraph(name) :
-    """alias for Graph_metaclass.isGraph()"""
-    return Graph_metaclass.isGraph(name)
+def is_graph(name):
+    """
+    alias for GraphMetaclass.is_graph()
+    """
+    return GraphMetaclass.is_graph(name)
 
-def getGraphClasses() :
-    "returns a dictionary of all defined graph classes"
-    return Graph_metaclass.graphClasses
+def get_graph_classes():
+    """
+    returns a dictionary of all defined graph classes
+    """
+    return GraphMetaclass.graph_classes
 
-class EdgeDefinition(object) :
-    """An edge definition for a graph"""
 
-    def __init__(self, edgesCollection, fromCollections, toCollections) :
-        self.name = edgesCollection
-        self.edgesCollection = edgesCollection
-        self.fromCollections = fromCollections
-        self.toCollections = toCollections
+class EdgeDefinition(object):
+    """
+    An edge definition for a graph
+    """
 
-    def toJson(self) :
-        return { 'collection' : self.edgesCollection, 'from' : self.fromCollections, 'to' : self.toCollections }
+    def __init__(self, edges_collection, from_collections, to_collections):
+        self.name = edges_collection
+        self.edges_collection = edges_collection
+        self.from_collections = from_collections
+        self.to_collections = to_collections
 
-    def __str__(self) :
-        return '<ArangoED>'+ str(self.toJson())
+    def to_json(self):
+        return {
+                'collection': self.edges_collection,
+                'from': self.from_collections,
+                'to': self.to_collections
+                }
 
-    def __repr__(self) :
+    def __str__(self):
+        return '<ArangoED>'+ str(self.to_json())
+
+    def __repr__(self):
         return str(self)
 
-class Graph(with_metaclass(Graph_metaclass, object)) :
-    """The class from witch all your graph types must derive"""
+class Graph(with_metaclass(GraphMetaclass, object)):
+    """
+    The class from which all your graph types must derive
+    """
 
-    _edgeDefinitions = []
-    _orphanedCollections = []
+    _edge_definitions = []
+    _orphaned_collections = []
 
-    def __init__(self, database, jsonInit) :
+    def __init__(self, database, json_init):
         self.database = database
         self.connection = self.database.connection
-        try :
-            self._key = jsonInit["_key"]
-        except KeyError :
-            self._key = jsonInit["name"]
-        except KeyError :
-            raise KeyError("'jsonInit' must have a field '_key' or a field 'name'")
+        try:
+            self._key = json_init["_key"]
+        except KeyError:
+            self._key = json_init["name"]
+        except KeyError:
+            raise KeyError("'json_init' must have a field '_key' or a field 'name'")
 
         self.name = self._key
-        self._rev = jsonInit["_rev"]
-        self._id = jsonInit["_id"]
+        self._rev = json_init["_rev"]
+        self._id = json_init["_id"]
 
-        orfs = set(self._orphanedCollections)
-        for o in jsonInit["orphanCollections"] :
-            if o not in orfs :
-                self._orphanedCollections.append(o)
-                if self.connection.verbose :
-                    print("Orphan collection %s is not in graph definition. Added it" % o)
+        orphans = set(self._orphaned_collections)
+        for orphan in json_init["orphanCollections"]:
+            if orphan not in orphans:
+                self._orphaned_collections.append(orphan)
+                if self.connection.verbose:
+                    print("Orphan collection %s is not in graph definition. Added it" % orphan)
 
         self.definitions = {}
-        edNames = set()
-        for ed in self._edgeDefinitions :
-            self.definitions[ed.edgesCollection] = ed.edgesCollection
+        edge_definition_names = set()
+        for edge_definition in self._edge_definitions:
+            self.definitions[edge_definition.edges_collection] = edge_definition.edges_collection
 
-        for ed in jsonInit["edgeDefinitions"] :
-            if ed["collection"] not in self.definitions :
-                self.definitions[ed["collection"]] = EdgeDefinition(ed["collection"], fromCollections = ed["from"], toCollections = ed["to"])
-                if self.connection.verbose :
+
+        for edge_definition in json_init["edgeDefinitions"]:
+            if edge_definition["collection"] not in self.definitions:
+                self.definitions[edge_definition["collection"]] = EdgeDefinition(edge_definition["collection"], from_collections = edge_definition["from"], to_collections = edge_definition["to"])
+                if self.connection.verbose:
                     print("Edge definition %s is not in graph definition. Added it" % ed)
 
-        for de in self._edgeDefinitions :
-            if de.edgesCollection not in self.database.collections and not COL.isEdgeCollection(de.edgesCollection) :
-                raise KeyError("'%s' is not a valid edge collection" % de.edgesCollection)
-            self.definitions[de.edgesCollection] = de
+        for edge_definition in self._edge_definitions:
+            if edge_definition.edges_collection not in self.database.collections and not COL.is_edge_collection(edge_definition.edges_collection):
+                raise KeyError("'%s' is not a valid edge collection" % edge_definition.edges_collection)
+            self.definitions[edge_definition.edges_collection] = edge_definition
 
         self.URL = "%s/%s" % (self.database.graphsURL, self._key)
 
-    def createVertex(self, collectionName, docAttributes, waitForSync = False) :
-        """adds a vertex to the graph and returns it"""
-        url = "%s/vertex/%s" % (self.URL, collectionName)
+    def create_vertex(self, collection_name, document_attributes, wait_for_sync = False):
+        """
+        Adds a vertex to the graph and returns it
+        """
+        url = "%s/vertex/%s" % (self.URL, collection_name)
 
-        store = DOC.DocumentStore(self.database[collectionName], validators=self.database[collectionName]._fields, initDct=docAttributes)
-        # self.database[collectionName].validateDct(docAttributes)
+        store = DOC.DocumentStore(
+                self.database[collection_name],
+                validators=self.database[collection_name]._fields,
+                initialisation_dictionary=document_attributes
+                )
+
+        # self.database[collection_name].validateDct(docAttributes)
         store.validate()
 
-        r = self.connection.session.post(url, data = json.dumps(docAttributes, default=str), params = {'waitForSync' : waitForSync})
+        response = self.connection.session.post(url, data=json.dumps(document_attributes, default=str), params={'wait_for_sync': wait_for_sync})
 
-        data = r.json()
-        if r.status_code == 201 or r.status_code == 202 :
-            return self.database[collectionName][data["vertex"]["_key"]]
+        data = response.json()
+        if response.status_code == 201 or response.status_code == 202:
+            return self.database[collection_name][data["vertex"]["_key"]]
 
         raise CreationError("Unable to create vertice, %s" % data["errorMessage"], data)
 
-    def deleteVertex(self, document, waitForSync = False) :
-        """deletes a vertex from the graph as well as al linked edges"""
+    def delete_vertex(self, document, wait_for_sync = False):
+        """
+        deletes a vertex from the graph as well as al linked edges
+        """
         url = "%s/vertex/%s" % (self.URL, document._id)
 
-        r = self.connection.session.delete(url, params = {'waitForSync' : waitForSync})
-        data = r.json()
-        if r.status_code == 200 or r.status_code == 202 :
+        response = self.connection.session.delete(url, params={'wait_for_sync': wait_for_sync})
+        data = response.json()
+        if response.status_code == 200 or response.status_code == 202:
             return True
 
         raise DeletionError("Unable to delete vertice, %s" % document._id, data)
 
-    def createEdge(self, collectionName, _fromId, _toId, edgeAttributes, waitForSync = False) :
-        """creates an edge between two documents"""
+    def create_edge(self, collection_name, _from_id, _to_id, edge_attributes, wait_for_sync = False):
+        """
+        creates an edge between two documents
+        """
+        if not _from_id:
+            raise ValueError("Invalid _from_id: %s" % _from_id)
 
-        if not _fromId :
-            raise ValueError("Invalid _fromId: %s" % _fromId)
+        if not _to_id:
+            raise ValueError("Invalid _to_id: %s" % _to_id)
 
-        if not _toId :
-            raise ValueError("Invalid _toId: %s" % _toId)
+        if collection_name not in self.definitions:
+            raise KeyError("'%s' is not among the edge definitions" % collection_name)
 
-        if collectionName not in self.definitions :
-            raise KeyError("'%s' is not among the edge definitions" % collectionName)
-
-        url = "%s/edge/%s" % (self.URL, collectionName)
-        self.database[collectionName].validatePrivate("_from", _fromId)
-        self.database[collectionName].validatePrivate("_to", _toId)
+        url = "%s/edge/%s" % (self.URL, collection_name)
+        self.database[collection_name].validate_private("_from", _from_id)
+        self.database[collection_name].validate_private("_to", _to_id)
         
-        ed = self.database[collectionName].createEdge()
-        ed.set(edgeAttributes)
-        ed.validate()
+        edge_definition = self.database[collection_name].create_edge()
+        edge_definition.set(edge_attributes)
+        edge_definition.validate()
 
-        payload = ed.getStore()
-        payload.update({'_from' : _fromId, '_to' : _toId})
+        payload = edge_definition.get_store()
+        payload.update({'_from': _from_id, '_to': _to_id})
 
-        r = self.connection.session.post(url, data = json.dumps(payload, default=str), params = {'waitForSync' : waitForSync})
-        data = r.json()
-        if r.status_code == 201 or r.status_code == 202 :
-            return self.database[collectionName][data["edge"]["_key"]]
+        response = self.connection.session.post(url, data = json.dumps(payload, default=str), params = {'wait_for_sync': wait_for_sync})
+        data = response.json()
+        if response.status_code == 201 or response.status_code == 202:
+            return self.database[collection_name][data["edge"]["_key"]]
         # print "\ngraph 160, ", data, payload, _fromId
-        raise CreationError("Unable to create edge, %s" % r.json()["errorMessage"], data)
+        else:
+            raise CreationError("Unable to create edge, %s" % response.json()["errorMessage"], data)
 
-    def link(self, definition, doc1, doc2, edgeAttributes, waitForSync = False) :
-        "A shorthand for createEdge that takes two documents as input"
-        if type(doc1) is DOC.Document :
-            if not doc1._id :
+    def link(self, definition, doc1, doc2, edge_attributes, wait_for_sync=False):
+        """
+        A shorthand for createEdge that takes two documents as input
+        """
+        if type(doc1) is DOC.Document:
+            if not doc1._id:
                 doc1.save()
             doc1_id = doc1._id
-        else :
+        else:
             doc1_id = doc1
 
-        if type(doc2) is DOC.Document :
-            if not doc2._id :
+        if type(doc2) is DOC.Document:
+            if not doc2._id:
                 doc2.save()
             doc2_id = doc2._id
-        else :
+        else:
             doc2_id = doc2
 
-        return self.createEdge(definition, doc1_id, doc2_id, edgeAttributes, waitForSync)
+        return self.create_edge(definition, doc1_id, doc2_id, edge_attributes, wait_for_sync)
 
-    def unlink(self, definition, doc1, doc2) :
-        "deletes all links between doc1 and doc2"
-        links = self.database[definition].fetchByExample( {"_from": doc1._id,"_to" : doc2._id}, batchSize = 100)
-        for l in links :
-            self.deleteEdge(l)
+    def unlink(self, definition, doc1, doc2):
+        """
+        deletes all links between doc1 and doc2
+        """
+        links = self.database[definition].fetch_by_example({"_from": doc1._id,"_to": doc2._id}, batchSize = 100)
+        for link in links:
+            self.deleteEdge(link)
 
-    def deleteEdge(self, edge, waitForSync = False) :
-        """removes an edge from the graph"""
+    def delete_edge(self, edge, wait_for_sync = False):
+        """
+        removes an edge from the graph
+        """
         url = "%s/edge/%s" % (self.URL, edge._id)
-        r = self.connection.session.delete(url, params = {'waitForSync' : waitForSync})
-        if r.status_code == 200 or r.status_code == 202 :
+        response = self.connection.session.delete(url, params={'wait_for_sync': wait_for_sync})
+        if response.status_code == 200 or response.status_code == 202:
             return True
-        raise DeletionError("Unable to delete edge, %s" % edge._id, r.json())
+        raise DeletionError("Unable to delete edge, %s" % edge._id, response.json())
 
-    def delete(self) :
-        """deletes the graph"""
-        r = self.connection.session.delete(self.URL)
-        data = r.json()
-        if r.status_code < 200 or r.status_code > 202 or data["error"] :
+    def delete(self):
+        """
+        Deletes the graph
+        """
+        response = self.connection.session.delete(self.URL)
+        data = response.json()
+        if response.status_code < 200 or response.status_code > 202 or data["error"]:
             raise DeletionError(data["errorMessage"], data)
 
-    def traverse(self, startVertex, **kwargs) :
-        """Traversal! see: https://docs.arangodb.com/HttpTraversal/README.html for a full list of the possible kwargs.
-        The function must have as argument either: direction = "outbout"/"any"/"inbound" or expander = "custom JS (see arangodb's doc)".
+    def traverse(self, start_vertex, **kwargs):
+        """
+        Traversal! see: https://docs.arangodb.com/HttpTraversal/README.html for 
+        a full list of the possible kwargs.
+        The function must have as argument either: direction = 
+        "outbout"/"any"/"inbound" or expander = "custom JS (see arangodb's doc)".
         The function can't have both 'direction' and 'expander' as arguments.
         """
 
         url = "%s/traversal" % self.database.URL
-        if type(startVertex) is DOC.Document :
-            startVertex_id = startVertex._id
-        else :
-            startVertex_id = startVertex
+        if type(start_vertex) is DOC.Document:
+            start_vertex_id = start_vertex._id
+        else:
+            start_vertex_id = start_vertex
 
-        payload = {"startVertex": startVertex_id, "graphName" : self.name}
-        if "expander" in kwargs :
-            if "direction" in kwargs :
-                    raise ValueError("""The function can't have both 'direction' and 'expander' as arguments""") 
-        elif "direction" not in kwargs :
-            raise ValueError("""The function must have as argument either: direction = "outbout"/"any"/"inbound" or expander = "custom JS (see arangodb's doc)" """) 
+        payload = {
+                "startVertex": start_vertex_id, 
+                "graphName": self.name
+                }
+
+        if "expander" in kwargs:
+            if "direction" in kwargs:
+                    raise ValueError(
+                            """The function can't have both 'direction' and 'expander' as arguments""") 
+        elif "direction" not in kwargs:
+            raise ValueError(
+                    """The function must have as argument either: direction = "outbout"/"any"/"inbound" or expander = "custom JS (see arangodb's doc)" """) 
 
         payload.update(kwargs)
 
-        r = self.connection.session.post(url, data = json.dumps(payload, default=str))
-        data = r.json()
-        if r.status_code < 200 or r.status_code > 202 or data["error"] :
+        response = self.connection.session.post(url, data = json.dumps(payload, default=str))
+        data = response.json()
+        if response.status_code < 200 or r.status_code > 202 or data["error"]:
             raise TraversalError(data["errorMessage"], data)
 
         return data["result"]
 
-    def __str__(self) :
+    def __str__(self):
         return "ArangoGraph: %s" % self.name

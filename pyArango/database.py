@@ -10,12 +10,16 @@ from .graph import Graph
 from .query import AQLQuery
 from .theExceptions import CreationError, UpdateError, AQLQueryError, TransactionError
 
+
 __all__ = ["Database", "DBHandle"]
 
-class Database(object) :
-    """Databases are meant to be instanciated by connections"""
 
-    def __init__(self, connection, name) :
+class Database(object):
+    """
+    Databases are meant to be instantiated by connections
+    """
+
+    def __init__(self, connection, name):
 
         self.name = name
         self.connection = connection
@@ -23,171 +27,204 @@ class Database(object) :
 
         self.URL = '%s/_db/%s/_api' % (self.connection.arangoURL, self.name)
         self.collectionsURL = '%s/collection' % (self.URL)
-        self.cursorsURL = '%s/cursor' % (self.URL)
+        self.cursors_URL = '%s/cursor' % (self.URL)
         self.explainURL = '%s/explain' % (self.URL)
-        self.graphsURL = "%s/gharial" % self.URL
-        self.transactionURL = "%s/transaction" % self.URL
+        self.graphsURL = "%s/gharial" % (self.URL)
+        self.transaction_URL = "%s/transaction" % (self.URL)
 
         self.collections = {}
         self.graphs = {}
 
         self.reload()
 
-    def reloadCollections(self) :
-        "reloads the collection list."
-        r = self.connection.session.get(self.collectionsURL)
-        data = r.json()
-        if r.status_code == 200 :
+    def reload_collections(self) :
+        """
+        Reloads the collection list.
+        """
+        response = self.connection.session.get(self.collectionsURL)
+        data = response.json()
+        if response.status_code == 200:
             self.collections = {}
 
-            for colData in data["result"] :
-                colName = colData['name']
-                if colData['isSystem'] :
-                    colObj = COL.SystemCollection(self, colData)
-                else :
-                    try :
-                        colClass = COL.getCollectionClass(colName)
-                        colObj = colClass(self, colData)
-                    except KeyError :
-                        if colData["type"] == CONST.COLLECTION_EDGE_TYPE :
-                            colObj = COL.Edges(self, colData)
-                        elif colData["type"] == CONST.COLLECTION_DOCUMENT_TYPE :
-                            colObj = COL.Collection(self, colData)
-                        else :
-                            print(("Warning!! Collection of unknown type: %d, trying to load it as Collection nonetheless." % colData["type"]))
-                            colObj = COL.Collection(self, colData)
+            for collection_data in data["result"]:
+                collection_name = collection_data['name']
+                if collection_data['isSystem']:
+                    collection_object = COL.SystemCollection(self, collection_data)
+                else:
+                    try:
+                        collection_class = COL.get_collection_class(collection_name)
+                        collection_object = collection_class(self, collection_data)
+                    except KeyError:
+                        if collection_data["type"] == CONST.COLLECTION_EDGE_TYPE:
+                            collection_object = COL.Edges(self, collection_data)
+                        elif collection_data["type"] == CONST.COLLECTION_DOCUMENT_TYPE:
+                            collection_object = COL.Collection(self, collection_data)
+                        else:
+                            print("Warning!! Collection of unknown type: %d, trying to load it as Collection nonetheless." % collection_data["type"])
+                            collection_object = COL.Collection(self, collection_data)
 
-                self.collections[colName] = colObj
-        else :
+                self.collections[collection_name] = collection_object
+        else:
             raise UpdateError(data["errorMessage"], data)
 
-    def reloadGraphs(self) :
-        "reloads the graph list"
-        r = self.connection.session.get(self.graphsURL)
-        data = r.json()
-        if r.status_code == 200 :
+    def reload_graphs(self) :
+        """
+        Reloads the graph list
+        """
+        response = self.connection.session.get(self.graphsURL)
+        data = response.json()
+        if response.status_code == 200:
             self.graphs = {}
-            for graphData in data["graphs"] :
-                try :
-                    self.graphs[graphData["_key"]] = GR.getGraphClass(graphData["_key"])(self, graphData)
-                except KeyError :
-                    self.graphs[graphData["_key"]] = Graph(self, graphData)
-        else :
+            for graph_data in data["graphs"]:
+                deserialised_graph_data = graph_data
+                try:
+                    self.graphs[graph_data["_key"]] = GR.get_graph_class(
+                        deserialised_graph_data["_key"]
+                        )(self, deserialised_graph_data)
+                except KeyError:
+                    self.graphs[deserialised_graph_data["_key"]] = Graph(
+                            self, deserialised_graph_data
+                            )
+        else:
             raise UpdateError(data["errorMessage"], data)
 
     def reload(self) :
-        "reloads collections and graphs"
-        self.reloadCollections()
-        self.reloadGraphs()
+        """
+        Reloads collections and graphs
+        """
+        self.reload_collections()
+        self.reload_graphs()
 
-    def createCollection(self, className = 'Collection', **colProperties) :
-        """Creates a collection and returns it.
-        ClassName the name of a class inheriting from Collection or Egdes, it can also be set to 'Collection' or 'Edges' in order to create untyped collections of documents or edges.
-        Use colProperties to put things such as 'waitForSync = True' (see ArangoDB's doc
-        for a full list of possible arugments). If a '_properties' dictionary is defined in the collection schema, arguments to this function overide it"""
+    def create_collection(self, class_name = 'Collection', **collection_properties):
+        """
+        Creates a collection and returns it.
+        class_name the name of a class inheriting from Collection or Egdes, 
+        it can also be set to 'Collection' or 'Edges' in order to create 
+        untyped collections of documents or edges.
+        Use collection_properties to put things such as 'wait_for_sync = True' 
+        (see ArangoDB's doc for a full list of possible arugments). 
+        If a '_properties' dictionary is defined in the collection schema, 
+        arguments to this function overide it.
+        """
 
-        colClass = COL.getCollectionClass(className)
+        collection_class = COL.get_collection_class(class_name)
 
-        if len(colProperties) > 0 :
-            colProperties = dict(colProperties)
-        else :
-            try :
-                colProperties = dict(colClass._properties)
-            except AttributeError :
-                colProperties = {}
+        if len(collection_properties) > 0:
+            collection_properties = dict(collection_properties)
+        else:
+            try:
+                collection_properties = dict(collection_class._properties)
+            except AttributeError:
+                collection_properties = {}
 
-        if className != 'Collection' and className != 'Edges' :
-            colProperties['name'] = className
-        else :
-            if 'name' not in colProperties :
+        if class_name != 'Collection' and class_name != 'Edges':
+            collection_properties['name'] = class_name
+        else:
+            if 'name' not in collection_properties:
                 raise ValueError("a 'name' argument mush be supplied if you want to create a generic collection")
 
-        if colProperties['name'] in self.collections :
-            raise CreationError("Database %s already has a collection named %s" % (self.name, colProperties['name']) )
+        if collection_properties['name'] in self.collections :
+            raise CreationError("Database %s already has a collection named %s" % (self.name, collection_properties['name']) )
 
-        if issubclass(colClass, COL.Edges) or colClass.__class__ is COL.Edges:
-            colProperties["type"] = CONST.COLLECTION_EDGE_TYPE
-        else :
-            colProperties["type"] = CONST.COLLECTION_DOCUMENT_TYPE
+        if issubclass(collection_class, COL.Edges) or collection_class.__class__ is COL.Edges:
+            collection_properties["type"] = CONST.COLLECTION_EDGE_TYPE
+        else:
+            collection_properties["type"] = CONST.COLLECTION_DOCUMENT_TYPE
 
-        payload = json.dumps(colProperties, default=str)
-        r = self.connection.session.post(self.collectionsURL, data = payload)
-        data = r.json()
+        payload = json.dumps(collection_properties, default=str)
+        response = self.connection.session.post(self.collectionsURL, data = payload)
+        data = response.json()
 
-        if r.status_code == 200 and not data["error"] :
-            col = colClass(self, data)
-            self.collections[col.name] = col
-            return self.collections[col.name]
-        else :
+        if response.status_code == 200 and not data["error"]:
+            collection = collection_class(self, data)
+            self.collections[collection.name] = collection
+            return self.collections[collection.name]
+        else:
             raise CreationError(data["errorMessage"], data)
 
-    def fetchDocument(self, _id) :
-        "fetchs a document using it's _id"
-        sid = _id.split("/")
-        return self[sid[0]][sid[1]]
+    def fetch_document(self, _id) :
+        """
+        fetchs a document using it's _id
+        """
+        split_id = _id.split("/")
+        return self[split_id[0]][split_id[1]]
 
-    def createGraph(self, name, createCollections = True, isSmart = False, numberOfShards = None, smartGraphAttribute = None) :
-        """Creates a graph and returns it. 'name' must be the name of a class inheriting from Graph.
-        Checks will be performed to make sure that every collection mentionned in the edges definition exist. Raises a ValueError in case of
-        a non-existing collection."""
+    def create_graph(self, name, create_collections = True, is_smart = False, number_of_shards = None, smart_graph_attribute = None) :
+        """
+        Creates a graph and returns it. 'name' must be the name 
+        of a class inheriting from Graph.
+        Checks will be performed to make sure that every 
+        collection mentionned in the edges definition exist. 
+        Raises a ValueError in case of
+        a non-existing collection.
+        """
 
-        def _checkCollectionList(lst) :
-            for colName in lst :
-                if not COL.isCollection(colName) :
-                    raise ValueError("'%s' is not a defined Collection" % colName)
+        def _check_collection_list(collection_list) :
+            for collection_name in collection_list:
+                if not COL.is_collection(collection_name):
+                    raise ValueError("'%s' is not a defined Collection" % collection_name)
 
-        graphClass = GR.getGraphClass(name)
+        graph_class = GR.get_graph_class(name)
 
-        ed = []
-        for e in graphClass._edgeDefinitions :
-            if not COL.isEdgeCollection(e.edgesCollection) :
-                raise ValueError("'%s' is not a defined Edge Collection" % e.edgesCollection)
-            _checkCollectionList(e.fromCollections)
-            _checkCollectionList(e.toCollections)
+        edge_definitions = []
+        for edge_definition in graph_class._edge_definitions:
+            if not COL.is_edge_collection(edge_definition.edges_collection):
+                raise ValueError("'%s' is not a defined Edge Collection" % edge_definition.edges_collection)
+            _check_collection_list(edge_definition.from_collections)
+            _check_collection_list(edge_definition.to_collections)
 
-            ed.append(e.toJson())
+            edge_definitions.append(edge_definition.to_json())
 
-        _checkCollectionList(graphClass._orphanedCollections)
+        _check_collection_list(graph_class._orphaned_collections)
 
         options = {}
-        if numberOfShards:
-            options['numberOfShards'] = numberOfShards
-        if smartGraphAttribute:
-            options['smartGraphAttribute'] = smartGraphAttribute
+        if number_of_shards:
+            options['number_of_shards'] = number_of_shards
+        if smart_graph_attribute:
+            options['smart_graph_attribute'] = smart_graph_attribute
 
         payload = {
                 "name": name,
-                "edgeDefinitions": ed,
-                "orphanCollections": graphClass._orphanedCollections
+                "edgeDefinitions": edge_definitions,
+                "orphanCollections": graph_class._orphaned_collections
             }
 
-        if isSmart :
-                payload['isSmart'] = isSmart
+        if is_smart:
+                payload['is_smart'] = is_smart
 
         if options:
             payload['options'] = options
 
         payload = json.dumps(payload)
 
-        r = self.connection.session.post(self.graphsURL, data = payload)
-        data = r.json()
+        response = self.connection.session.post(self.graphsURL, data = payload)
 
-        if r.status_code == 201 or r.status_code == 202 :
-            self.graphs[name] = graphClass(self, data["graph"])
-        else :
+        data = response.json()
+
+        graph_data = data["graph"]
+
+        if response.status_code == 201 or response.status_code == 202:
+            self.graphs[name] = graph_class(self, graph_data)
+        else:
             raise CreationError(data["errorMessage"], data)
         return self.graphs[name]
 
-    def hasCollection(self, name) :
-        """returns true if the databse has a collection by the name of 'name'"""
+    def has_collection(self, name) :
+        """
+        Returns true if the databse has a collection by the name of 'name'
+        """
         return name in self.collections
 
-    def hasGraph(self, name):
-        """returns true if the databse has a graph by the name of 'name'"""
+    def has_graph(self, name):
+        """
+        Returns true if the databse has a graph by the name of 'name'
+        """
         return name in self.graphs
 
-    def dropAllCollections(self):
-        """drops all public collections (graphs included) from the database"""
+    def drop_all_collections(self):
+        """
+        drops all public collections (graphs included) from the database
+        """
         for graph_name in self.graphs:
             self.graphs[graph_name].delete()
         for collection_name in self.collections:
@@ -196,78 +233,115 @@ class Database(object) :
                 self[collection_name].delete()
         return
 
-    def AQLQuery(self, query, batchSize = 100, rawResults = False, bindVars = {}, options = {}, count = False, fullCount = False,
+    def AQLQuery(self, query, batchSize = 100, raw_results = False, bind_variables = {}, options = {}, count = False, fullCount = False,
                  json_encoder = None, **moreArgs) :
-        """Set rawResults = True if you want the query to return dictionnaries instead of Document objects.
-        You can use **moreArgs to pass more arguments supported by the api, such as ttl=60 (time to live)"""
-        return AQLQuery(self, query, rawResults = rawResults, batchSize = batchSize, bindVars  = bindVars, options = options, count = count, fullCount = fullCount,
-                        json_encoder = json_encoder, **moreArgs)
+        """
+        Set raw_results = True if you want the query to 
+        return dictionnaries instead of Document objects.
+        You can use **moreArgs to pass more arguments supported 
+        by the api, such as ttl=60 (time to live)
+        """
+        return AQLQuery(
+                self,
+                query,
+                raw_results=raw_results,
+                batchSize=batchSize,
+                bind_variables=bind_variables,
+                options=options, count=count,
+                fullCount=fullCount,
+                json_encoder=json_encoder,
+                **moreArgs
+                )
 
-    def explainAQLQuery(self, query, bindVars={}, allPlans = False) :
-        """Returns an explanation of the query. Setting allPlans to True will result in ArangoDB returning all possible plans. False returns only the optimal plan"""
-        payload = {'query' : query, 'bindVars' : bindVars, 'allPlans' : allPlans}
+    def explain_AQL_query(self, query, bind_variables={}, all_plans = False) :
+        """
+        Returns an explanation of the query. 
+        Setting all_plans to True will result in ArangoDB returning all 
+        possible plans. False returns only the optimal plan
+        """
+        payload = {
+                'query': query,
+                'bind_variables': bind_variables,
+                'all_plans': all_plans
+                }
         request = self.connection.session.post(self.explainURL, data = json.dumps(payload, default=str))
         return request.json()
 
-    def validateAQLQuery(self, query, bindVars = None, options = None) :
-        "returns the server answer is the query is valid. Raises an AQLQueryError if not"
-        if bindVars is None :
-            bindVars = {}
+    def validate_AQL_query(self, query, bind_variables = None, options = None) :
+        """
+        Returns the server answer is the query is valid. 
+        Raises an AQLQueryError if not
+        """
+        if bind_variables is None :
+            bind_variables = {}
         if options is None :
             options = {}
-        payload = {'query' : query, 'bindVars' : bindVars, 'options' : options}
-        r = self.connection.session.post(self.cursorsURL, data = json.dumps(payload, default=str))
-        data = r.json()
-        if r.status_code == 201 and not data["error"] :
+        payload = {
+                'query': query,
+                'bind_variables': bind_variables,
+                'options': options
+                }
+        response = self.connection.session.post(self.cursors_URL, data = json.dumps(payload, default=str))
+        data = response.json()
+        if response.status_code == 201 and not data["error"]:
             return data
-        else :
+        else:
             raise AQLQueryError(data["errorMessage"], query, data)
 
-    def transaction(self, collections, action, waitForSync = False, lockTimeout = None, params = None) :
-        """Execute a server-side transaction"""
+    def transaction(self, collections, action, wait_for_sync = False, lock_timeout = None, params = None):
+        """
+        Execute a server-side transaction
+        """
         payload = {
                 "collections": collections,
                 "action": action,
-                "waitForSync": waitForSync}
-        if lockTimeout is not None:
-                payload["lockTimeout"] = lockTimeout
+                "wait_for_sync": wait_for_sync
+                }
+        if lock_timeout is not None:
+                payload["lock_timeout"] = lock_timeout
         if params is not None:
             payload["params"] = params
 
-        self.connection.reportStart(action)
+        self.connection.report_start(action)
 
-        r = self.connection.session.post(self.transactionURL, data = json.dumps(payload, default=str))
+        response = self.connection.session.post(self.transaction_URL, data = json.dumps(payload, default=str))
 
-        self.connection.reportItem()
+        self.connection.report_item()
 
-        data = r.json()
+        data = response.json()
 
-        if (r.status_code == 200 or r.status_code == 201 or r.status_code == 202) and not data.get("error") :
+        if (response.status_code == 200 or response.status_code == 201 or response.status_code == 202) and not data.get("error"):
             return data
-        else :
+        else:
             raise TransactionError(data["errorMessage"], action, data)
 
-    def __repr__(self) :
+    def __repr__(self):
         return "ArangoDB database: %s" % self.name
 
-    def __getitem__(self, collectionName) :
-        """use database[collectionName] to get a collection from the database"""
-        try :
-            return self.collections[collectionName]
-        except KeyError :
+    def __getitem__(self, collection_name):
+        """
+        use database[collectionName] to get a collection from the database
+        """
+        try:
+            return self.collections[collection_name]
+        except KeyError:
             self.reload()
-            try :
-                return self.collections[collectionName]
-            except KeyError :
-                raise KeyError("Can't find any collection named : %s" % collectionName)
+            try:
+                return self.collections[collection_name]
+            except KeyError:
+                raise KeyError("Can't find any collection named : %s" % collection_name)
 
-class DBHandle(Database) :
-    "As the loading of a Database also triggers the loading of collections and graphs within. Only handles are loaded first. The full database are loaded on demand in a fully transparent manner."
+class DBHandle(Database):
+    """
+    As the loading of a Database also triggers the loading of 
+    collections and graphs within. Only handles are loaded first. 
+    The full database are loaded on demand in a fully transparent manner.
+    """
     def __init__(self, connection, name) :
         self.connection = connection
         self.name = name
 
-    def __getattr__(self, k) :
+    def __getattr__(self, k):
         name = Database.__getattribute__(self, 'name')
         connection = Database.__getattribute__(self, 'connection')
         Database.__init__(self, connection, name)

@@ -1,10 +1,14 @@
 from .theExceptions import ConnectionError, CreationError, DeletionError, UpdateError
+import json
 
-class User(object) :
-    """This class represents a user"""
-    def __init__(self, users, jsonData = None) :
-        if jsonData is None :
-            jsonData = {}
+
+class User(object):
+    """
+    This class represents a user
+    """
+    def __init__(self, users, json_data=None):
+        if json_data is None:
+            json_data = {}
         self._store = {}
         self.users = users
         self.connection = self.users.connection
@@ -18,33 +22,34 @@ class User(object) :
         }
 
         self.URL = None
-        if len(jsonData) > 0 :
-            self._set(jsonData)
+        if len(json_data) > 0:
+            self._set(json_data)
 
-    def _set(self, jsonData) :
-        """Initialize all fields at once. If no password is specified, it will be set as an empty string"""
+    def _set(self, json_data):
+        """
+        Initialize all fields at once. If no password is specified, it will be set as an empty string
+        """
         
-        self["username"] = jsonData["user"]
-        self["active"] = jsonData["active"]
-        self["extra"] = jsonData["extra"]
+        self["username"] = json_data["user"]
+        self["active"] = json_data["active"]
+        self["extra"] = json_data["extra"]
         try:
-            self["changePassword"] = jsonData["changePassword"]
+            self["changePassword"] = json_data["changePassword"]
         except Exception as e:
             pass
             # self["changePassword"] = ""
         
-        try :
-            self["password"] = jsonData["passwd"]
-        except KeyError :
+        try:
+            self["password"] = json_data["passwd"]
+        except KeyError:
             self["password"] = ""
 
         self.URL = "%s/user/%s" % (self.connection.URL, self["username"])
 
     def save(self):
-        """Save/updates the user"""
-
-        import json
-
+        """
+        Save/updates the user
+        """
         payload = {}
         payload.update(self._store)
         payload["user"] = payload["username"]
@@ -53,109 +58,116 @@ class User(object) :
         del(payload["password"])
 
         payload = json.dumps(payload, default=str)
-        if not self.URL :
-            if "username" not in self._store or "password" not in self._store :
+        if not self.URL:
+            if "username" not in self._store or "password" not in self._store:
                 raise KeyError("You must define self['name'] and self['password'] to be able to create a new user")
 
-            r = self.connection.session.post(self.users.URL, data = payload)
-            data = r.json()
-            if r.status_code == 201 :
+            response = self.connection.session.post(self.users.URL, data=payload)
+            data = response.json()
+            if response.status_code == 201:
                 self._set(data)
-            else :
+            else:
                 raise CreationError("Unable to create new user", data)
-        else :
-            r = self.connection.session.put(self.URL, data = payload)
-            data = r.json()
-            if r.status_code == 200 :
+        else:
+            response= self.connection.session.put(self.URL, data=payload)
+            data = response.json()
+            if response.status_code == 200:
                 self._set(data)
-            else :
-                raise UpdateError("Unable to update user, status: %s" %r.status_code, data)
+            else:
+                raise UpdateError("Unable to update user, status: %s" %response.status_code, data)
 
-    def setPermissions(self, dbName, access) :
-        """Grant revoke rights on a database, 'access' is supposed to be boolean. ArangoDB grants/revokes both read and write rights at the same time"""
-        import json
+    def setPermissions(self, db_name, access):
+        """
+        Grant revoke rights on a database, 'access' is supposed to be boolean. ArangoDB grants/revokes both read and write rights at the same time
+        """
 
-        if not self.URL :
+        if not self.URL:
             raise CreationError("Please save user first", None, None)
 
         rights = []
-        if access :
+        if access:
             rights.append("rw")
 
         rights = ''.join(rights)
 
-        if not self.connection.hasDatabase(dbName) :
-            raise KeyError("Unknown database: %s" % dbName)
+        if not self.connection.has_database(db_name):
+            raise KeyError("Unknown database: %s" % db_name)
 
-        url = "%s/database/%s" % (self.URL, dbName)
-        r = self.connection.session.put(url, data = json.dumps({"grant": rights}, default=str))
-        if r.status_code < 200 or r.status_code > 202 :
-            raise CreationError("Unable to grant rights", r.content)
+        url = "%s/database/%s" % (self.URL, db_name)
+        response = self.connection.session.put(url, data = json.dumps({"grant": rights}, default=str))
+        if response.status_code < 200 or r.status_code > 202:
+            raise CreationError("Unable to grant rights", response.content)
 
-    def delete(self) :
-        """Permanently remove the user"""
-        if not self.URL :
+    def delete(self):
+        """
+        Permanently remove the user
+        """
+        if not self.URL:
             raise CreationError("Please save user first", None, None)
 
-        r = self.connection.session.delete(self.URL)
-        if r.status_code < 200 or r.status_code > 202 :
-            raise DeletionError("Unable to delete user, url: %s, status: %s" %(r.url, r.status_code), r.content )
+        response = self.connection.session.delete(self.URL)
+        if response.status_code < 200 or response.status_code > 202:
+            raise DeletionError("Unable to delete user, url: %s, status: %s" %(response.url, response.status_code), response.content )
 
         self.URL = None
 
-    def __repr__(self) :
+    def __repr__(self):
         return "ArangoUser: %s" % (self._store)
 
-    def __setitem__(self, k, v) :
-        if k not in list(self._store.keys()) :
+    def __setitem__(self, k, v):
+        if k not in list(self._store.keys()):
             raise KeyError("The only keys available for user are: %s" % (list(self._store.keys())))
         self._store[k] = v
 
-    def __getitem__(self, k) :
+    def __getitem__(self, k):
         return self._store[k]
 
-class Users(object) :
-    """This one manages users."""
-    def __init__(self, connection) :
+class Users(object):
+    """
+    This one manages users.
+    """
+    def __init__(self, connection):
         self.connection = connection
         self.URL = "%s/user" % (self.connection.URL)
 
-    def createUser(self, username, password) :
+    def create_user(self, username, password):
         u = User(self)
         u["username"] = username
         u["password"] = password
         return u
 
-    def fetchAllUsers(self, rawResults = False) :
-        """Returns all available users. if rawResults, the result will be a list of python dicts instead of User objects"""
-        r = self.connection.session.get(self.URL)
-        if r.status_code == 200 :
-            data = r.json()
-            if rawResults :
+    def fetch_all_users(self, raw_results = False):
+        """Returns all available users. if raw_results, the result will be a list of python dicts instead of User objects"""
+        response = self.connection.session.get(self.URL)
+        if response.status_code == 200:
+            data = response.json()
+            if raw_results:
                 return data["result"]
-            else :
-                res = []
-                for resu in data["result"] :
-                    u = User(self, resu)
-                    res.append(u)
-                return res
-        else :
-            raise ConnectionError("Unable to get user list", r.url, r.status_code)
+            else:
+                results = []
+                for result in data["result"]:
+                    user = User(self, result)
+                    results.append(user)
+                return results
+        else:
+            raise ConnectionError("Unable to get user list", response.url, response.status_code)
 
-    def fetchUser(self, username, rawResults = False) :
-        """Returns a single user. if rawResults, the result will be a list of python dicts instead of User objects"""
+    def fetch_user(self, username, raw_results = False):
+        """
+        Returns a single user. if raw_results, the result will be a list of python dicts instead of User objects
+        """
         url = "%s/%s" % (self.URL, username)
 
-        r = self.connection.session.get(url)
-        if r.status_code == 200 :
-            data = r.json()
-            if rawResults :
+        response = self.connection.session.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            if raw_results:
                 return data["result"]
-            else :
-                u = User(self, data)
-                return u
-        else :
+            else:
+                user = User(self, data)
+                return user
+        else:
             raise KeyError("Unable to get user: %s" % username)
 
-    def __getitem__(self, k) :
-        return self.fetchUser(k)
+    def __getitem__(self, k):
+        return self.fetch_user(k)
