@@ -233,7 +233,7 @@ class Database(object):
                 self[collection_name].delete()
         return
 
-    def AQLQuery(self, query, batchSize = 100, raw_results = False, bind_variables = {}, options = {}, count = False, fullCount = False,
+    def AQLQuery(self, query, batch_size = 100, raw_results = False, bind_variables = {}, options = {}, count = False, full_count = False,
                  json_encoder = None, **moreArgs) :
         """
         Set raw_results = True if you want the query to 
@@ -245,10 +245,10 @@ class Database(object):
                 self,
                 query,
                 raw_results=raw_results,
-                batchSize=batchSize,
+                batch_size=batch_size,
                 bind_variables=bind_variables,
                 options=options, count=count,
-                fullCount=fullCount,
+                full_count=full_count,
                 json_encoder=json_encoder,
                 **moreArgs
                 )

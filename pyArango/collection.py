@@ -23,7 +23,7 @@ __all__ = [
         ]
 
 
-class CachedDoc(object):
+class CachedDoc:
     """
     A cached document
     """
@@ -33,15 +33,15 @@ class CachedDoc(object):
         self.next_document = next_document
         self._key = document._key
 
-    def __getitem__(self, k):
-        return self.document[k]
+    def __getitem__(self, key):
+        return self.document[key]
 
-    def __setitem__(self, k, v):
-        self.document[k] = v
+    def __setitem__(self, key, value):
+        self.document[key] = value
 
-    def __getattribute__(self, k):
+    def __getattribute__(self, key):
         try:
-            return object.__getattribute__(self, k)
+            return object.__getattribute__(self, key)
         except Exception as e1:
             try:
                 return getattr(self.document, k)
@@ -49,7 +49,7 @@ class CachedDoc(object):
                 raise e2
 
 
-class DocumentCache(object):
+class DocumentCache:
     """
     Document cache for collection, with insert, deletes and updates in O(1)
     """
@@ -62,29 +62,29 @@ class DocumentCache(object):
 
     def cache(self, document):
         if document._key in self.cache_store:
-            ret = self.cache_store[document._key]
-            if ret.previous is not None:
-                ret.previous.next_document = ret.next_document
-                self.head.previous = ret
-                ret.next_document = self.head
-                self.head = ret
+            cached_document = self.cache_store[document._key]
+            if cached_document.previous is not None:
+                cached_document.previous.next_document = cached_document.next_document
+                self.head.previous = cached_document
+                cached_document.next_document = self.head
+                self.head = cached_document
             return self.head
         else:
             if len(self.cache_store) == 0:
-                ret = CachedDoc(document, previous=None, next_document=None)
-                self.head = ret
+                cached_document = CachedDoc(document, previous=None, next_document=None)
+                self.head = cached_document
                 self.tail = self.head
-                self.cache_store[document._key] = ret
+                self.cache_store[document._key] = cached_document
             else:
                 if len(self.cache_store) >= self.cache_size:
                     del(self.cache_store[self.tail._key])
                     self.tail = self.tail.previous
                     self.tail.next_document = None
 
-                ret = CachedDoc(document, previous=None, next_document=self.head)
-                self.head.previous = ret
+                cached_document = CachedDoc(document, previous=None, next_document=self.head)
+                self.head.previous = cached_document
                 self.head = self.head.previous
-                self.cache_store[document._key] = ret
+                self.cache_store[document._key] = cached_document
 
     def delete(self, _key):
         """
@@ -100,7 +100,7 @@ class DocumentCache(object):
         except KeyError:
             raise KeyError("Document with _key %s is not available in cache" % _key)
 
-    def getChain(self):
+    def get_chain(self):
         """
         returns a list of keys representing the chain of documents
         """
@@ -111,7 +111,7 @@ class DocumentCache(object):
             head = head.next_document
         return chain
 
-    def stringify(self):
+    def __str__(self):
         """
         A pretty str version of getChain()
         """
@@ -124,9 +124,9 @@ class DocumentCache(object):
 
     def __getitem__(self, _key):
         try:
-            ret = self.cache_store[_key]
-            self.cache(ret)
-            return ret
+            cached_document = self.cache_store[_key]
+            self.cache(cached_document)
+            return cached_document
         except KeyError:
             raise KeyError("Document with _key %s is not available in cache" % _key)
 
@@ -134,20 +134,22 @@ class DocumentCache(object):
         return "[DocumentCache, size: %d, full: %d]" %(self.cache_size, len(self.cache_store))
 
 
-class Field(object):
+class Field:
     """
     The class for defining pyArango fields.
     """
     def __init__(self, validators = None, default = ""):
-        """validators must be a list of validators"""
-        if not validators:
+        """
+        validators must be a list of validators
+        """
+        if validators is None:
             validators = []
         self.validators = validators
         self.default = default
 
     def validate(self, value):
         """
-        checks the validity of 'value' given the lits of validators
+        checks the validity of 'value' given the lists of validators
         """
         for validator in self.validators:
             validator.validate(value)
@@ -175,20 +177,20 @@ class CollectionMetaclass(type):
 
     def __new__(cls, name, bases, attrs):
         def check_set_config_dict(dict_name):
-            default_dict = getattr(cls, "%s_default" % dict_name)
+            default_dict = getattr(cls, f"{dict_name}_default")
 
             if dict_name not in attrs:
                 attrs[dict_name] = default_dict
             else:
-                for k, v in attrs[dict_name].items():
-                    if k not in default_dict:
-                        raise KeyError("Unknown validation parameter '%s' for class '%s'"  %(k, name))
-                    if type(v) is not type(default_dict[k]):
-                        raise ValueError("'%s' parameter '%s' for class '%s' is of type '%s' instead of '%s'"  %(dict_name, k, name, type(v), type(default_dict[k])))
+                for key, value in attrs[dict_name].items():
+                    if key not in default_dict:
+                        raise KeyError(f"Unknown validation parameter '{key}' for class '{name}'")
+                    if type(value) is not type(default_dict[key]):
+                        raise ValueError(f"'{dict_name}' parameter '{key}' for class '{name}' is of type '{type(v)}' instead of '{type(default_dict[k])}'")
 
-                for k, v in default_dict.items():
-                    if k not in attrs[dict_name]:
-                        attrs[dict_name][k] = v
+                for key, value in default_dict.items():
+                    if key not in attrs[dict_name]:
+                        attrs[dict_name][key] = value
 
         check_set_config_dict('_validation')
         class_object = type.__new__(cls, name, bases, attrs)
@@ -204,7 +206,7 @@ class CollectionMetaclass(type):
         try:
             return cls.collection_classes[name]
         except KeyError:
-            raise KeyError("There is no Collection Class of type: '%s'; currently supported values: [%s]" % (name, ', '.join(get_collection_classes().keys())))
+            raise KeyError(f"There is no Collection Class of type: '{name}'; currently supported values: [{', '.join(get_collection_classes().keys())}]") 
 
     @classmethod
     def is_collection(cls, name):
@@ -216,49 +218,49 @@ class CollectionMetaclass(type):
     @classmethod
     def is_document_collection(cls, name):
         """
-        return true or false wether 'name' is the name of a document collection.
+        Return true or false whether 'name' is the name of a document collection.
         """
         try:
-            col = cls.get_collection_class(name)
-            return issubclass(col, Collection)
+            Collection = cls.get_collection_class(name)
+            return issubclass(collection, Collection)
         except KeyError:
             return False
 
     @classmethod
     def is_edge_collection(cls, name):
         """
-        return true or false wether 'name' is the name of an edge collection.
+        Return true or false whether 'name' is the name of an edge collection.
         """
         try:
-            col = cls.get_collection_class(name)
-            return issubclass(col, Edges)
+            collection = cls.get_collection_class(name)
+            return issubclass(collection, Edges)
         except KeyError:
             return False
 
 def get_collection_class(name):
     """
-    Return true or false wether 'name' is the name of collection.
+    Return true or false whether 'name' is the name of collection.
     """
     return CollectionMetaclass.get_collection_class(name)
 
 
 def is_collection(name):
     """
-    Return true or false wether 'name' is the name of a document collection.
+    Return true or false whether 'name' is the name of a document collection.
     """
     return CollectionMetaclass.is_collection(name)
 
 
 def is_document_collection(name):
     """
-    Return true or false wether 'name' is the name of a document collection.
+    Return true or false whether 'name' is the name of a document collection.
     """
     return CollectionMetaclass.is_document_collection(name)
 
 
 def is_edge_collection(name):
     """
-    Return true or false wether 'name' is the name of an edge collection.
+    Return true or false whether 'name' is the name of an edge collection.
     """
     return CollectionMetaclass.is_edge_collection(name)
 
@@ -267,7 +269,7 @@ def get_collection_classes():
     """
     Returns a dictionary of all defined collection classes
     """
-    return CollectionMetaclass.collectionClasses
+    return CollectionMetaclass.collection_classes
 
 
 class Collection(with_metaclass(CollectionMetaclass, object)):
@@ -301,8 +303,8 @@ class Collection(with_metaclass(CollectionMetaclass, object)):
         self.database = database
         self.connection = self.database.connection
         self.name = self.__class__.__name__
-        for k in json_data:
-            setattr(self, k, json_data[k])
+        for key in json_data:
+            setattr(self, key, json_data[key])
 
         self.URL = "%s/collection/%s" % (self.database.URL, self.name)
         self.documentsURL = "%s/document" % (self.database.URL)
@@ -326,8 +328,8 @@ class Collection(with_metaclass(CollectionMetaclass, object)):
         url = "%s/index" % self.database.URL
         response = self.connection.session.get(url, params = {"collection": self.name})
         data = response.json()
-        for ind in data["indexes"]:
-            self.indexes[ind["type"]][ind["id"]] = Index(collection = self, infos = ind)
+        for indx in data["indexes"]:
+            self.indexes[indx["type"]][indx["id"]] = Index(collection = self, infos = indx)
 
         return self.indexes
 
@@ -338,7 +340,9 @@ class Collection(with_metaclass(CollectionMetaclass, object)):
         self.document_cache = DocumentCache(cache_size)
 
     def deactivate_cache(self):
-        "deactivate the caching system"
+        """
+        deactivate the caching system
+        """
         self.document_cache = None
 
     def delete(self):
@@ -379,7 +383,10 @@ class Collection(with_metaclass(CollectionMetaclass, object)):
     def import_bulk(self, data, **kwargs):
         url = "%s/import" % (self.database.URL)
         payload = json.dumps(data, default=str)
-        params = {"collection": self.name, "type": "auto"}
+        params = {
+            "collection": self.name,
+            "type": "auto"
+            }
         params.update(kwargs)
         response = self.connection.session.post(url , params = params, data = payload)
         data = response.json()
@@ -409,9 +416,9 @@ class Collection(with_metaclass(CollectionMetaclass, object)):
             "sparse": sparse,
             "deduplicate": deduplicate
         }
-        ind = Index(self, creation_data = data)
-        self.indexes["hash"][ind.infos["id"]] = ind
-        return ind
+        indx = Index(self, creation_data = data)
+        self.indexes["hash"][indx.infos["id"]] = indx
+        return indx
 
     def ensure_skiplist_index(self, fields, unique = False, sparse = True, deduplicate = False):
         """
@@ -424,9 +431,9 @@ class Collection(with_metaclass(CollectionMetaclass, object)):
             "sparse": sparse,
             "deduplicate": deduplicate
         }
-        ind = Index(self, creation_data = data)
-        self.indexes["skiplist"][ind.infos["id"]] = ind
-        return ind
+        indx = Index(self, creation_data = data)
+        self.indexes["skiplist"][indx.infos["id"]] = indx
+        return indx
 
     def ensure_geo_index(self, fields):
         """
@@ -436,9 +443,9 @@ class Collection(with_metaclass(CollectionMetaclass, object)):
             "type": "geo",
             "fields": fields,
         }
-        ind = Index(self, creation_data = data)
-        self.indexes["geo"][ind.infos["id"]] = ind
-        return ind
+        indx = Index(self, creation_data = data)
+        self.indexes["geo"][indx.infos["id"]] = indx
+        return indx
 
     def ensure_fulltext_index(self, fields, min_length = None):
         """
@@ -451,9 +458,9 @@ class Collection(with_metaclass(CollectionMetaclass, object)):
         if min_length is not None:
             data["minLength"] = min_length
 
-        ind = Index(self, creation_data = data)
-        self.indexes["fulltext"][ind.infos["id"]] = ind
-        return ind
+        indx = Index(self, creation_data = data)
+        self.indexes["fulltext"][indx.infos["id"]] = indx
+        return indx
 
     def validate_private(self, field, value):
         """
@@ -466,55 +473,6 @@ class Collection(with_metaclass(CollectionMetaclass, object)):
             self._fields[field].validate(value)
         return True
 
-    # @classmethod
-    # def validateField(cls, fieldName, value):
-    #     """checks if 'value' is valid for field 'fieldName'. If the validation is unsuccessful, raises a SchemaViolation or a ValidationError.
-    #     for nested dicts ex: {address: { street: xxx} }, fieldName can take the form address.street
-    #     """
-
-    #     def _getValidators(cls, fieldName):
-    #         path = fieldName.split(".")
-    #         v = cls._fields
-    #         for k in path:
-    #             try:
-    #                 v = v[k]
-    #             except KeyError:
-    #                 return None
-    #         return v
-
-    #     field = _getValidators(cls, fieldName)
-
-    #     if field is None:
-    #         if not cls._validation["allow_foreign_fields"]:
-    #             raise SchemaViolation(cls, fieldName)
-    #     else:
-    #         return field.validate(value)
-
-    # @classmethod
-    # def validateDct(cls, dct):
-    #     "validates a dictionary. The dictionary must be defined such as {field: value}. If the validation is unsuccefull, raises an InvalidDocument"
-    #     def _validate(dct, res, parentsStr=""):
-    #         for k, v in dct.items():
-    #             if len(parentsStr) == 0:
-    #                 ps = k
-    #             else:
-    #                 ps = "%s.%s" % (parentsStr, k)
-
-    #             if type(v) is dict:
-    #                 _validate(v, res, ps)
-    #             elif k not in cls.arangoPrivates:
-    #                 try:
-    #                     cls.validateField(ps, v)
-    #                 except (ValidationError, SchemaViolation) as e:
-    #                     res[k] = str(e)
-
-    #     res = {}
-    #     _validate(dct, res)
-    #     if len(res) > 0:
-    #         raise InvalidDocument(res)
-
-    #     return True
-
     @classmethod
     def has_field(cls, field_name):
         """
@@ -522,10 +480,10 @@ class Collection(with_metaclass(CollectionMetaclass, object)):
         Use the dot notation for the nested fields: address.street
         """
         path = field_name.split(".")
-        v = cls._fields
-        for k in path:
+        value = cls._fields
+        for key in path:
             try:
-                v = v[k]
+                value = v[key]
             except KeyError:
                 return False
         return True
@@ -559,14 +517,16 @@ class Collection(with_metaclass(CollectionMetaclass, object)):
 
     def fetch_first_example(self, example_dict, raw_results = False):
         """
-        example_dict should be something like {'age': 28}. returns only a single element but still in a SimpleQuery object.
-        returns the first example found that matches the example
+        example_dict should be something like {'age': 28}. 
+        Returns only a single element but still in a SimpleQuery object.
+        Returns the first example found that matches the example
         """
         return self.simple_query('first-example', raw_results = raw_results, example = example_dict)
 
     def fetch_all(self, raw_results = False, **query_args):
         """
-        Returns all the documents in the collection. You can use the optinal arguments 'skip' and 'limit'::
+        Returns all the documents in the collection. 
+        You can use the optinal arguments 'skip' and 'limit'::
 
             fetchAlll(limit = 3, shik = 10)
         """
@@ -574,20 +534,21 @@ class Collection(with_metaclass(CollectionMetaclass, object)):
 
     def simple_query(self, query_type, raw_results = False, **query_args):
         """
-        General interface for simple queries. query_type can be something like 'all', 'by-example' etc... everything is in the arango doc.
+        General interface for simple queries. 
+        Query_type can be something like 'all', 'by-example' etc... everything is in the arango doc.
         If raw_results, the query will return dictionaries instead of Document objetcs.
         """
         return SimpleQuery(self, query_type, raw_results, **query_args)
 
     def action(self, method, action, **params):
         """
-        a generic fct for interacting everything that doesn't have an assigned fct
+        A generic fct for interacting everything that doesn't have an assigned fct
         """
         fct = getattr(self.connection.session, method.lower())
         response = fct(self.URL + "/" + action, params = params)
         return response.json()
 
-    def bulkSave(self, documents, on_duplicate="error", **params):
+    def bulk_save(self, documents, on_duplicate="error", **params):
         """
         Parameter documents must be either an iterrable of documents or dictionnaries.
         This function will return the number of documents, created and updated, and will raise an UpdateError exception if there's at least one error.
@@ -600,7 +561,7 @@ class Collection(with_metaclass(CollectionMetaclass, object)):
                 payload.append(json.dumps(document, default=str))
             else:
                 try:
-                    payload.append(document.toJson())
+                    payload.append(document.to_json())
                 except Exception as e:
                     payload.append(json.dumps(document.getStore(), default=str))
 
@@ -621,8 +582,10 @@ class Collection(with_metaclass(CollectionMetaclass, object)):
 
         return data["updated"] + data["created"]
 
-    def bulkImport_json(self, filename, on_duplicate="error", formatType="auto", **params):
-        """bulk import from a file repecting arango's key/value format"""
+    def bulk_import_json(self, filename, on_duplicate="error", formatType="auto", **params):
+        """
+        bulk import from a file repecting arango's key/value format
+        """
 
         url = "%s/import" % self.database.URL
         params["on_duplicate"] = onDuplicate
@@ -864,10 +827,10 @@ class Edges(Collection):
         data = response.json()
         if response.status_code == 200:
             if not raw_results:
-                ret = []
+                cached_document = []
                 for edge in data["edges"]:
-                    ret.append(Edge(self, edge))
-                return ret
+                    cached_document.append(Edge(self, edge))
+                return cached_document
             else:
                 return data["edges"]
         else:

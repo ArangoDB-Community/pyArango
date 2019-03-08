@@ -47,7 +47,7 @@ class GraphMetaclass(type):
     @classmethod
     def is_graph(cls, name):
         """
-        returns true/false depending if there is a graph called name
+        returns True/False depending if there is a graph called name
         """
         return name in cls.graph_classes
 

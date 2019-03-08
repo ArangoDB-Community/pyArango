@@ -66,7 +66,7 @@ class DocumentStore(object):
         
         return res
 
-    def validateField(self, field):
+    def validate_field(self, field):
         """
         Validatie a field
         """
@@ -103,7 +103,7 @@ class DocumentStore(object):
             try:
                 if isinstance(self.validators[field], dict) and field not in self.store:
                     self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initialisation_dictionary = {}, sub_store=True, validate_initialisation=self.validate_initialisation)
-                self.validateField(field)
+                self.validate_field(field)
             except InvalidDocument as e:
                 res.update(e.errors)
             except (ValidationError, SchemaViolation) as e:
@@ -177,7 +177,7 @@ class DocumentStore(object):
             self.patch_store[field] = self.store[field]
 
         if self.must_validate and self.collection._validation['on_set']:
-            self.validateField(field)
+            self.validate_field(field)
 
     def __delitem__(self, k):
         """
@@ -202,9 +202,9 @@ class DocumentStore(object):
     def __repr__(self):
         return "<store: %s>" % repr(self.store)
 
-class Document(object):
+class Document:
     """
-    The class that represents a document. Documents are meant to be instanciated by collections
+    The class that represents a document. Documents are meant to be instanciated by collections.
     """
 
     def __init__(self, collection, json_field_init = None):
@@ -213,6 +213,7 @@ class Document(object):
         self.privates = ["_id", "_key", "_rev"]
         self.reset(collection, json_field_init)
         self.type_name = "ArangoDoc"
+
 
     def reset(self, collection, json_field_init = None):
         if not json_field_init:

@@ -40,7 +40,6 @@ class Query(object):
         """
         If raw_results = True, the results will be returned as dictionaries instead of Document objects.
         """
-
         self.raw_results = raw_results
         self.response = request.json()
         if self.response.get("error") and self.response["errorMessage"] != "no match":
@@ -51,7 +50,7 @@ class Query(object):
         self.connection = self.database.connection
         self.current_i = 0
         if request.status_code == 201 or request.status_code == 200 or request.status_code == 202:
-            self.batchNumber = 1
+            self.batch_number = 1
             try: #if there's only one element
                 self.response = {"result": [self.response["document"]], 'hasMore' : False}
                 del(self.response["document"])
@@ -117,7 +116,7 @@ class Query(object):
         try:
             v = self[self.current_i]
         except IndexError:
-            self.nextBatch()
+            self.next_batch()
         v = self[self.current_i]
         self.current_i += 1
         return v
@@ -130,6 +129,7 @@ class Query(object):
         return self
 
     def __getitem__(self, i):
+        #TODO: self._develop_doc is not working. Try a query without raw results to see
         """
         returns a ith result of the query.
         """
@@ -157,30 +157,32 @@ class AQLQuery(Query):
     """
     AQL queries are attached to and instanciated by a database
     """
-    def __init__(self, database, query, batch_size, bind_vars, options, count, full_count, raw_results=True,
+    def __init__(self, database, query, batch_size, bind_variables, options, count, full_count, raw_results=True,
                  json_encoder=None, **more_args):
         # fullCount is passed in the options dict per https://docs.arangodb.com/3.1/HTTP/AqlQueryCursor/AccessingCursors.html
+
         options["fullCount"] = full_count
-        payload = {'query': query, 'batchSize': batch_size, 'bindVars': bindVars, 'options': options, 'count': count}
+        payload = {'query': query, 'batchSize': batch_size, 'bindVars': bind_variables, 'options': options, 'count': count}
         payload.update(more_args)
 
         self.query = query
         self.database = database
         self.connection = self.database.connection
         self.connection.report_start(query)
-        request = self.connection.session.post(database.cursors_URL, data = json.dumps(payload, cls=json_encoder, default=str))
-        self.connection.reportItem()
+        request = self.connection.session.post(database.cursors_URL, data=json.dumps(payload, cls=json_encoder, default=str))
+        self.connection.report_item()
 
         try:
+            #TODO who the hell calls this shit directly??
             Query.__init__(self, request, database, raw_results)
         except QueryError as e:
             raise AQLQueryError( message = e.message, query = self.query, errors = e.errors)
 
-    def explain(self, bind_vars={}, all_plans=False):
+    def explain(self, bind_variables={}, all_plans=False):
         """
         Returns an explanation of the query. Setting allPlans to True will result in ArangoDB returning all possible plans. False returns only the optimal plan
         """
-        return self.database.explainAQLQuery(self.query, bind_vars, all_plans)
+        return self.database.explainAQLQuery(self.query, bind_variables, all_plans)
 
     def _raiseInitFailed(self, request):
         data = request.json()
