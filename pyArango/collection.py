@@ -513,6 +513,7 @@ class Collection(with_metaclass(CollectionMetaclass, object)):
         """
         example_dict should be something like {'age': 28}
         """
+        print("\n\nI am fetching by example!!\n\n\n\n\n")
         return self.simple_query('by-example', raw_results, example = example_dict, batch_size = batch_size, **query_args)
 
     def fetch_first_example(self, example_dict, raw_results = False):

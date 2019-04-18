@@ -95,9 +95,8 @@ class Database(object):
         self.reload_collections()
         self.reload_graphs()
 
-    def create_collection(self, class_name = 'Collection', **collection_properties):
-        """
-        Creates a collection and returns it.
+    def create_collection(self, class_name='Collection', **collection_properties):
+        """Creates a collection and returns it.
         class_name the name of a class inheriting from Collection or Egdes, 
         it can also be set to 'Collection' or 'Edges' in order to create 
         untyped collections of documents or edges.
@@ -149,7 +148,7 @@ class Database(object):
         split_id = _id.split("/")
         return self[split_id[0]][split_id[1]]
 
-    def create_graph(self, name, create_collections = True, is_smart = False, number_of_shards = None, smart_graph_attribute = None) :
+    def create_graph(self, name, create_collections=True, is_smart=False, number_of_shards=None, smart_graph_attribute=None) :
         """
         Creates a graph and returns it. 'name' must be the name 
         of a class inheriting from Graph.
