@@ -108,7 +108,7 @@ class Connection(object):
         statsdClient = None,
         reportFileName = None,
         loadBalancing = "round-robin",
-        use_grequests = True,
+        use_grequests = False,
         use_jwt_authentication=False,
         use_lock_for_reseting_jwt=True,
         max_retries=5
