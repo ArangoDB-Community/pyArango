@@ -261,6 +261,9 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         }
 
         self.defaultDocument = getDefaultDoc(self._fields, {})
+        self._isBulkInProgress = False
+        self._bulkSize = 0
+        self._bulkCache = []
 
     def getIndexes(self) :
         """Fills self.indexes with all the indexes associates with the collection and returns it"""
@@ -300,7 +303,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
                 return self.createDocument_(self.defaultDocument)
 
     def createDocument_(self, initDict = None) :
-        "create and returns a completely empty document or one populated with initDict"
+        """create and returns a completely empty document or one populated with initDict"""
         if initDict is None :
             initV = {}
         else :
@@ -308,6 +311,49 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
         return self.documentClass(self, initV)
 
+    def _writeBatch(self):
+        if not self._bulkCache:
+            return
+        payload = []
+        for d in self._bulkCache :
+            if type(d) is dict :
+                payload.append(json.dumps(d, default=str))
+            else :
+                try:
+                    payload.append(d.toJson())
+                except Exception as e:
+                    payload.append(json.dumps(d.getStore(), default=str))
+
+        print(payload)
+        payload = '[\n' + ',\n'.join(payload) + '\n]'
+        print(payload)
+        r = self.connection.session.post(self.documentsURL, params = self._batchParams, data = payload)
+        data = r.json()
+        if (not isinstance(data, list)):
+            raise UpdateError("expected reply to be a json array" + r)
+        print(data)
+        i = 0
+        for xd in data:
+            print(xd)
+            print(self._bulkCache[i].privates)
+            self._bulkCache[i]._key = \
+                xd['_key']
+            i += 1
+        
+        self._bulkCache = []
+        
+    def _saveBatch(self, document, params):
+        self._bulkCache.append(document)
+        self._batchParams = params
+        if len(self._bulkCache) == self._bulkSize:
+            self._writeBatch()
+        
+    def _finalizeBatch(self):
+        self._writeBatch()
+        self._bulkSize = 0
+        self._isBulkInProgress = False
+        self._batchParams = None
+        
     def importBulk(self, data, **addParams):
         url = "%s/import" % (self.database.URL)
         payload = json.dumps(data, default=str)
@@ -510,12 +556,12 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
                 except Exception as e:
                     payload.append(json.dumps(d.getStore(), default=str))
 
-        payload = '\n'.join(payload)
+        payload = ',\n'.join(payload)
 
         params["type"] = "documents"
         params["onDuplicate"] = onDuplicate
         params["collection"] = self.name
-        URL = "%s/import" % self.database.URL
+        URL = "%s/document" % self.database.URL
 
         r = self.connection.session.post(URL, params = params, data = payload)
         data = r.json()
@@ -724,3 +770,16 @@ class Edges(Collection) :
                 return data["edges"]
         else :
             raise CreationError("Unable to return edges for vertex: %s" % vId, data)
+
+
+class BulkCollection(object):
+    def __init__(self, collection, batchSize=100):
+        self.coll = collection
+        self.batchSize = batchSize
+        
+    def __enter__(self):
+        self.coll._isBulkInProgress = True
+        self.coll._bulkSize = self.batchSize
+        return self.coll
+    def __exit__(self, type, value, traceback):
+        self.coll._finalizeBatch();

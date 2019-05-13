@@ -244,6 +244,12 @@ class Document(object) :
 
             if self.collection._validation['on_save'] :
                 self.validate()
+            if self.collection._isBulkInProgress :
+                if self._key is not None :
+                    payload["_key"] = self._key
+                self.collection._saveBatch(self, params)
+                return self._store.resetPatch()
+
             if self.URL is None :
                 if self._key is not None :
                     payload["_key"] = self._key
