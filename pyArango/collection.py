@@ -556,12 +556,12 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
                 except Exception as e:
                     payload.append(json.dumps(d.getStore(), default=str))
 
-        payload = ',\n'.join(payload)
+        payload = '\n'.join(payload)
 
         params["type"] = "documents"
         params["onDuplicate"] = onDuplicate
         params["collection"] = self.name
-        URL = "%s/document" % self.database.URL
+        URL = "%s/import" % self.database.URL
 
         r = self.connection.session.post(URL, params = params, data = payload)
         data = r.json()
