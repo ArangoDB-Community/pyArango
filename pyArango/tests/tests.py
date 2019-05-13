@@ -195,15 +195,15 @@ class pyArangoTests(unittest.TestCase):
         collection = self.db.createCollection(name = "lala")
         doc = collection.createDocument()
         doc["name"] = "Tesla"
-        self.assertTrue(doc.URL is None)
+        self.assertTrue(doc._id is None)
         doc.save()
-        self.assertTrue(doc.URL is not None)
-        url = copy.copy(doc.URL)
+        self.assertTrue(doc._id is not None)
+        did = copy.copy(doc._id)
         doc["name"] = "Tesla2"
         doc.save()
-        self.assertEqual(doc.URL, url)
+        self.assertEqual(doc._id, did)
         doc.delete()
-        self.assertTrue(doc.URL is None)
+        self.assertTrue(doc._id is None)
 
     # @unittest.skip("stand by")
     def test_document_fetch_by_key(self) :

@@ -3,7 +3,7 @@ import json
 from future.utils import implements_iterator
 
 from .document import Document, Edge
-from .theExceptions import QueryError, AQLQueryError, SimpleQueryError, CreationError
+from .theExceptions import QueryError, AQLQueryError, SimpleQueryError, CreationError, CursorError
 from . import consts as CONST
 
 __all__ = ["Query", "AQLQuery", "SimpleQuery", "Cursor", "RawCursor"]
@@ -15,11 +15,13 @@ class RawCursor(object) :
         self.database = database
         self.connection = self.database.connection
         self.id = cursorId
-        self.URL = "%s/cursor/%s" % (self.database.URL, self.id)
+
+    def getURL(self) :
+        return "%s/%s" % (self.database.getCursorsURL(), self.id)
 
     def __next__(self) :
         "returns the next batch"
-        r = self.connection.session.put(self.URL)
+        r = self.connection.session.put(self.getURL())
         data = r.json()
         if r.status_code in [400, 404] :
             raise CursorError(data["errorMessage"], self.id, data)
@@ -62,7 +64,7 @@ class Query(object) :
 
     def _raiseInitFailed(self, request) :
         "must be implemented in child, this called if the __init__ fails"
-        raise NotImplemented("Must be implemented in child")
+        raise NotImplementedError("Must be implemented in child")
 
     def _developDoc(self, i) :
         """private function that transforms a json returned by ArangoDB into a pyArango Document or Edge"""
@@ -114,7 +116,10 @@ class Query(object) :
         "returns a ith result of the query."
         if not self.rawResults and (not isinstance(self.result[i], (Edge, Document))):
             self._developDoc(i)
-        return self.result[i]
+        try:
+            return self.result[i]
+        except IndexError as e:
+            return []
 
     def __len__(self) :
         """Returns the number of elements in the query results"""
@@ -143,7 +148,7 @@ class AQLQuery(Query) :
         self.database = database
         self.connection = self.database.connection
         self.connection.reportStart(query)
-        request = self.connection.session.post(database.cursorsURL, data = json.dumps(payload, cls=json_encoder, default=str))
+        request = self.connection.session.post(database.getCursorsURL(), data = json.dumps(payload, cls=json_encoder, default=str))
         self.connection.reportItem()
 
         try :
@@ -184,7 +189,7 @@ class SimpleQuery(Query) :
         payload = {'collection' : collection.name}
         payload.update(queryArgs)
         payload = json.dumps(payload, cls=json_encoder, default=str)
-        URL = "%s/simple/%s" % (collection.database.URL, queryType)
+        URL = "%s/simple/%s" % (collection.database.getURL(), queryType)
         request = self.connection.session.put(URL, data = payload)
 
         Query.__init__(self, request, collection.database, rawResults)

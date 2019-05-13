@@ -194,10 +194,7 @@ class Document(object) :
         """replaces the current values in the document by those in jsonFieldInit"""
         self.collection = collection
         self.connection = self.collection.connection
-        self.documentsURL = self.collection.documentsURL
-
-
-        self.URL = None
+        
         self.setPrivates(jsonFieldInit)
         self._store = DocumentStore(self.collection, validators=self.collection._fields, initDct=jsonFieldInit)
         if self.collection._validation['on_load']:
@@ -220,11 +217,14 @@ class Document(object) :
             else :
                 setattr(self, priv, None)
         
-        if self._id is not None :
-            self.URL = "%s/%s" % (self.documentsURL, self._id)
+    def getURL(self) :
+        if self._id is None :
+            return AttributeError("An unsaved document cannot have an URL")
+        return  "%s/%s" % (self.collection.getDocumentsURL(), self._id)
 
     def set(self, fieldDict) :
         """set the document with a dictionary"""
+        self.setPrivates(fieldDict)
         self._store.set(fieldDict)
 
     def save(self, waitForSync = False, **docArgs) :
@@ -244,17 +244,17 @@ class Document(object) :
 
             if self.collection._validation['on_save'] :
                 self.validate()
-            if self.URL is None :
+            if self._id is None :
                 if self._key is not None :
                     payload["_key"] = self._key
                 payload = json.dumps(payload, default=str)
-                r = self.connection.session.post(self.documentsURL, params = params, data = payload)
+                r = self.connection.session.post(self.collection.getDocumentsURL(), params = params, data = payload)
                 update = False
                 data = r.json()
                 self.setPrivates(data)
             else :
                 payload = json.dumps(payload, default=str)
-                r = self.connection.session.put(self.URL, params = params, data = payload)
+                r = self.connection.session.put(self.getURL(), params = params, data = payload)
                 update = True
                 data = r.json()
 
@@ -291,7 +291,7 @@ class Document(object) :
         The default behaviour concening the keepNull parameter is the opposite of ArangoDB's default, Null values won't be ignored
         Use docArgs for things such as waitForSync = True"""
 
-        if self.URL is None :
+        if self._id is None :
             raise ValueError("Cannot patch a document that was not previously saved")
 
         payload = self._store.getPatches()
@@ -304,7 +304,7 @@ class Document(object) :
             params.update({'collection': self.collection.name, 'keepNull' : keepNull})
             payload = json.dumps(payload, default=str)
 
-            r = self.connection.session.patch(self.URL, params = params, data = payload)
+            r = self.connection.session.patch(self.getURL(), params = params, data = payload)
             data = r.json()
             if (r.status_code == 201 or r.status_code == 202) and "error" not in data :
                 self._rev = data['_rev']
@@ -317,9 +317,9 @@ class Document(object) :
 
     def delete(self) :
         "deletes the document from the database"
-        if self.URL is None :
+        if self._id is None :
             raise DeletionError("Can't delete a document that was not saved")
-        r = self.connection.session.delete(self.URL)
+        r = self.connection.session.delete(self.getURL())
         data = r.json()
 
         if (r.status_code != 200 and r.status_code != 202) or 'error' in data :
