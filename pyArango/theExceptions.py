@@ -18,6 +18,12 @@ class ConnectionError(pyArangoException) :
         mes = "%s. URL: %s, status: %s" % (message, URL, statusCode)
         pyArangoException.__init__(self, mes, errors)
 
+class ArangoError(pyArangoException) :
+    """a generic arangodb error object"""
+    def __init__(self, errorObject) :
+        self.errorNum = errorObject['errorNum']
+        pyArangoException.__init__(self, errorObject['errorMessage'], errorObject)
+
 class CreationError(pyArangoException) :
     """Something went wrong when creating something"""
     def __init__(self, message, errors = None) :
@@ -86,6 +92,37 @@ class SimpleQueryError(pyArangoException) :
             errors = {}
         pyArangoException.__init__(self, message, errors)
 
+class BulkOperationError(pyArangoException) :
+    """Something went wrong in one of the bulk operations. This error contains more errors"""
+    def __init__(self, message) :
+        self._errors = []
+        self._errmsgs = []
+        self._documents = []
+        pyArangoException.__init__(self, "Batch error - + " + message)
+
+    def addBulkError(self, error, document):
+        self._errors.append(error)
+        self._errmsgs.append(str(error))
+        self._documents.append(document)
+    def __str__(self) :
+        strErrors = []
+        i = 0
+        for errMsg in self._errmsgs:
+            err = "<unknown>"
+            docstr = "<unknown>"
+            try:
+                err = errMsg
+            except:
+                pass
+            try:
+                docstr = self._documents[i]
+            except:
+                pass
+            strErrors.append("\t<%s> -> %s" % (err, docstr))
+            i+=1
+        strErrors = '\n\t'.join(strErrors)
+        return self.message + ":\n\t" + strErrors
+        
 class QueryError(pyArangoException) :
     """Something went wrong with an aql query"""
     def __init__(self, message, errors = None) :
