@@ -1,16 +1,23 @@
 import json
 import types
 from future.utils import with_metaclass
+from enum import Enum
 from . import consts as CONST
 
 from .document import Document, Edge
 
-from .theExceptions import ValidationError, SchemaViolation, CreationError, UpdateError, DeletionError, InvalidDocument, ExportError, DocumentNotFoundError
+from .theExceptions import ValidationError, SchemaViolation, CreationError, UpdateError, DeletionError, InvalidDocument, ExportError, DocumentNotFoundError, ArangoError, BulkOperationError
 
 from .query import SimpleQuery
 from .index import Index
 
 __all__ = ["Collection", "Edges", "Field", "DocumentCache", "CachedDoc", "Collection_metaclass", "getCollectionClass", "isCollection", "isDocumentCollection", "isEdgeCollection", "getCollectionClasses"]
+
+class BulkMode(Enum):
+    NONE = 0
+    INSERT = 1
+    UPDATE = 2
+    DELETE = 3
 
 class CachedDoc(object) :
     """A cached document"""
@@ -259,6 +266,10 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         }
 
         self.defaultDocument = getDefaultDoc(self._fields, {})
+        self._isBulkInProgress = False
+        self._bulkSize = 0
+        self._bulkCache = []
+        self._bulkMode = BulkMode.NONE
 
     def getURL(self) :
         return "%s/collection/%s" % (self.database.getURL(), self.name)
@@ -304,7 +315,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
                 return self.createDocument_(self.defaultDocument)
 
     def createDocument_(self, initDict = None) :
-        "create and returns a completely empty document or one populated with initDict"
+        """create and returns a completely empty document or one populated with initDict"""
         if initDict is None :
             initV = {}
         else :
@@ -312,6 +323,163 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
         return self.documentClass(self, initV)
 
+    def _writeBatch(self):
+        if not self._bulkCache:
+            return
+        if self._bulkMode != BulkMode.INSERT:
+            raise UpdateError("Mixed bulk operations not supported - have " + self._bulkMode)
+        payload = []
+        for d in self._bulkCache :
+            if type(d) is dict :
+                payload.append(json.dumps(d, default=str))
+            else :
+                try:
+                    payload.append(d.toJson())
+                except Exception as e:
+                    payload.append(json.dumps(d.getStore(), default=str))
+
+        payload = '[' + ','.join(payload) + ']'
+        r = self.connection.session.post(self.documentsURL, params = self._batchParams, data = payload)
+        data = r.json()
+        if (not isinstance(data, list)):
+            raise UpdateError("expected reply to be a json array" + r)
+        i = 0
+        bulkError = None
+        for xd in data:
+            if not '_key' in xd and 'error' in xd and 'errorNum' in xd:
+                if bulkError == None:
+                    bulkError = BulkOperationError("saving failed")
+                bulkError.addBulkError(ArangoError(xd), self._bulkCache[i])
+            else:
+                self._bulkCache[i].setPrivates(xd)
+                self._bulkCache[i]._key = \
+                    xd['_key']
+            i += 1
+        if bulkError != None:
+            self._bulkCache = []
+            raise bulkError
+
+        self._bulkCache = []
+
+    def _saveBatch(self, document, params):
+        if self._bulkMode != BulkMode.NONE and self._bulkMode != BulkMode.INSERT:
+            raise UpdateError("Mixed bulk operations not supported - have " + self._bulkMode)
+        self._bulkMode = BulkMode.INSERT
+        self._bulkCache.append(document)
+        self._batchParams = params
+        if len(self._bulkCache) == self._bulkSize:
+            self._writeBatch()
+            self._bulkMode = BulkMode.NONE
+        
+    def _updateBatch(self):
+        if not self._bulkCache:
+            return
+        if self._bulkMode != BulkMode.UPDATE:
+            raise UpdateError("Mixed bulk operations not supported - have " + self._bulkMode)
+        payload = []
+        for d in self._bulkCache :
+            dPayload = d._store.getPatches()
+        
+            if d.collection._validation['on_save'] :
+                d.validate()
+
+            if type(d) is dict :
+                payload.append(json.dumps(d, default=str))
+            else :
+                try:
+                    payload.append(d.toJson())
+                except Exception as e:
+                    payload.append(json.dumps(d.getStore(), default=str))
+        payload = '[' + ','.join(payload) + ']'
+        r = self.connection.session.patch(self.documentsURL, params = self._batchParams, data = payload)
+        data = r.json()
+        if (not isinstance(data, list)):
+            raise UpdateError("expected reply to be a json array" + dir(r))
+        i = 0
+        bulkError = None
+        for xd in data:
+            if not '_key' in xd and 'error' in xd and 'errorNum' in xd:
+                if bulkError == None:
+                    bulkError = BulkOperationError("patching failed")
+                bulkError.addBulkError(ArangoError(xd), str(self._bulkCache[i]))
+            else:
+                self._bulkCache[i].setPrivates(xd)
+                self._bulkCache[i]._key = \
+                    xd['_key']
+            i += 1
+        self._bulkCache = []
+        if bulkError != None:
+            raise bulkError
+        
+        
+    def _patchBatch(self, document, params):
+        if self._bulkMode != BulkMode.NONE and self._bulkMode != BulkMode.UPDATE:
+            raise UpdateError("Mixed bulk operations not supported - have " + self._bulkMode)
+        self._bulkMode = BulkMode.UPDATE
+        self._bulkCache.append(document)
+        self._batchParams = params
+        if len(self._bulkCache) == self._bulkSize:
+            self._updateBatch()
+            self._bulkMode = BulkMode.NONE
+
+    def _removeBatch(self):
+        if not self._bulkCache:
+            return
+        if self._bulkMode != BulkMode.DELETE:
+            raise UpdateError("Mixed bulk operations not supported - have " + self._bulkMode)
+        payload = []
+        for d in self._bulkCache :
+            if type(d) is dict :
+                payload.append('"%s"' % d['_key'])
+            else :
+                try:
+                    payload.append('"%s"' % d['_key'])
+                except Exception as e:
+                    payload.append('"%s"' % d['_key'])
+
+        payload = '[' + ','.join(payload) + ']'
+        r = self.connection.session.delete(self.documentsURL + "/" + self.name, params = self._batchParams, data = payload)
+        data = r.json()
+        if (not isinstance(data, list)):
+            raise UpdateError("expected reply to be a json array" + r)
+        i = 0
+        bulkError = None
+        for xd in data:
+            if not '_key' in xd and 'error' in xd and 'errorNum' in xd:
+                if bulkError == None:
+                    bulkError = BulkOperationError("deleting failed")
+                bulkError.addBulkError(ArangoError(xd), self._bulkCache[i])
+            else:
+                self._bulkCache[i].reset(self)
+            i += 1
+        self._bulkCache = []
+        if bulkError != None:
+            raise bulkError
+
+    def _deleteBatch(self, document, params):
+        if self._bulkMode != BulkMode.NONE and self._bulkMode != BulkMode.DELETE:
+            raise UpdateError("Mixed bulk operations not supported - have " + self._bulkMode)
+        self._bulkMode = BulkMode.DELETE
+        self._bulkCache.append(document)
+        self._batchParams = params
+        if len(self._bulkCache) == self._bulkSize:
+            self._removeBatch()
+            self._bulkMode = BulkMode.NONE
+
+
+    def _finalizeBatch(self):
+        if self._bulkMode == BulkMode.INSERT:
+            self._writeBatch()
+        elif self._bulkMode == BulkMode.UPDATE:
+            self._updateBatch()
+        elif self._bulkMode == BulkMode.DELETE:
+            self._removeBatch()
+        # elif self._bulkMode == BulkMode.NONE:
+        self._bulkSize = 0
+        self._isBulkInProgress = False
+        self._batchParams = None
+        self._bulkMode = BulkMode.NONE
+        
     def importBulk(self, data, **addParams):
         url = "%s/import" % (self.database.getURL())
         payload = json.dumps(data, default=str)
@@ -728,3 +896,16 @@ class Edges(Collection) :
                 return data["edges"]
         else :
             raise CreationError("Unable to return edges for vertex: %s" % vId, data)
+
+
+class BulkOperation(object):
+    def __init__(self, collection, batchSize=100):
+        self.coll = collection
+        self.batchSize = batchSize
+        
+    def __enter__(self):
+        self.coll._isBulkInProgress = True
+        self.coll._bulkSize = self.batchSize
+        return self.coll
+    def __exit__(self, type, value, traceback):
+        self.coll._finalizeBatch();
