@@ -17,7 +17,7 @@ class User(object) :
             "password": None,
         }
 
-        self.URL = None
+        self.isSet = False 
         if len(jsonData) > 0 :
             self._set(jsonData)
 
@@ -38,7 +38,10 @@ class User(object) :
         except KeyError :
             self["password"] = ""
 
-        self.URL = "%s/user/%s" % (self.connection.URL, self["username"])
+        self.isSet = True
+
+    def getURL(self) :
+        return "%s/user/%s" % (self.connection.getURL(), self["username"])
 
     def save(self):
         """Save/updates the user"""
@@ -53,18 +56,18 @@ class User(object) :
         del(payload["password"])
 
         payload = json.dumps(payload, default=str)
-        if not self.URL :
+        if not self.isSet :
             if "username" not in self._store or "password" not in self._store :
                 raise KeyError("You must define self['name'] and self['password'] to be able to create a new user")
 
-            r = self.connection.session.post(self.users.URL, data = payload)
+            r = self.connection.session.post(self.users.getURL(), data = payload)
             data = r.json()
             if r.status_code == 201 :
                 self._set(data)
             else :
                 raise CreationError("Unable to create new user", data)
         else :
-            r = self.connection.session.put(self.URL, data = payload)
+            r = self.connection.session.put(self.getURL(), data = payload)
             data = r.json()
             if r.status_code == 200 :
                 self._set(data)
@@ -75,7 +78,7 @@ class User(object) :
         """Grant revoke rights on a database, 'access' is supposed to be boolean. ArangoDB grants/revokes both read and write rights at the same time"""
         import json
 
-        if not self.URL :
+        if not self.isSet :
             raise CreationError("Please save user first", None, None)
 
         rights = []
@@ -87,21 +90,20 @@ class User(object) :
         if not self.connection.hasDatabase(dbName) :
             raise KeyError("Unknown database: %s" % dbName)
 
-        url = "%s/database/%s" % (self.URL, dbName)
+        url = "%s/database/%s" % (self.getURL(), dbName)
         r = self.connection.session.put(url, data = json.dumps({"grant": rights}, default=str))
         if r.status_code < 200 or r.status_code > 202 :
             raise CreationError("Unable to grant rights", r.content)
 
     def delete(self) :
         """Permanently remove the user"""
-        if not self.URL :
+        if not self.isSet :
             raise CreationError("Please save user first", None, None)
 
-        r = self.connection.session.delete(self.URL)
+        r = self.connection.session.delete(self.getURL())
         if r.status_code < 200 or r.status_code > 202 :
             raise DeletionError("Unable to delete user, url: %s, status: %s" %(r.url, r.status_code), r.content )
-
-        self.URL = None
+        self.isSet = False
 
     def __repr__(self) :
         return "ArangoUser: %s" % (self._store)
@@ -118,7 +120,9 @@ class Users(object) :
     """This one manages users."""
     def __init__(self, connection) :
         self.connection = connection
-        self.URL = "%s/user" % (self.connection.URL)
+    
+    def getURL(self) :
+        return "%s/user" % (self.connection.getURL())
 
     def createUser(self, username, password) :
         u = User(self)
@@ -128,7 +132,7 @@ class Users(object) :
 
     def fetchAllUsers(self, rawResults = False) :
         """Returns all available users. if rawResults, the result will be a list of python dicts instead of User objects"""
-        r = self.connection.session.get(self.URL)
+        r = self.connection.session.get(self.getURL())
         if r.status_code == 200 :
             data = r.json()
             if rawResults :
@@ -144,7 +148,7 @@ class Users(object) :
 
     def fetchUser(self, username, rawResults = False) :
         """Returns a single user. if rawResults, the result will be a list of python dicts instead of User objects"""
-        url = "%s/%s" % (self.URL, username)
+        url = "%s/%s" % (self.getURL(), username)
 
         r = self.connection.session.get(url)
         if r.status_code == 200 :

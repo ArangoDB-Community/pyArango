@@ -34,7 +34,7 @@ You can be 100% permissive or enforce schemas and validate fields, on set, on sa
 Installation
 ------------
 
-Supports python 2.7 and 3.4.
+Supports python 2.7 and 3.5.
 
 From PyPi:
 
@@ -188,7 +188,7 @@ A note on inheritence
 ----------------------
 
 There is no inheritence of the "_validation" and "_fields" dictionaries.
-If a class does not fully define it's own, the defaults will be automatically assigned to any missing value.
+If a class does not fully define its own, the defaults will be automatically assigned to any missing value.
 
 Creating Edges
 ----------------
