@@ -251,6 +251,8 @@ class Collection(object) :
 			"cap" : {},
 			"hash" : {},
 			"skiplist" : {},
+                        "persistent": {},
+                        "TTL": {},
 			"geo" : {},
 			"fulltext" : {},
 		}
@@ -313,6 +315,30 @@ class Collection(object) :
 		"""Creates a skiplist index if it does not already exist, and returns it"""
 		data = {
 			"type" : "skiplist",
+			"fields" : fields,
+			"unique" : unique,
+			"sparse" : sparse,
+		}
+		ind = Index(self, creationData = data)
+		self.indexes["skiplist"][ind.infos["id"]] = ind
+		return ind
+
+	def ensurePersistentIndex(self, fields, unique = False, sparse = True) :
+		"""Creates a persistent index if it does not already exist, and returns it"""
+		data = {
+			"type" : "persistent",
+			"fields" : fields,
+			"unique" : unique,
+			"sparse" : sparse,
+		}
+		ind = Index(self, creationData = data)
+		self.indexes["skiplist"][ind.infos["id"]] = ind
+		return ind
+
+	def ensureTTLIndex(self, fields, unique = False, sparse = True) :
+		"""Creates a TTL index if it does not already exist, and returns it"""
+		data = {
+			"type" : "TTL",
 			"fields" : fields,
 			"unique" : unique,
 			"sparse" : sparse,

@@ -20,6 +20,16 @@ class Connection(object) :
 		self.resetSession()
 		self.reload()
 
+        def getVersion(self) :
+                """fetches the arangodb server version"""
+		r = self.session.get(self.URL + "_api/version")
+		data = r.json()
+		if r.status_code == 200 and not data["error"] :
+			return data
+		else :
+			raise CreationError(data["errorMessage"], data)
+
+
 	def resetSession(self) :
 		"""resets the session"""
 		self.session = requests.Session()
