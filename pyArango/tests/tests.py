@@ -777,6 +777,18 @@ class pyArangoTests(unittest.TestCase):
         hashInd.delete()
         hashInd2 = pers.ensureHashIndex(["name"])
         self.assertTrue(hashInd.infos["id"] != hashInd2.infos["id"])
+        persInd = pers.ensurePersistentIndex(["name2"])
+        persInd.delete()
+        persInd = pers.ensurePersistentIndex(["name2"])
+        self.assertTrue(persInd.infos["id"] != hashInd.infos["id"])
+
+        ver = self.conn.getVersion()
+        if ver["version"] >= "3.5":
+            TTLInd = pers.ensureTTLIndex(["name3"], 123456)
+            TTLInd.delete()
+            TTLInd2 = pers.ensureTTLIndex(["name3"], 897345)
+            self.assertTrue(TTLInd.infos["id"] != hashInd.infos["id"])
+
 
         ftInd = pers.ensureFulltextIndex(["Description"])
         ftInd.delete()
