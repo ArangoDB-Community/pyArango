@@ -15,7 +15,7 @@ addons:
 before_script:
   - chmod 777 ./pyArango/tests/setup_arangodb.sh
   - ./pyArango/tests/setup_arangodb.sh
-  - pip install coverage gevent
+  - pip install coverage gevent enum
 
 install: python setup.py install
 
