@@ -10,6 +10,7 @@ from pyArango.graph import *
 from pyArango.users import *
 from pyArango.consts import *
 from pyArango.theExceptions import *
+from pyArango.collection import BulkOperation as BulkOperation
 
 class pyArangoTests(unittest.TestCase):
 
@@ -58,6 +59,85 @@ class pyArangoTests(unittest.TestCase):
             doc["species"] = "human"
             doc.save()
         return collection
+
+    def createManyUsersBulk(self, nbUsers, batchSize) :
+        docs = [];
+        collection = self.db.createCollection(name = "users")
+        with BulkOperation(collection, batchSize=batchSize) as col:
+            for i in range(nbUsers) :
+                doc = col.createDocument()
+                docs.append(doc)
+                doc["name"] = "Tesla-%d" % i
+                doc["number"] = i
+                doc["species"] = "human"
+                doc.save()
+        return (collection, docs)
+
+    def patchManyUsersBulk(self, collection, batchSize, skip, docs) :
+        count = 0
+        with BulkOperation(collection, batchSize=batchSize) as col:
+            i = 0;
+            while i < len(docs):
+                docs[i]["species"] = "robot"
+                docs[i]["xtrue"] = False
+                docs[i].patch()
+                i += skip
+                count += 1
+        return count
+
+    def deleteManyUsersBulk(self, collection, batchSize, skip, docs) :
+        count = 0
+        with BulkOperation(collection, batchSize=batchSize) as col:
+            i = 0;
+            while i < len(docs):
+                docs[i].delete()
+                i += skip
+                count += 1
+        return count
+
+    def test_bulk_operations(self):
+        (collection, docs) = self.createManyUsersBulk(55, 17)
+        self.assertEqual(collection.count(), len(docs))
+        newCount = self.patchManyUsersBulk(collection, 7, 3, docs)
+        aql = "let length = (FOR c IN @@col FILTER c.xtrue == false RETURN 1) RETURN count(length)"
+        q = self.db.AQLQuery(aql, rawResults = True, bindVars = {"@col": collection.name})
+        
+        self.assertEqual(len(q.result), 1)
+        self.assertEqual(q[0], newCount)
+        deleteCount = self.deleteManyUsersBulk(collection, 9, 4, docs)
+        self.assertEqual(len(docs) - deleteCount, collection.count())
+
+        # mixing bulk operations not supported, should throw:
+        with BulkOperation(collection, batchSize=99) as col:
+            doc = col.createDocument()
+            doc.save()
+            try:
+                docs[2]['something'] = 'abc'
+                docs[2].patch()
+                self.fail("should have raised while patching")
+            except UpdateError:
+                pass
+            try:
+                docs[2].delete()
+                self.fail("should have raised while deleting")
+            except UpdateError:
+                pass
+        with BulkOperation(collection, batchSize=99) as col:
+            docs[1].delete()
+            try:
+                docs[2]['something'] = 'abc'
+                docs[2].patch()
+                self.fail("should have raised")
+            except UpdateError:
+                pass
+            try:
+                doc = col.createDocument()
+                doc.save()
+                self.fail("should have raised")
+            except UpdateError:
+                pass
+
+        collection.delete()
 
     # @unittest.skip("stand by")
     def test_bulk_import(self):

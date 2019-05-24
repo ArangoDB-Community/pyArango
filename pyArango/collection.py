@@ -327,7 +327,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         if not self._bulkCache:
             return
         if self._bulkMode != BulkMode.INSERT:
-            raise UpdateError("Mixed bulk operations not supported - have " + self._bulkMode)
+            raise UpdateError("Mixed bulk operations not supported - have " + str(self._bulkMode))
         payload = []
         for d in self._bulkCache :
             if type(d) is dict :
@@ -339,7 +339,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
                     payload.append(json.dumps(d.getStore(), default=str))
 
         payload = '[' + ','.join(payload) + ']'
-        r = self.connection.session.post(self.documentsURL, params = self._batchParams, data = payload)
+        r = self.connection.session.post(self.getDocumentsURL(), params = self._batchParams, data = payload)
         data = r.json()
         if (not isinstance(data, list)):
             raise UpdateError("expected reply to be a json array" + r)
@@ -363,7 +363,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
     def _saveBatch(self, document, params):
         if self._bulkMode != BulkMode.NONE and self._bulkMode != BulkMode.INSERT:
-            raise UpdateError("Mixed bulk operations not supported - have " + self._bulkMode)
+            raise UpdateError("Mixed bulk operations not supported - have " + str(self._bulkMode))
         self._bulkMode = BulkMode.INSERT
         self._bulkCache.append(document)
         self._batchParams = params
@@ -375,7 +375,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         if not self._bulkCache:
             return
         if self._bulkMode != BulkMode.UPDATE:
-            raise UpdateError("Mixed bulk operations not supported - have " + self._bulkMode)
+            raise UpdateError("Mixed bulk operations not supported - have " + str(self._bulkMode))
         payload = []
         for d in self._bulkCache :
             dPayload = d._store.getPatches()
@@ -391,7 +391,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
                 except Exception as e:
                     payload.append(json.dumps(d.getStore(), default=str))
         payload = '[' + ','.join(payload) + ']'
-        r = self.connection.session.patch(self.documentsURL, params = self._batchParams, data = payload)
+        r = self.connection.session.patch(self.getDocumentsURL(), params = self._batchParams, data = payload)
         data = r.json()
         if (not isinstance(data, list)):
             raise UpdateError("expected reply to be a json array" + dir(r))
@@ -414,7 +414,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         
     def _patchBatch(self, document, params):
         if self._bulkMode != BulkMode.NONE and self._bulkMode != BulkMode.UPDATE:
-            raise UpdateError("Mixed bulk operations not supported - have " + self._bulkMode)
+            raise UpdateError("Mixed bulk operations not supported - have " + str(self._bulkMode))
         self._bulkMode = BulkMode.UPDATE
         self._bulkCache.append(document)
         self._batchParams = params
@@ -438,7 +438,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
                     payload.append('"%s"' % d['_key'])
 
         payload = '[' + ','.join(payload) + ']'
-        r = self.connection.session.delete(self.documentsURL + "/" + self.name, params = self._batchParams, data = payload)
+        r = self.connection.session.delete(self.getDocumentsURL() + "/" + self.name, params = self._batchParams, data = payload)
         data = r.json()
         if (not isinstance(data, list)):
             raise UpdateError("expected reply to be a json array" + r)
@@ -458,7 +458,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
     def _deleteBatch(self, document, params):
         if self._bulkMode != BulkMode.NONE and self._bulkMode != BulkMode.DELETE:
-            raise UpdateError("Mixed bulk operations not supported - have " + self._bulkMode)
+            raise UpdateError("Mixed bulk operations not supported - have " + str(self._bulkMode))
         self._bulkMode = BulkMode.DELETE
         self._bulkCache.append(document)
         self._batchParams = params
