@@ -13,12 +13,13 @@ addons:
     update: true
     
 before_script:
-  - pip upgrade
   - pip install coverage gevent enum setuptools
   - chmod 777 ./pyArango/tests/setup_arangodb.sh
   - ./pyArango/tests/setup_arangodb.sh
 
-install: python setup.py install
+install:
+  - pip install --upgrade --user pip
+  - python setup.py install
 
 script: coverage run -m unittest discover pyArango/tests/
 
