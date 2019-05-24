@@ -789,7 +789,6 @@ class pyArangoTests(unittest.TestCase):
             TTLInd2 = pers.ensureTTLIndex(["name3"], 897345)
             self.assertTrue(TTLInd.infos["id"] != hashInd.infos["id"])
 
-
         ftInd = pers.ensureFulltextIndex(["Description"])
         ftInd.delete()
         ftInd2 = pers.ensureFulltextIndex(["Description"])
