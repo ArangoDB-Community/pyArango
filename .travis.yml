@@ -18,7 +18,7 @@ before_script:
   - ./pyArango/tests/setup_arangodb.sh
 
 install:
-  - pip install --upgrade --user pip
+  - pip install --upgrade pip
   - python setup.py install
 
 script: coverage run -m unittest discover pyArango/tests/
