@@ -6,14 +6,20 @@ services:
 
 python:
   - "2.7"
-  - "3.5"
+  - "3.6"
 
+addons:
+  apt:
+    update: true
+    
 before_script:
   - chmod 777 ./pyArango/tests/setup_arangodb.sh
   - ./pyArango/tests/setup_arangodb.sh
-  - pip install coverage
 
-install: python setup.py install
+install:
+  - pip install --upgrade pip
+  - pip install coverage gevent setuptools enum34
+  - python setup.py install
 
 script: coverage run -m unittest discover pyArango/tests/
 
