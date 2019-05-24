@@ -13,11 +13,9 @@ addons:
     update: true
     
 before_script:
-  - sudo apt-get install -y python3-gevent python-gevent
   - chmod 777 ./pyArango/tests/setup_arangodb.sh
   - ./pyArango/tests/setup_arangodb.sh
-  - apt-g
-  - pip install coverage
+  - pip install coverage gevent
 
 install: python setup.py install
 
