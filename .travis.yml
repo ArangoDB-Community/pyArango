@@ -18,7 +18,7 @@ before_script:
 
 install:
   - pip install --upgrade pip
-  - pip install coverage gevent enum setuptools
+  - pip install coverage gevent setuptools
   - python setup.py install
 
 script: coverage run -m unittest discover pyArango/tests/
