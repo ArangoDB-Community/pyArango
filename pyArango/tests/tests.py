@@ -856,7 +856,7 @@ class pyArangoTests(unittest.TestCase):
         response = self.db.foxx.get("/_admin/aardvark/index.html")
         self.assertEqual(response.status_code, 200, "Check if db is running")
 
-    def test_foxx(self):
+    def test_foxx_service(self):
         response = self.db.foxx.service("/_admin/aardvark").get("/index.html")
         self.assertEqual(response.status_code, 200, "Check if db is running")
 
