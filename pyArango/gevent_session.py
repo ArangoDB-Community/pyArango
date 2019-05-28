@@ -145,7 +145,7 @@ class AikidoSession_GRequests(object):
         return req.response
 
     def post(self, url, data=None, json=None, **kwargs):
-        """HTTP post Method."""
+        """HTTP POST Method."""
         if data is not None:
             kwargs['data'] = data
         if json is not None:
@@ -157,13 +157,13 @@ class AikidoSession_GRequests(object):
         return self._run(req)
 
     def get(self, url, **kwargs):
-        """HTTP get Method."""
+        """HTTP GET Method."""
         kwargs['auth'] = self.auth
         req = grequests.get(url, **kwargs)
         return self._run(req)
 
     def put(self, url, data=None, **kwargs):
-        """HTTP put Method."""
+        """HTTP PUT Method."""
         if data is not None:
             kwargs['data'] = data
         kwargs['auth'] = self.auth
@@ -171,19 +171,19 @@ class AikidoSession_GRequests(object):
         return self._run(req)
 
     def head(self, url, **kwargs):
-        """HTTP head Method."""
+        """HTTP HEAD Method."""
         kwargs['auth'] = self.auth
         req = grequests.head(url, **kwargs)
         return self._run(req)
 
     def options(self, url, **kwargs):
-        """HTTP options Method."""
+        """HTTP OPTIONS Method."""
         kwargs['auth'] = self.auth
         req = grequests.options(url, **kwargs)
         return self._run(req)
 
     def patch(self, url, data=None, **kwargs):
-        """HTTP patch Method."""
+        """HTTP PATCH Method."""
         if data is not None:
             kwargs['data'] = data
         kwargs['auth'] = self.auth
@@ -191,7 +191,7 @@ class AikidoSession_GRequests(object):
         return self._run(req)
 
     def delete(self, url, **kwargs):
-        """HTTP delete Method."""
+        """HTTP DELETE Method."""
         kwargs['auth'] = self.auth
         req = grequests.delete(url, **kwargs)
         return self._run(req)
