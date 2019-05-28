@@ -69,16 +69,16 @@ class AikidoSession(object):
             self.log["nb_request"] = 0
             self.log["requests"] = {}
 
-    def __getattr__(self, requestion_function_name):
+    def __getattr__(self, request_function_name):
         try:
             session = requests.Session()
             http = requests.adapters.HTTPAdapter(max_retries=self.max_retries)
             https = requests.adapters.HTTPAdapter(max_retries=self.max_retries)
             session.mount('http://', http)
             session.mount('https://', https)
-            request_function = getattr(session, requestion_function_name)
+            request_function = getattr(session, request_function_name)
         except AttributeError:
-            raise AttributeError("Attribute '%s' not found (no Aikido move available)" % requestion_function_name)
+            raise AttributeError("Attribute '%s' not found (no Aikido move available)" % request_function_name)
 
         auth = object.__getattribute__(self, "auth")
         verify = object.__getattribute__(self, "verify")
