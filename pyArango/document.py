@@ -399,7 +399,7 @@ class Document(object) :
 
     def __dict__(self):
         if not self._store:
-            return []
+            return {}
         return dict(self._store)
 
     def __contains__(self, field) :
