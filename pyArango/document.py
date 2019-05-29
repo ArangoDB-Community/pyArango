@@ -210,7 +210,6 @@ class Document(object) :
 
     def setPrivates(self, fieldDict) :
         """will set self._id, self._rev and self._key field."""
-        
         for priv in self.privates :
             if priv in fieldDict :
                 setattr(self, priv, fieldDict[priv])
@@ -244,6 +243,11 @@ class Document(object) :
 
             if self.collection._validation['on_save'] :
                 self.validate()
+            if self.collection._isBulkInProgress :
+                if self._key is not None :
+                    payload["_key"] = self._key
+                self.collection._saveBatch(self, params)
+                return self._store.resetPatch()
             if self._id is None :
                 if self._key is not None :
                     payload["_key"] = self._key
@@ -294,14 +298,19 @@ class Document(object) :
         if self._id is None :
             raise ValueError("Cannot patch a document that was not previously saved")
 
+        params = dict(docArgs)
+        params.update({'collection': self.collection.name, 'keepNull' : keepNull})
+
+        if self.collection._isBulkInProgress :
+            self.collection._patchBatch(self, params )
+            return self._store.resetPatch()
+
         payload = self._store.getPatches()
         
         if self.collection._validation['on_save'] :
             self.validate()
 
         if len(payload) > 0 :
-            params = dict(docArgs)
-            params.update({'collection': self.collection.name, 'keepNull' : keepNull})
             payload = json.dumps(payload, default=str)
 
             r = self.connection.session.patch(self.getURL(), params = params, data = payload)
@@ -319,6 +328,13 @@ class Document(object) :
         "deletes the document from the database"
         if self._id is None :
             raise DeletionError("Can't delete a document that was not saved")
+        
+        if self.collection._isBulkInProgress :
+            params = {'collection': self.collection.name}
+            self.collection._deleteBatch(self, params)
+            self.modified = True
+            return
+
         r = self.connection.session.delete(self.getURL())
         data = r.json()
 

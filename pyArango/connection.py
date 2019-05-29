@@ -181,6 +181,15 @@ class Connection(object):
         if self.session:
             self.session.disconnect()
 
+    def getVersion(self) :
+        """fetches the arangodb server version"""
+        r = self.session.get(self.getURL() + "/version")
+        data = r.json()
+        if r.status_code == 200 and not "error" in data :
+            return data
+        else :
+            raise CreationError(data["errorMessage"], data)
+
     def resetSession(self, username=None, password=None, verify=True):
         """resets the session"""
         self.disconnectSession()
