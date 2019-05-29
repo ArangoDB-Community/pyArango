@@ -261,6 +261,8 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
             "primary" : {},
             "hash" : {},
             "skiplist" : {},
+            "persistent": {},
+            "ttl": {},
             "geo" : {},
             "fulltext" : {},
         }
@@ -273,7 +275,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
     def getURL(self) :
         return "%s/collection/%s" % (self.database.getURL(), self.name)
-    
+
     def getDocumentsURL(self) :
         return "%s/document" % (self.database.getURL())
 
@@ -523,6 +525,30 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
             "unique" : unique,
             "sparse" : sparse,
             "deduplicate": deduplicate
+        }
+        ind = Index(self, creationData = data)
+        self.indexes["skiplist"][ind.infos["id"]] = ind
+        return ind
+    def ensurePersistentIndex(self, fields, unique = False, sparse = True) :
+        """Creates a persistent index if it does not already exist, and returns it"""
+        data = {
+            "type" : "persistent",
+            "fields" : fields,
+            "unique" : unique,
+            "sparse" : sparse,
+        }
+        ind = Index(self, creationData = data)
+        self.indexes["skiplist"][ind.infos["id"]] = ind
+        return ind
+
+    def ensureTTLIndex(self, fields, expireAfter, unique = False, sparse = True) :
+        """Creates a TTL index if it does not already exist, and returns it"""
+        data = {
+            "type" : "ttl",
+            "fields" : fields,
+            "unique" : unique,
+            "sparse" : sparse,
+            "expireAfter" : expireAfter
         }
         ind = Index(self, creationData = data)
         self.indexes["skiplist"][ind.infos["id"]] = ind
