@@ -7,6 +7,7 @@ from . import consts as CONST
 from . import graph as GR
 
 from .document import Document
+from .foxx import Foxx
 from .graph import Graph
 from .query import AQLQuery
 from .theExceptions import CreationError, UpdateError, AQLQueryError, TransactionError, AQLFetchError
@@ -20,10 +21,9 @@ class Database(object) :
 
         self.name = name
         self.connection = connection
+        self.foxx = Foxx(self)
         self.collections = {}
 
-
-        self.collections = {}
         self.graphs = {}
 
         self.reload()
@@ -44,7 +44,7 @@ class Database(object) :
         return "%s/gharial" % self.getURL()
     
     def getTransactionURL(self) :
-        return  "%s/transaction" % self.getURL()
+        return "%s/transaction" % self.getURL()
     
     def reloadCollections(self) :
         "reloads the collection list."

@@ -863,6 +863,14 @@ class pyArangoTests(unittest.TestCase):
 
         Connection(arangoURL=ARANGODB_URL, username="pyArangoTest_tesla", password="newpass")
 
+    def test_foxx(self):
+        response = self.db.foxx.get("/_admin/aardvark/index.html")
+        self.assertEqual(response.status_code, 200, "Check if db is running")
+
+    def test_foxx_service(self):
+        response = self.db.foxx.service("/_admin/aardvark").get("/index.html")
+        self.assertEqual(response.status_code, 200, "Check if db is running")
+
 if __name__ == "__main__" :
     # Change default username/password in bash like this:
     # export ARANGODB_ROOT_USERNAME=myUserName
