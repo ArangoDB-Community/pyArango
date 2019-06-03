@@ -53,7 +53,6 @@ class DocumentStore(object) :
         res.update(self.store)
         for k, v in self.subStores.items() :
             res[k] = v.getStore()
-        
         return res
 
     def validateField(self, field) :
@@ -119,6 +118,18 @@ class DocumentStore(object) :
                 else :
                     self[field] = value
 
+    def __dir__(self):
+        return dir(self.getStore())
+
+    def __len__(self):
+        return len(self.store)
+
+    def __dict__(self):
+        return dict(self.store) + dict(self.patchStore)
+
+    def __contains__(self, field) :
+        return field in store
+        
     def __getitem__(self, field) :
         """Get an element from the store"""
         if (field in self.validators) and isinstance(self.validators[field], dict) and (field not in self.store) :
@@ -187,6 +198,7 @@ class Document(object) :
         self.privates = ["_id", "_key", "_rev"]
         self.reset(collection, jsonFieldInit)
         self.typeName = "ArangoDoc"
+        # self._store = None
 
     def reset(self, collection, jsonFieldInit = None) :
         if not jsonFieldInit:
@@ -214,7 +226,8 @@ class Document(object) :
             if priv in fieldDict :
                 setattr(self, priv, fieldDict[priv])
             else :
-                setattr(self, priv, None)
+                if priv not in ["_from", "_to"]:
+                    setattr(self, priv, None)
         
     def getURL(self) :
         if self._id is None :
@@ -373,10 +386,36 @@ class Document(object) :
         """return the patches in a dict format"""
         return self._store.getPatches()
 
+    def __dir__(self):
+        if not self._store:
+            return []
+        return dir(self._store)
+        
+    def __len__(self):
+        if not self._store:
+            return 0
+
+        return self._store.__len__()
+
+    def __dict__(self):
+        if not self._store:
+            return {}
+        return dict(self._store)
+
+    def __contains__(self, field) :
+        if not self._store:
+            return False
+        return field in self._store
+
     def __getitem__(self, k) :
         """get an element from the document"""
         if k in self.collection.arangoPrivates :
             return getattr(self, k)
+        return self._store[k]
+
+    def __getattr__(self, k) :
+        if not self._store:
+            return None
         return self._store[k]
 
     def __setitem__(self, k, v) :
@@ -384,10 +423,12 @@ class Document(object) :
         if k in self.collection.arangoPrivates :
             setattr(self, k, v)
         else :
+            self.modified = True
             self._store[k] = v
 
     def __delitem__(self, k) :
         """removes an element from the document"""
+        self.modified = True
         del(self._store[k])
     
     def __str__(self) :

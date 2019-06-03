@@ -252,9 +252,38 @@ class pyArangoTests(unittest.TestCase):
         e1 = ed.createEdge_({"name": 'tesla-edge'})
         e1.links(d1, d2)
 
+        # create an edge with one saved and one unsaved attribute:
         e2 = ed.createEdge()
+        e2['blarg'] = 'blub'
         e2.links(d1, d3)
+        self.assertEqual(1, len(e2))
+        e2['blub'] = 'blarg'
+        self.assertEqual(2, len(e2))
+
+        # should have two edges in total:
         self.assertEqual(2, ed.count())
+
+        # deleting property:
+        del e2['blarg']
+        self.assertEqual(1, len(e2))
+        e2.save()
+
+        # loading edge from collection, revify deletion, addition
+        e2_ = ed[e2._key]
+        self.assertEqual(1, len(e2_))
+        self.assertNotIn('blarg', e2_)
+        self.assertIn('blub', e2_)
+
+        # modify once more:
+        e2['start_date'] = "2018-03-23T23:27:40.029Z"
+        e2['end_date'] = "2018-04-13T00:00:00.000Z"
+        e2.save()
+
+        # load it once more
+        e2_ = ed[e2._key]
+        # should have saved properties:
+        self.assertEqual(e2.start_date, e2_.start_date)
+        
         self.db["to_be_erased"].delete()
         self.assertRaises(DeletionError, self.db["to_be_erased"].delete)
 
