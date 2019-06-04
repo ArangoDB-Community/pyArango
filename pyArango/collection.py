@@ -687,9 +687,9 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         params["type"] = "documents"
         params["onDuplicate"] = onDuplicate
         params["collection"] = self.name
-        URL = "%s/import" % self.database.getURL()
+        url = "%s/import" % self.database.getURL()
 
-        r = self.connection.session.post(URL, params = params, data = payload)
+        r = self.connection.session.post(url, params = params, data = payload)
         data = r.json()
         if (r.status_code == 201) and "error" not in data :
             return True
@@ -708,7 +708,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         params["type"] = formatType
         with open(filename) as f:
             data = f.read()
-            r = self.connection.session.post(URL, params = params, data = data)
+            r = self.connection.session.post(url, params = params, data = data)
 
             try :
                 errorMessage = "At least: %d errors. The first one is: '%s'\n\n more in <this_exception>.data" % (len(data), data[0]["errorMessage"])
@@ -723,7 +723,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         params["collection"] = self.name
         with open(filename) as f:
             data = f.read()
-            r = self.connection.session.post(URL, params = params, data = data)
+            r = self.connection.session.post(url, params = params, data = data)
 
             try :
                 errorMessage = "At least: %d errors. The first one is: '%s'\n\n more in <this_exception>.data" % (len(data), data[0]["errorMessage"])
