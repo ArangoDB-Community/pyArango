@@ -6,7 +6,7 @@ from . import consts as CONST
 
 from .document import Document, Edge
 
-from .theExceptions import ValidationError, SchemaViolation, CreationError, UpdateError, DeletionError, InvalidDocument, ExportError, DocumentNotFoundError, ArangoError, BulkOperationError
+from .theExceptions import ValidationError, SchemaViolation, CreationError, UpdateError, DeletionError, InvalidDocument, ExportError, DocumentNotFoundError, ArangoError, BulkOperationError, IndexError
 
 from .query import SimpleQuery
 from .index import Index
