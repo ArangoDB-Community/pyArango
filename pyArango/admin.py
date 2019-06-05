@@ -5,6 +5,8 @@ import types
 import requests
 
 from .connection import Connection
+from .theExceptions import (ArangoError)
+
 
 class Admin(object) :
     """administrative tasks with arangodb"""
@@ -18,7 +20,7 @@ class Admin(object) :
         if result.status_code < 400 :
             return result.json()
 
-        raise Exception("aoeu")
+        raise ArangoError(result.json()['errorMessage'], result.json())
 
     def is_cluster(self):
         status = self.status()

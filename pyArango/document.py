@@ -1,5 +1,5 @@
 import json, types
-from .theExceptions import (CreationError, DeletionError, UpdateError, ValidationError, SchemaViolation, InvalidDocument)
+from .theExceptions import (CreationError, DeletionError, UpdateError, ValidationError, SchemaViolation, InvalidDocument, ArangoError)
 
 __all__ = ["DocumentStore", "Document", "Edge"]
 
