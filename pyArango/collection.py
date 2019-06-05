@@ -6,7 +6,7 @@ from . import consts as CONST
 
 from .document import Document, Edge
 
-from .theExceptions import ValidationError, SchemaViolation, CreationError, UpdateError, DeletionError, InvalidDocument, ExportError, DocumentNotFoundError, ArangoError, BulkOperationError
+from .theExceptions import ValidationError, SchemaViolation, CreationError, UpdateError, DeletionError, InvalidDocument, ExportError, DocumentNotFoundError, ArangoError, BulkOperationError, IndexError
 
 from .query import SimpleQuery
 from .index import Index
@@ -266,6 +266,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
             "geo" : {},
             "fulltext" : {},
         }
+        self.indexes_by_name = {}
 
         self.defaultDocument = getDefaultDoc(self._fields, {})
         self._isBulkInProgress = False
@@ -281,13 +282,22 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
 
     def getIndexes(self) :
         """Fills self.indexes with all the indexes associates with the collection and returns it"""
+        self.indexes_by_name = {}
         url = "%s/index" % self.database.getURL()
         r = self.connection.session.get(url, params = {"collection": self.name})
         data = r.json()
         for ind in data["indexes"] :
-            self.indexes[ind["type"]][ind["id"]] = Index(collection = self, infos = ind)
+            index = Index(collection = self, infos = ind)
+            self.indexes[ind["type"]][ind["id"]] = index
+            if "name" in ind:
+                self.indexes_by_name[ind["name"]] = index
 
         return self.indexes
+
+    def getIndex(self, name):
+        if len(self.indexes_by_name) == 0:
+            raise IndexError("named indices unsupported")
+        return self.indexes_by_name[name]
 
     def activateCache(self, cacheSize) :
         """Activate the caching system. Cached documents are only available through the __getitem__ interface"""
@@ -504,7 +514,7 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
         docs = data['result']
         return docs
 
-    def ensureHashIndex(self, fields, unique = False, sparse = True, deduplicate = False) :
+    def ensureHashIndex(self, fields, unique = False, sparse = True, deduplicate = False, name = None) :
         """Creates a hash index if it does not already exist, and returns it"""
         data = {
             "type" : "hash",
@@ -513,11 +523,15 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
             "sparse" : sparse,
             "deduplicate": deduplicate
         }
+        if name:
+            data["name"] = name
         ind = Index(self, creationData = data)
         self.indexes["hash"][ind.infos["id"]] = ind
+        if name:
+            self.indexes_by_name[name] = ind
         return ind
 
-    def ensureSkiplistIndex(self, fields, unique = False, sparse = True, deduplicate = False) :
+    def ensureSkiplistIndex(self, fields, unique = False, sparse = True, deduplicate = False, name = None) :
         """Creates a skiplist index if it does not already exist, and returns it"""
         data = {
             "type" : "skiplist",
@@ -526,10 +540,14 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
             "sparse" : sparse,
             "deduplicate": deduplicate
         }
+        if name:
+            data["name"] = name
         ind = Index(self, creationData = data)
         self.indexes["skiplist"][ind.infos["id"]] = ind
+        if name:
+            self.indexes_by_name[name] = ind
         return ind
-    def ensurePersistentIndex(self, fields, unique = False, sparse = True) :
+    def ensurePersistentIndex(self, fields, unique = False, sparse = True, name = None) :
         """Creates a persistent index if it does not already exist, and returns it"""
         data = {
             "type" : "persistent",
@@ -537,11 +555,15 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
             "unique" : unique,
             "sparse" : sparse,
         }
+        if name:
+            data["name"] = name
         ind = Index(self, creationData = data)
         self.indexes["skiplist"][ind.infos["id"]] = ind
+        if name:
+            self.indexes_by_name[name] = ind
         return ind
 
-    def ensureTTLIndex(self, fields, expireAfter, unique = False, sparse = True) :
+    def ensureTTLIndex(self, fields, expireAfter, unique = False, sparse = True, name = None) :
         """Creates a TTL index if it does not already exist, and returns it"""
         data = {
             "type" : "ttl",
@@ -550,31 +572,43 @@ class Collection(with_metaclass(Collection_metaclass, object)) :
             "sparse" : sparse,
             "expireAfter" : expireAfter
         }
+        if name:
+            data["name"] = name
         ind = Index(self, creationData = data)
         self.indexes["skiplist"][ind.infos["id"]] = ind
+        if name:
+            self.indexes_by_name[name] = ind
         return ind
 
-    def ensureGeoIndex(self, fields) :
+    def ensureGeoIndex(self, fields, name = None) :
         """Creates a geo index if it does not already exist, and returns it"""
         data = {
             "type" : "geo",
             "fields" : fields,
         }
+        if name:
+            data["name"] = name
         ind = Index(self, creationData = data)
         self.indexes["geo"][ind.infos["id"]] = ind
+        if name:
+            self.indexes_by_name[name] = ind
         return ind
 
-    def ensureFulltextIndex(self, fields, minLength = None) :
+    def ensureFulltextIndex(self, fields, minLength = None, name = None) :
         """Creates a fulltext index if it does not already exist, and returns it"""
         data = {
             "type" : "fulltext",
             "fields" : fields,
         }
+        if name:
+            data["name"] = name
         if minLength is not None :
             data["minLength"] = minLength
 
         ind = Index(self, creationData = data)
         self.indexes["fulltext"][ind.infos["id"]] = ind
+        if name:
+            self.indexes_by_name[name] = ind
         return ind
 
 
