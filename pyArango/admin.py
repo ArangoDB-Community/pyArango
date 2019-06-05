@@ -8,7 +8,7 @@ from .connection import Connection
 from .theExceptions import (ArangoError)
 
 
-class Admin(object) :
+class Admin(object):
     """administrative tasks with arangodb"""
     def __init__(self, connection):
         self.connection = connection
@@ -17,7 +17,7 @@ class Admin(object) :
         """ fetches the server status."""
         url = "%s/_admin/status" % self.connection.getEndpointURL()
         result = self.connection.session.get(url)
-        if result.status_code < 400 :
+        if result.status_code < 400:
             return result.json()
 
         raise ArangoError(result.json()['errorMessage'], result.json())

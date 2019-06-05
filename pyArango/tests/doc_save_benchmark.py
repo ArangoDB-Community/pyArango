@@ -8,7 +8,7 @@ from pyArango.collection import *
 
 # A little script to test performaces
 
-def createUsers(collection, i) :
+def createUsers(collection, i):
     doc = collection.createDocument()
     doc["name"] = "Tesla-%d" % i
     doc["number"] = i
@@ -19,15 +19,15 @@ conn = Connection(username="root", password="root")
 # conn = Connection(username=None, password=None)
 
 print ("Creating db...")
-try :
+try:
     db = conn.createDatabase(name = "test_db_2")
-except :
+except:
     print ("DB already exists")
 db = conn["test_db_2"]
 
-try :
+try:
     collection = db.createCollection(name = "users")
-except :
+except:
     print ("Collection already exists")
 
 collection = db["users"]
@@ -36,10 +36,10 @@ collection.truncate()
 startTime = time.time()
 nbUsers = 1000000
 
-for i in range(nbUsers) :
-    if i % 1000 == 0 :
+for i in range(nbUsers):
+    if i % 1000 == 0:
         print ("->", i, "saved")
-    try :
+    try:
         createUsers(collection, i)
     except Exception as e:
         print ("died at", i)

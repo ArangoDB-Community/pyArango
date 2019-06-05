@@ -1,17 +1,17 @@
 """Gevent Session."""
 
-try :
+try:
     import grequests
     import gevent
     from gevent.threading import Lock
-except ModuleNotFoundError as e :
+except ModuleNotFoundError as e:
     print("grequests is not installed, try pip install grequests")
     raise e
 
-try :
+try:
     import gevent
     from gevent.threading import Lock
-except ModuleNotFoundError as e :
+except ModuleNotFoundError as e:
     print("gevent is not installed, try pip install gevent")
     raise e
 
