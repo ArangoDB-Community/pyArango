@@ -1,7 +1,7 @@
 #!/bin/bash
 
-docker pull arangodb/arangodb-preview:devel
-docker run -d -e ARANGO_ROOT_PASSWORD="root" -p 8529:8529 arangodb/arangodb-preview:devel
+docker pull arangodb/arangodb-preview:devel-nightly
+docker run -d -e ARANGO_ROOT_PASSWORD="root" -p 8529:8529 arangodb/arangodb-preview:devel-nightly
 
 sleep 2
 

@@ -373,6 +373,14 @@ class Document(object) :
         except AttributeError :
             raise AttributeError("%s does not seem to be a valid Edges object" % edges)
 
+    def getResponsibleShard(self):
+        """ If we're working with an arangodb cluster, we can use this method to fetch where a document lives."""
+
+        result = self.connection.session.put("%s/responsibleShard" % self.collection.getURL(), data = json.dumps(self.getStore()))
+        if result.status_code == 200:
+            return result.json()["shardId"]
+        raise ArangoError(result.json()['errorMessage'], result.json())
+
     def getStore(self) :
         """return the store in a dict format"""
         store = self._store.getStore()

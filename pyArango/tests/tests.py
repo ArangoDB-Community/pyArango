@@ -11,6 +11,7 @@ from pyArango.users import *
 from pyArango.consts import *
 from pyArango.theExceptions import *
 from pyArango.collection import BulkOperation as BulkOperation
+from pyArango.admin import *
 
 class pyArangoTests(unittest.TestCase):
 
@@ -31,6 +32,9 @@ class pyArangoTests(unittest.TestCase):
             pass
 
         self.db = self.conn["test_db_2"]
+        self.admin = Admin(self.conn)
+        self.is_cluster = self.admin.is_cluster()
+        self.server_version = self.conn.getVersion()
         self._reset()
 
     def _reset(self) :
@@ -167,7 +171,11 @@ class pyArangoTests(unittest.TestCase):
             users.append(user)
         with self.assertRaises(CreationError):
             usersCollection.importBulk(users, onDuplicate="error", complete=True)
-        self.assertEqual(usersCollection.count(), 0)
+        expectCount = 0
+        if self.is_cluster:
+            # The cluster can't do a complete rollback.
+            expectCount = 1
+        self.assertEqual(usersCollection.count(), expectCount)
 
     # @unittest.skip("stand by")
     def test_bulk_import_error_return_value(self):
@@ -306,6 +314,11 @@ class pyArangoTests(unittest.TestCase):
         doc["name"] = "Tesla"
         self.assertTrue(doc._id is None)
         doc.save()
+
+        if self.server_version["version"] >= "3.5" and self.is_cluster:
+            shardID = doc.getResponsibleShard()
+            self.assertTrue(shardID.startswith("s"))
+
         self.assertTrue(doc._id is not None)
         did = copy.copy(doc._id)
         doc["name"] = "Tesla2"
@@ -872,6 +885,11 @@ class pyArangoTests(unittest.TestCase):
 
     # @unittest.skip("stand by")
     def testIndexes(self) :
+        haveNamedIndices = self.server_version["version"] >= "3.5"
+        def getName(name):
+            if haveNamedIndices:
+                return name
+            return None
         class persons(Collection) :
             _fields = {
                 "name" : Field(),
@@ -882,35 +900,41 @@ class pyArangoTests(unittest.TestCase):
 
         pers = self.db.createCollection("persons")
 
-        hashInd = pers.ensureHashIndex(["name"])
+        hashInd = pers.ensureHashIndex(["name"], name = getName("hi1"))
         hashInd.delete()
-        hashInd2 = pers.ensureHashIndex(["name"])
+        hashInd2 = pers.ensureHashIndex(["name"], name = getName("hi2"))
+        if haveNamedIndices:
+            self.assertEqual(pers.getIndex("hi2"), hashInd2)
+            pers.getIndexes()
+            # after reloading the indices, some more attributes will be there, thus
+            # only compare for its actual ID:
+            self.assertEqual(pers.getIndex("hi2").infos['id'], hashInd2.infos['id'])
+            
         self.assertTrue(hashInd.infos["id"] != hashInd2.infos["id"])
-        persInd = pers.ensurePersistentIndex(["name2"])
+        persInd = pers.ensurePersistentIndex(["name2"], name = getName("pers"))
         persInd.delete()
-        persInd = pers.ensurePersistentIndex(["name2"])
+        persInd = pers.ensurePersistentIndex(["name2"], name = getName("pers"))
         self.assertTrue(persInd.infos["id"] != hashInd.infos["id"])
 
-        ver = self.conn.getVersion()
-        if ver["version"] >= "3.5":
-            TTLInd = pers.ensureTTLIndex(["name3"], 123456)
+        if self.server_version["version"] >= "3.5":
+            TTLInd = pers.ensureTTLIndex(["name3"], 123456, name = getName("ttl"))
             TTLInd.delete()
-            TTLInd2 = pers.ensureTTLIndex(["name3"], 897345)
+            TTLInd2 = pers.ensureTTLIndex(["name3"], 897345, name = getName("ttl"))
             self.assertTrue(TTLInd.infos["id"] != hashInd.infos["id"])
 
-        ftInd = pers.ensureFulltextIndex(["Description"])
+        ftInd = pers.ensureFulltextIndex(["Description"], name = getName("ft"))
         ftInd.delete()
-        ftInd2 = pers.ensureFulltextIndex(["Description"])
+        ftInd2 = pers.ensureFulltextIndex(["Description"], name = getName("ft2"))
         self.assertTrue(ftInd.infos["id"] != ftInd2.infos["id"])
 
-        skipInd = pers.ensureFulltextIndex(["skip"])
+        skipInd = pers.ensureFulltextIndex(["skip"], name = getName("ft3"))
         skipInd.delete()
-        skipInd2 = pers.ensureFulltextIndex(["skip"])
+        skipInd2 = pers.ensureFulltextIndex(["skip"], name = getName("skip"))
         self.assertTrue(skipInd.infos["id"] != skipInd2.infos["id"])
 
-        geoInd = pers.ensureFulltextIndex(["geo"])
+        geoInd = pers.ensureFulltextIndex(["geo"], name = getName("geo"))
         geoInd.delete()
-        geoInd2 = pers.ensureFulltextIndex(["geo"])
+        geoInd2 = pers.ensureFulltextIndex(["geo"], name = getName("geo2"))
         self.assertTrue(geoInd.infos["id"] != geoInd2.infos["id"])
 
     # @unittest.skip("stand by")

@@ -31,6 +31,13 @@ class CreationError(pyArangoException) :
             errors = {}
         pyArangoException.__init__(self, message, errors)
 
+class IndexError(pyArangoException) :
+    """wasn't able to get the index"""
+    def __init__(self, message, errors = None) :
+        if errors is None :
+            errors = {}
+        pyArangoException.__init__(self, message, errors)
+
 class UpdateError(pyArangoException) :
     """Something went wrong when updating something"""
     def __init__(self, message, errors = None) :
