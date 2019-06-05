@@ -6,6 +6,34 @@ pyArango
 .. image:: https://img.shields.io/badge/python-2.7%2C%203.5-blue.svg
 .. image:: https://img.shields.io/badge/arangodb-3.0-blue.svg
 
+This repository is a fork of the pyArango community repository.
+
+Why this fork?
+
+Any Python user can interact directly with the ArangoDB HTTP API
+by creating the appropriate json request strings and using the
+Requests library to communicate with the ArangoDB HTTP API.
+
+However, this situation is clumsy, error prone, and slow. This
+is why it is desirable to develop a Pythonic API interface for 
+Python developers.
+
+Unfortunately, the Python API developed by the ArangoDB community 
+Github account was originally designed with Javascript developers
+in mind. The style and coding practices followed are the 
+result of Javascript developers writing code using their preferred
+styles and patterns.
+
+In particular, the authors of the Pyarango Python API have not 
+followed PEP8, I can say, at all.
+
+I did submit a pull request. Unfortunately, however, the authors
+believed that PEP8 was an opinion at best, and did not accept the PR.
+
+This fork therefore fills the need for a PYTHONIC way to interact with 
+the ArangoDB HTTP API.
+
+
 NoSQL is really cool, but in this harsh world it is impossible to live without field validation.
 
 **WARNING**: The last versions of pyArango are only compatible with ArangoDB 3.X. For the old version checkout the branch ArangoDBV2_
