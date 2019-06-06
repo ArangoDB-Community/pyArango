@@ -13,7 +13,7 @@ from pyArango.collection import BulkOperation as BulkOperation
 
 allUsers = []
 
-def createUsers(collection, i) :
+def createUsers(collection, i):
     global allUsers
     doc = collection.createDocument()
     doc["name"] = "Tesla-%d" % i
@@ -23,7 +23,7 @@ def createUsers(collection, i) :
     doc.save()
 
 allLinks = []
-def linkUsers(collection, userA, userB, count) :
+def linkUsers(collection, userA, userB, count):
     global allLinks
     doc = collection.createEdge()
     doc["count"] = count
@@ -34,20 +34,20 @@ conn = Connection(username="root", password="")
 # conn = Connection(username=None, password=None)
 
 print ("Creating db...")
-try :
+try:
     db = conn.createDatabase(name = "test_db_2")
-except :
+except:
     print ("DB already exists")
 db = conn["test_db_2"]
 
-try :
+try:
     collection = db.createCollection(name = "users")
-except :
+except:
     print ("Collection already exists")
 
-try :
+try:
     relcol = db.createCollection(className = 'Edges', name = "relations")
-except :
+except:
     print ("Relations Collection already exists")
 
 collection = db["users"]
@@ -62,10 +62,10 @@ batchSize = 500
 
 print("Saving Users: ")
 with BulkOperation(collection, batchSize=batchSize) as col:
-    for i in range(nbUsers) :
-        if i % 1000 == 0 :
+    for i in range(nbUsers):
+        if i % 1000 == 0:
             print ("->", i, "saved")
-        try :
+        try:
             createUsers(col, i)
         except Exception as e:
             print ("died at", i)
@@ -73,9 +73,9 @@ with BulkOperation(collection, batchSize=batchSize) as col:
 
 i = 0
 with BulkOperation(relcol, batchSize=batchSize) as col:
-    for userA in allUsers :
+    for userA in allUsers:
         i += 1
-        try :
+        try:
             otherUser = random.choice(allUsers)
             linkUsers(col, userA, otherUser, i)
         except Exception as e:
@@ -84,8 +84,8 @@ with BulkOperation(relcol, batchSize=batchSize) as col:
 
 print("Modifying relations: \n")
 with BulkOperation(relcol, batchSize=batchSize) as col:
-    for link in allLinks :
-        try :
+    for link in allLinks:
+        try:
             link.set({'modified': 'true'})
             link.patch()
         except Exception as e:
@@ -94,8 +94,8 @@ with BulkOperation(relcol, batchSize=batchSize) as col:
 
 print("Modifying Users: \n")
 with BulkOperation(collection, batchSize=batchSize) as col:
-    for user in allUsers :
-        try :
+    for user in allUsers:
+        try:
             user.set({'modified': 'true'})
             user.patch()
         except Exception as e:
@@ -104,8 +104,8 @@ with BulkOperation(collection, batchSize=batchSize) as col:
 
 print("Deleting relations: \n")
 with BulkOperation(relcol, batchSize=batchSize) as col:
-    for link in allLinks :
-        try :
+    for link in allLinks:
+        try:
             link.delete()
         except Exception as e:
             print ("died at", link)
@@ -113,8 +113,8 @@ with BulkOperation(relcol, batchSize=batchSize) as col:
 
 print("Deleting Users: \n")
 with BulkOperation(collection, batchSize=batchSize) as col:
-    for user in allUsers :
-        try :
+    for user in allUsers:
+        try:
             user.delete()
         except Exception as e:
             print ("died at", link)

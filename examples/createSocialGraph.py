@@ -6,22 +6,22 @@ from pyArango.collection import *
 
 
 class Social(object):
-        class male(Collection) :
+        class male(Collection):
             _fields = {
                 "name" : Field()
             }
             
-        class female(Collection) :
+        class female(Collection):
             _fields = {
                 "name" : Field()
             }
             
-        class relation(Edges) :
+        class relation(Edges):
             _fields = {
                 "number" : Field()
             }
             
-        class social(Graph) :
+        class social(Graph):
 
             _edgeDefinitions = (EdgeDefinition ('relation',
                                                 fromCollections = ["female", "male"],
