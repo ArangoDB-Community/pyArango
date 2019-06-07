@@ -176,9 +176,14 @@ class DocumentStore(object):
             del(self.store[k])
         except:
             pass
-    
+
         try:
             del(self.patchStore[k])
+        except:
+            pass
+
+        try:
+            del(self.subStores[k])
         except:
             pass
 
