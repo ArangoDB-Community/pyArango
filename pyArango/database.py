@@ -9,6 +9,7 @@ from . import graph as GR
 from .action import DatabaseAction
 from .document import Document
 from .foxx import Foxx
+from .tasks import Tasks
 from .graph import Graph
 from .query import AQLQuery
 from .theExceptions import CreationError, UpdateError, AQLQueryError, TransactionError, AQLFetchError
@@ -26,6 +27,7 @@ class Database(object) :
         self.collections = {}
         self.graphs = {}
         self.foxx = Foxx(self)
+        self.tasks = Tasks(self)
 
         self.reload()
 
