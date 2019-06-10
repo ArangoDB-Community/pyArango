@@ -1,73 +1,15 @@
 """All foxx related methods."""
+from .action import DatabaseAction
 
 
-class _BaseFoxx:
-    """Base class for using the session to execute foxx."""
-
-    @property
-    def session(self):
-        """Session of the connection."""
-        raise NotImplementedError
-
-    def getBaseUrl(self):
-        """Database base url for calling foxx."""
-        raise NotImplementedError
-
-    def get(self, url, **kwargs):
-        """HTTP GET Method."""
-        foxx_url = '%s%s' % (self.getBaseUrl(), url)
-        return self.session.get(foxx_url, **kwargs)
-
-    def post(self, url, data=None, json=None, **kwargs):
-        """HTTP POST Method."""
-        foxx_url = '%s%s' % (self.getBaseUrl(), url)
-        return self.session.post(
-            foxx_url, data, json, **kwargs
-        )
-
-    def put(self, url, data=None, **kwargs):
-        """HTTP PUT Method."""
-        foxx_url = '%s%s' % (self.getBaseUrl(), url)
-        return self.session.put(foxx_url, data, **kwargs)
-
-    def head(self, url, **kwargs):
-        """HTTP HEAD Method."""
-        foxx_url = '%s%s' % (self.getBaseUrl(), url)
-        return self.session.head(foxx_url, **kwargs)
-
-    def options(self, url, **kwargs):
-        """HTTP OPTIONS Method."""
-        foxx_url = '%s%s' % (self.getBaseUrl(), url)
-        return self.session.options(foxx_url, **kwargs)
-
-    def patch(self, url, data=None, **kwargs):
-        """HTTP PATCH Method."""
-        foxx_url = '%s%s' % (self.getBaseUrl(), url)
-        return self.session.patch(foxx_url, data, **kwargs)
-
-    def delete(self, url, **kwargs):
-        """HTTP DELETE Method."""
-        foxx_url = '%s%s' % (self.getBaseUrl(), url)
-        return self.session.delete(foxx_url, **kwargs)
-
-
-class Foxx(_BaseFoxx):
+class Foxx:
     """A generic foxx function executor."""
 
     def __init__(self, database):
-        """Initialise the database."""
+        """Initialise database and its services."""
         self.database = database
-
-    @property
-    def session(self):
-        """Session of the connection."""
-        return self.database.connection.session
-
-    def getBaseUrl(self):
-        """Database base url for calling foxx."""
-        return '%s/_db/%s' % (
-            self.database.connection.getEndpointURL(), self.database.name
-        )
+        self.services = []
+        self.mounts = {}
 
     def service(self, mount):
         """Return a service so that only route after the mount.
@@ -83,10 +25,24 @@ class Foxx(_BaseFoxx):
             A mounted service
 
         """
+        if mount not in self.mounts:
+            self.reload()
+        if mount not in self.mounts:
+            raise ValueError("Unable to find the mount: '%s'", mount)
         return FoxxService(self.database, mount)
 
+    def get_available_services(self):
+        response = self.database.action.get('/_api/foxx', params={'excludeSystem': False})
+        response.raise_for_status()
+        return response.json()
 
-class FoxxService(_BaseFoxx):
+    def reload(self):
+        self.services = self.get_available_services()
+        self.mounts = {service['mount'] for service in self.services}
+
+
+
+class FoxxService(DatabaseAction):
     """A foxx mount function executor."""
 
     def __init__(self, database, mount):
@@ -95,12 +51,8 @@ class FoxxService(_BaseFoxx):
         self.mount = mount
 
     @property
-    def session(self):
-        """Session of the connection."""
-        return self.database.connection.session
-
-    def getBaseUrl(self):
-        """Database base url for calling mounted foxx function."""
+    def end_point_url(self):
+        """End point url for foxx service."""
         return '%s/_db/%s%s' % (
             self.database.connection.getEndpointURL(), self.database.name,
             self.mount

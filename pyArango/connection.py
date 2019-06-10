@@ -4,6 +4,7 @@ from datetime import datetime
 
 import requests
 
+from .action import ConnectionAction
 from .database import Database, DBHandle
 from .theExceptions import CreationError, ConnectionError
 from .users import Users
@@ -124,6 +125,7 @@ class Connection(object):
         self.use_jwt_authentication = use_jwt_authentication
         self.use_lock_for_reseting_jwt = use_lock_for_reseting_jwt
         self.max_retries = max_retries
+        self.action = ConnectionAction(self)
 
         self.databases = {}
         self.verbose = verbose

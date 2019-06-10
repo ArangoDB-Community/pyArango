@@ -6,8 +6,10 @@ from . import collection as COL
 from . import consts as CONST
 from . import graph as GR
 
+from .action import DatabaseAction
 from .document import Document
 from .foxx import Foxx
+from .tasks import Tasks
 from .graph import Graph
 from .query import AQLQuery
 from .theExceptions import CreationError, UpdateError, AQLQueryError, TransactionError, AQLFetchError
@@ -21,10 +23,11 @@ class Database(object):
 
         self.name = name
         self.connection = connection
-        self.foxx = Foxx(self)
+        self.action = DatabaseAction(self)
         self.collections = {}
-
         self.graphs = {}
+        self.foxx = Foxx(self)
+        self.tasks = Tasks(self)
 
         self.reload()
 
@@ -92,6 +95,7 @@ class Database(object):
         "reloads collections and graphs"
         self.reloadCollections()
         self.reloadGraphs()
+        self.foxx.reload()
 
     def createCollection(self, className = 'Collection', **colProperties):
         """Creates a collection and returns it.

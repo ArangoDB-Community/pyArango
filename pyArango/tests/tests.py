@@ -996,13 +996,31 @@ class pyArangoTests(unittest.TestCase):
 
         Connection(arangoURL=ARANGODB_URL, username="pyArangoTest_tesla", password="newpass")
 
-    def test_foxx(self):
-        response = self.db.foxx.get("/_admin/aardvark/index.html")
+    def test_action(self):
+        response = self.db.action.get("/_admin/aardvark/index.html")
         self.assertEqual(response.status_code, 200, "Check if db is running")
 
     def test_foxx_service(self):
         response = self.db.foxx.service("/_admin/aardvark").get("/index.html")
         self.assertEqual(response.status_code, 200, "Check if db is running")
+
+    def test_tasks(self):
+        db_tasks = self.db.tasks
+        self.assertListEqual(db_tasks(), [])
+        task = db_tasks.create(
+            'sample-task', 'console.log("sample-task", new Date());',
+            period=10
+        )
+        task_id = task['id']
+        fetched_task = db_tasks.fetch(task_id)
+        fetched_task['offset'] = int(fetched_task['offset'])
+        self.assertDictEqual(task, fetched_task)
+        tasks = db_tasks()
+        tasks[0]['offset'] = int(tasks[0]['offset'])
+        self.assertListEqual(tasks, [task])
+        db_tasks.delete(task_id)
+        self.assertListEqual(db_tasks(), [])
+
 
 if __name__ == "__main__":
     # Change default username/password in bash like this:
