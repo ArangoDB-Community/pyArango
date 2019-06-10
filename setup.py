@@ -44,7 +44,7 @@ setup(
         'Programming Language :: Python :: 3',
     ],
 
-    install_requires=['requests>=2.7.0', 'future', 'datetime', 'grequests', 'gevent'],
+    install_requires=['requests>=2.7.0', 'future', 'datetime'],
 
     keywords='database ORM nosql arangodb driver validation',
 

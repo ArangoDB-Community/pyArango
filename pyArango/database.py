@@ -16,10 +16,10 @@ from .theExceptions import CreationError, UpdateError, AQLQueryError, Transactio
 
 __all__ = ["Database", "DBHandle"]
 
-class Database(object) :
+class Database(object):
     """Databases are meant to be instanciated by connections"""
 
-    def __init__(self, connection, name) :
+    def __init__(self, connection, name):
 
         self.name = name
         self.connection = connection
@@ -31,73 +31,73 @@ class Database(object) :
 
         self.reload()
 
-    def getURL(self) :
+    def getURL(self):
         return '%s/_db/%s/_api' % (self.connection.getEndpointURL(), self.name)
 
-    def getCollectionsURL(self) :
+    def getCollectionsURL(self):
         return '%s/collection' % (self.getURL())
     
-    def getCursorsURL(self) :
+    def getCursorsURL(self):
         return '%s/cursor' % (self.getURL())
         
-    def getExplainURL(self) :
+    def getExplainURL(self):
         return '%s/explain' % (self.getURL())
         
-    def getGraphsURL(self) :
+    def getGraphsURL(self):
         return "%s/gharial" % self.getURL()
     
-    def getTransactionURL(self) :
+    def getTransactionURL(self):
         return "%s/transaction" % self.getURL()
     
-    def reloadCollections(self) :
+    def reloadCollections(self):
         "reloads the collection list."
         r = self.connection.session.get(self.getCollectionsURL())
         data = r.json()
-        if r.status_code == 200 :
+        if r.status_code == 200:
             self.collections = {}
 
-            for colData in data["result"] :
+            for colData in data["result"]:
                 colName = colData['name']
-                if colData['isSystem'] :
+                if colData['isSystem']:
                     colObj = COL.SystemCollection(self, colData)
-                else :
-                    try :
+                else:
+                    try:
                         colClass = COL.getCollectionClass(colName)
                         colObj = colClass(self, colData)
-                    except KeyError :
-                        if colData["type"] == CONST.COLLECTION_EDGE_TYPE :
+                    except KeyError:
+                        if colData["type"] == CONST.COLLECTION_EDGE_TYPE:
                             colObj = COL.Edges(self, colData)
-                        elif colData["type"] == CONST.COLLECTION_DOCUMENT_TYPE :
+                        elif colData["type"] == CONST.COLLECTION_DOCUMENT_TYPE:
                             colObj = COL.Collection(self, colData)
-                        else :
+                        else:
                             print(("Warning!! Collection of unknown type: %d, trying to load it as Collection nonetheless." % colData["type"]))
                             colObj = COL.Collection(self, colData)
 
                 self.collections[colName] = colObj
-        else :
+        else:
             raise UpdateError(data["errorMessage"], data)
 
-    def reloadGraphs(self) :
+    def reloadGraphs(self):
         "reloads the graph list"
         r = self.connection.session.get(self.getGraphsURL())
         data = r.json()
-        if r.status_code == 200 :
+        if r.status_code == 200:
             self.graphs = {}
-            for graphData in data["graphs"] :
-                try :
+            for graphData in data["graphs"]:
+                try:
                     self.graphs[graphData["_key"]] = GR.getGraphClass(graphData["_key"])(self, graphData)
-                except KeyError :
+                except KeyError:
                     self.graphs[graphData["_key"]] = Graph(self, graphData)
-        else :
+        else:
             raise UpdateError(data["errorMessage"], data)
 
-    def reload(self) :
+    def reload(self):
         "reloads collections and graphs"
         self.reloadCollections()
         self.reloadGraphs()
         self.foxx.reload()
 
-    def createCollection(self, className = 'Collection', **colProperties) :
+    def createCollection(self, className = 'Collection', **colProperties):
         """Creates a collection and returns it.
         ClassName the name of a class inheriting from Collection or Egdes, it can also be set to 'Collection' or 'Edges' in order to create untyped collections of documents or edges.
         Use colProperties to put things such as 'waitForSync = True' (see ArangoDB's doc
@@ -105,59 +105,59 @@ class Database(object) :
 
         colClass = COL.getCollectionClass(className)
 
-        if len(colProperties) > 0 :
+        if len(colProperties) > 0:
             colProperties = dict(colProperties)
-        else :
-            try :
+        else:
+            try:
                 colProperties = dict(colClass._properties)
-            except AttributeError :
+            except AttributeError:
                 colProperties = {}
 
-        if className != 'Collection' and className != 'Edges' :
+        if className != 'Collection' and className != 'Edges':
             colProperties['name'] = className
-        else :
-            if 'name' not in colProperties :
+        else:
+            if 'name' not in colProperties:
                 raise ValueError("a 'name' argument mush be supplied if you want to create a generic collection")
 
-        if colProperties['name'] in self.collections :
+        if colProperties['name'] in self.collections:
             raise CreationError("Database %s already has a collection named %s" % (self.name, colProperties['name']) )
 
         if issubclass(colClass, COL.Edges) or colClass.__class__ is COL.Edges:
             colProperties["type"] = CONST.COLLECTION_EDGE_TYPE
-        else :
+        else:
             colProperties["type"] = CONST.COLLECTION_DOCUMENT_TYPE
 
         payload = json.dumps(colProperties, default=str)
         r = self.connection.session.post(self.getCollectionsURL(), data = payload)
         data = r.json()
 
-        if r.status_code == 200 and not data["error"] :
+        if r.status_code == 200 and not data["error"]:
             col = colClass(self, data)
             self.collections[col.name] = col
             return self.collections[col.name]
-        else :
+        else:
             raise CreationError(data["errorMessage"], data)
 
-    def fetchDocument(self, _id) :
+    def fetchDocument(self, _id):
         "fetchs a document using it's _id"
         sid = _id.split("/")
         return self[sid[0]][sid[1]]
 
-    def createGraph(self, name, createCollections = True, isSmart = False, numberOfShards = None, smartGraphAttribute = None) :
+    def createGraph(self, name, createCollections = True, isSmart = False, numberOfShards = None, smartGraphAttribute = None):
         """Creates a graph and returns it. 'name' must be the name of a class inheriting from Graph.
         Checks will be performed to make sure that every collection mentionned in the edges definition exist. Raises a ValueError in case of
         a non-existing collection."""
 
-        def _checkCollectionList(lst) :
-            for colName in lst :
-                if not COL.isCollection(colName) :
+        def _checkCollectionList(lst):
+            for colName in lst:
+                if not COL.isCollection(colName):
                     raise ValueError("'%s' is not a defined Collection" % colName)
 
         graphClass = GR.getGraphClass(name)
 
         ed = []
-        for e in graphClass._edgeDefinitions :
-            if not COL.isEdgeCollection(e.edgesCollection) :
+        for e in graphClass._edgeDefinitions:
+            if not COL.isEdgeCollection(e.edgesCollection):
                 raise ValueError("'%s' is not a defined Edge Collection" % e.edgesCollection)
             _checkCollectionList(e.fromCollections)
             _checkCollectionList(e.toCollections)
@@ -178,7 +178,7 @@ class Database(object) :
                 "orphanCollections": graphClass._orphanedCollections
             }
 
-        if isSmart :
+        if isSmart:
                 payload['isSmart'] = isSmart
 
         if options:
@@ -189,13 +189,13 @@ class Database(object) :
         r = self.connection.session.post(self.getGraphsURL(), data = payload)
         data = r.json()
 
-        if r.status_code == 201 or r.status_code == 202 :
+        if r.status_code == 201 or r.status_code == 202:
             self.graphs[name] = graphClass(self, data["graph"])
-        else :
+        else:
             raise CreationError(data["errorMessage"], data)
         return self.graphs[name]
 
-    def hasCollection(self, name) :
+    def hasCollection(self, name):
         """returns true if the databse has a collection by the name of 'name'"""
         return name in self.collections
 
@@ -214,7 +214,7 @@ class Database(object) :
         return
 
     def AQLQuery(self, query, batchSize = 100, rawResults = False, bindVars = {}, options = {}, count = False, fullCount = False,
-                 json_encoder = None, **moreArgs) :
+                 json_encoder = None, **moreArgs):
         """Set rawResults = True if you want the query to return dictionnaries instead of Document objects.
         You can use **moreArgs to pass more arguments supported by the api, such as ttl=60 (time to live)"""
         return AQLQuery(self, query, rawResults = rawResults, batchSize = batchSize, bindVars  = bindVars, options = options, count = count, fullCount = fullCount,
@@ -448,27 +448,27 @@ class Database(object) :
             return
         raise AQLFetchError("No results should be returned for the query.")
 
-    def explainAQLQuery(self, query, bindVars={}, allPlans = False) :
+    def explainAQLQuery(self, query, bindVars={}, allPlans = False):
         """Returns an explanation of the query. Setting allPlans to True will result in ArangoDB returning all possible plans. False returns only the optimal plan"""
         payload = {'query' : query, 'bindVars' : bindVars, 'allPlans' : allPlans}
         request = self.connection.session.post(self.getExplainURL(), data = json.dumps(payload, default=str))
         return request.json()
 
-    def validateAQLQuery(self, query, bindVars = None, options = None) :
+    def validateAQLQuery(self, query, bindVars = None, options = None):
         "returns the server answer is the query is valid. Raises an AQLQueryError if not"
-        if bindVars is None :
+        if bindVars is None:
             bindVars = {}
-        if options is None :
+        if options is None:
             options = {}
         payload = {'query' : query, 'bindVars' : bindVars, 'options' : options}
         r = self.connection.session.post(self.getCursorsURL(), data = json.dumps(payload, default=str))
         data = r.json()
-        if r.status_code == 201 and not data["error"] :
+        if r.status_code == 201 and not data["error"]:
             return data
-        else :
+        else:
             raise AQLQueryError(data["errorMessage"], query, data)
 
-    def transaction(self, collections, action, waitForSync = False, lockTimeout = None, params = None) :
+    def transaction(self, collections, action, waitForSync = False, lockTimeout = None, params = None):
         """Execute a server-side transaction"""
         payload = {
                 "collections": collections,
@@ -487,32 +487,32 @@ class Database(object) :
 
         data = r.json()
 
-        if (r.status_code == 200 or r.status_code == 201 or r.status_code == 202) and not data.get("error") :
+        if (r.status_code == 200 or r.status_code == 201 or r.status_code == 202) and not data.get("error"):
             return data
-        else :
+        else:
             raise TransactionError(data["errorMessage"], action, data)
 
-    def __repr__(self) :
+    def __repr__(self):
         return "ArangoDB database: %s" % self.name
 
-    def __getitem__(self, collectionName) :
+    def __getitem__(self, collectionName):
         """use database[collectionName] to get a collection from the database"""
-        try :
+        try:
             return self.collections[collectionName]
-        except KeyError :
+        except KeyError:
             self.reload()
-            try :
+            try:
                 return self.collections[collectionName]
-            except KeyError :
+            except KeyError:
                 raise KeyError("Can't find any collection named : %s" % collectionName)
 
-class DBHandle(Database) :
+class DBHandle(Database):
     "As the loading of a Database also triggers the loading of collections and graphs within. Only handles are loaded first. The full database are loaded on demand in a fully transparent manner."
-    def __init__(self, connection, name) :
+    def __init__(self, connection, name):
         self.connection = connection
         self.name = name
 
-    def __getattr__(self, k) :
+    def __getattr__(self, k):
         name = Database.__getattribute__(self, 'name')
         connection = Database.__getattribute__(self, 'connection')
         Database.__init__(self, connection, name)
