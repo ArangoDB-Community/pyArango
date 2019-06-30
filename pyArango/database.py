@@ -21,9 +21,6 @@ class Database(object) :
         self.name = name
         self.connection = connection
         self.collections = {}
-
-
-        self.collections = {}
         self.graphs = {}
 
         self.reload()

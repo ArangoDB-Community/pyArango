@@ -17,8 +17,8 @@ class DocumentStore(object) :
         self.subStores = {}
         self.patching = patch
 
-        self.mustValidate = False
         if not self.validateInit :
+            self.mustValidate = False
             self.set(initDct)
 
         for v in self.collection._validation.values() :
@@ -121,7 +121,7 @@ class DocumentStore(object) :
 
     def __getitem__(self, field) :
         """Get an element from the store"""
-        if (field in self.validators) and isinstance(self.validators[field], dict) and (field not in self.store) :
+        if self.mustValidate and (field in self.validators) and isinstance(self.validators[field], dict) and (field not in self.store) :
             self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, patch = self.patching, subStore=True, validateInit=self.validateInit)
             self.subStores[field] = self.store[field]
             self.patchStore[field] = self.store[field]
@@ -136,7 +136,7 @@ class DocumentStore(object) :
 
     def __setitem__(self, field, value) :
         """Set an element in the store"""
-        if (not self.collection._validation['allow_foreign_fields']) and (field not in self.validators) and (field not in self.collection.arangoPrivates):
+        if self.mustValidate and (not self.collection._validation['allow_foreign_fields']) and (field not in self.validators) and (field not in self.collection.arangoPrivates):
             raise SchemaViolation(self.collection.__class__, field)
         
         if field in self.collection.arangoPrivates :
@@ -181,14 +181,14 @@ class DocumentStore(object) :
 class Document(object) :
     """The class that represents a document. Documents are meant to be instanciated by collections"""
 
-    def __init__(self, collection, jsonFieldInit = None) :
+    def __init__(self, collection, jsonFieldInit = None, on_load_validation=False) :
         if jsonFieldInit is None :
             jsonFieldInit = {}
         self.privates = ["_id", "_key", "_rev"]
-        self.reset(collection, jsonFieldInit)
+        self.reset(collection, jsonFieldInit, on_load_validation=on_load_validation)
         self.typeName = "ArangoDoc"
 
-    def reset(self, collection, jsonFieldInit = None) :
+    def reset(self, collection, jsonFieldInit = None, on_load_validation=False) :
         if not jsonFieldInit:
             jsonFieldInit = {}
         """replaces the current values in the document by those in jsonFieldInit"""
@@ -196,7 +196,7 @@ class Document(object) :
         self.connection = self.collection.connection
         
         self.setPrivates(jsonFieldInit)
-        self._store = DocumentStore(self.collection, validators=self.collection._fields, initDct=jsonFieldInit)
+        self._store = DocumentStore(self.collection, validators=self.collection._fields, initDct=jsonFieldInit, validateInit=on_load_validation)
         if self.collection._validation['on_load']:
             self.validate()
 
@@ -387,18 +387,18 @@ class Document(object) :
 
 class Edge(Document) :
     """An Edge document"""
-    def __init__(self, edgeCollection, jsonFieldInit = None) :
+    def __init__(self, edgeCollection, jsonFieldInit = None, on_load_validation=False) :
         if not jsonFieldInit:
             jsonFieldInit = {}
             
         self.typeName = "ArangoEdge"
         self.privates = ["_id", "_key", "_rev", "_from", "_to"]
-        self.reset(edgeCollection, jsonFieldInit)
+        self.reset(edgeCollection, jsonFieldInit, on_load_validation=on_load_validation)
 
-    def reset(self, edgeCollection, jsonFieldInit = None) :
+    def reset(self, edgeCollection, jsonFieldInit = None, on_load_validation=False) :
         if jsonFieldInit is None:
             jsonFieldInit = {}
-        Document.reset(self, edgeCollection, jsonFieldInit)
+        Document.reset(self, edgeCollection, jsonFieldInit, on_load_validation=on_load_validation)
 
     def links(self, fromVertice, toVertice, **edgeArgs) :
         """
