@@ -1,6 +1,7 @@
 1.3.3
 =====
 
+* Fixed on_load schema validation
 * Gevent, monkey patcjing breaks python's multi=processing. Removed grequests as the default, back to requests.
 * Removed grequests and gevent as hard dependencies. Added explicit error messages, to prompt users can install them if needed.
 * Jwauth is not in it's own file
