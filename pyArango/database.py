@@ -23,10 +23,7 @@ class Database(object):
 
         self.name = name
         self.connection = connection
-<<<<<<< HEAD
-=======
         self.action = DatabaseAction(self)
->>>>>>> 63a15cf8a1291615ef4d57b7c3cea5941b0d159a
         self.collections = {}
         self.graphs = {}
         self.foxx = Foxx(self)

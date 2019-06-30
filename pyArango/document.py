@@ -17,13 +17,8 @@ class DocumentStore(object):
         self.subStores = {}
         self.patching = patch
 
-<<<<<<< HEAD
         if not self.validateInit :
             self.mustValidate = False
-=======
-        self.mustValidate = False
-        if not self.validateInit:
->>>>>>> 63a15cf8a1291615ef4d57b7c3cea5941b0d159a
             self.set(initDct)
 
         for v in self.collection._validation.values():
@@ -137,11 +132,7 @@ class DocumentStore(object):
         
     def __getitem__(self, field):
         """Get an element from the store"""
-<<<<<<< HEAD
         if self.mustValidate and (field in self.validators) and isinstance(self.validators[field], dict) and (field not in self.store) :
-=======
-        if (field in self.validators) and isinstance(self.validators[field], dict) and (field not in self.store):
->>>>>>> 63a15cf8a1291615ef4d57b7c3cea5941b0d159a
             self.store[field] = DocumentStore(self.collection, validators = self.validators[field], initDct = {}, patch = self.patching, subStore=True, validateInit=self.validateInit)
             self.subStores[field] = self.store[field]
             self.patchStore[field] = self.store[field]
@@ -201,24 +192,15 @@ class DocumentStore(object):
 class Document(object):
     """The class that represents a document. Documents are meant to be instanciated by collections"""
 
-<<<<<<< HEAD
     def __init__(self, collection, jsonFieldInit = None, on_load_validation=False) :
         if jsonFieldInit is None :
-=======
-    def __init__(self, collection, jsonFieldInit = None):
-        if jsonFieldInit is None:
->>>>>>> 63a15cf8a1291615ef4d57b7c3cea5941b0d159a
             jsonFieldInit = {}
         self.privates = ["_id", "_key", "_rev"]
         self.reset(collection, jsonFieldInit, on_load_validation=on_load_validation)
         self.typeName = "ArangoDoc"
         # self._store = None
 
-<<<<<<< HEAD
     def reset(self, collection, jsonFieldInit = None, on_load_validation=False) :
-=======
-    def reset(self, collection, jsonFieldInit = None):
->>>>>>> 63a15cf8a1291615ef4d57b7c3cea5941b0d159a
         if not jsonFieldInit:
             jsonFieldInit = {}
         """replaces the current values in the document by those in jsonFieldInit"""
@@ -470,11 +452,7 @@ class Document(object):
 
 class Edge(Document):
     """An Edge document"""
-<<<<<<< HEAD
     def __init__(self, edgeCollection, jsonFieldInit = None, on_load_validation=False) :
-=======
-    def __init__(self, edgeCollection, jsonFieldInit = None):
->>>>>>> 63a15cf8a1291615ef4d57b7c3cea5941b0d159a
         if not jsonFieldInit:
             jsonFieldInit = {}
             
@@ -482,11 +460,7 @@ class Edge(Document):
         self.privates = ["_id", "_key", "_rev", "_from", "_to"]
         self.reset(edgeCollection, jsonFieldInit, on_load_validation=on_load_validation)
 
-<<<<<<< HEAD
     def reset(self, edgeCollection, jsonFieldInit = None, on_load_validation=False) :
-=======
-    def reset(self, edgeCollection, jsonFieldInit = None):
->>>>>>> 63a15cf8a1291615ef4d57b7c3cea5941b0d159a
         if jsonFieldInit is None:
             jsonFieldInit = {}
         Document.reset(self, edgeCollection, jsonFieldInit, on_load_validation=on_load_validation)

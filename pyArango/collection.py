@@ -322,13 +322,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             if self._validation["on_load"]:
                 self._validation["on_load"] = False
                 return self.createDocument_(self.defaultDocument)
-<<<<<<< HEAD
                 # self._validation["on_load"] = True
-            else :
-=======
-                self._validation["on_load"] = True
-            else:
->>>>>>> 63a15cf8a1291615ef4d57b7c3cea5941b0d159a
                 return self.createDocument_(self.defaultDocument)
 
     def createDocument_(self, initDict = None):
@@ -699,13 +693,8 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         if r.status_code < 400:
             if rawResults:
                 return r.json()
-<<<<<<< HEAD
             return self.documentClass(self, r.json(), on_load_validation=self._validation["on_load"])
         elif r.status_code == 404 :
-=======
-            return self.documentClass(self, r.json())
-        elif r.status_code == 404:
->>>>>>> 63a15cf8a1291615ef4d57b7c3cea5941b0d159a
             raise DocumentNotFoundError("Unable to find document with _key: %s" % key, r.json())
         else:
             raise DocumentNotFoundError("Unable to find document with _key: %s, response: %s" % (key, r.json()), r.json())
