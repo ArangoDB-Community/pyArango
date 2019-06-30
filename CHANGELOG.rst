@@ -4,6 +4,9 @@
 * Gevent, monkey patcjing breaks python's multi=processing. Removed grequests as the default, back to requests.
 * Removed grequests and gevent as hard dependencies. Added explicit error messages, to prompt users can install them if needed.
 * Jwauth is not in it's own file
+* Generic rest call to database support (action) for connection, database.
+* Foxx support
+* Tasks create, delete, fetch support
 
 1.3.2
 =====

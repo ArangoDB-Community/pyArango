@@ -4,6 +4,7 @@ from datetime import datetime
 
 import requests
 
+from .action import ConnectionAction
 from .database import Database, DBHandle
 from .theExceptions import CreationError, ConnectionError
 from .users import Users
@@ -16,9 +17,9 @@ class JsonHook(object):
         self.ret.json_originalFct = self.ret.json
 
     def __call__(self, *args, **kwargs):
-        try :
+        try:
             return self.ret.json_originalFct(*args, **kwargs)
-        except Exception as e :
+        except Exception as e:
             print( "Unable to get json for request: %s. Content: %s" % (self.ret.url, self.ret.content) )
             raise e
 
@@ -35,20 +36,20 @@ class AikidoSession(object):
               self.verify = verify
 
         def __call__(self, *args, **kwargs):
-            if self.auth :
+            if self.auth:
                 kwargs["auth"] = self.auth
             if self.verify != True:
                 kwargs["verify"] = self.verify
 
-            try :
+            try:
                 ret = self.fct(*args, **kwargs)
-            except :
+            except:
                 print ("===\nUnable to establish connection, perhaps arango is not running.\n===")
                 raise
 
             if len(ret.content) < 1:
                 raise ConnectionError("Empty server response", ret.url, ret.status_code, ret.content)
-            elif ret.status_code == 401 :
+            elif ret.status_code == 401:
                 raise ConnectionError("Unauthorized access, you must supply a (username, password) with the correct credentials", ret.url, ret.status_code, ret.content)
 
             ret.json = JsonHook(ret)
@@ -69,16 +70,16 @@ class AikidoSession(object):
             self.log["nb_request"] = 0
             self.log["requests"] = {}
 
-    def __getattr__(self, requestion_function_name):
+    def __getattr__(self, request_function_name):
         try:
             session = requests.Session()
             http = requests.adapters.HTTPAdapter(max_retries=self.max_retries)
             https = requests.adapters.HTTPAdapter(max_retries=self.max_retries)
             session.mount('http://', http)
             session.mount('https://', https)
-            request_function = getattr(session, requestion_function_name)
+            request_function = getattr(session, request_function_name)
         except AttributeError:
-            raise AttributeError("Attribute '%s' not found (no Aikido move available)" % requestion_function_name)
+            raise AttributeError("Attribute '%s' not found (no Aikido move available)" % request_function_name)
 
         auth = object.__getattribute__(self, "auth")
         verify = object.__getattribute__(self, "verify")
@@ -124,17 +125,18 @@ class Connection(object):
         self.use_jwt_authentication = use_jwt_authentication
         self.use_lock_for_reseting_jwt = use_lock_for_reseting_jwt
         self.max_retries = max_retries
+        self.action = ConnectionAction(self)
 
         self.databases = {}
         self.verbose = verbose
 
         if isinstance(arangoURL, str):
             self.arangoURL = [arangoURL]
-        else :
+        else:
             self.arangoURL = arangoURL
 
         for i, url in enumerate(self.arangoURL):
-            if url[-1] == "/" :
+            if url[-1] == "/":
                 self.arangoURL[i] = url[:-1]
 
         self.identifier = None
@@ -154,11 +156,11 @@ class Connection(object):
 
     def getEndpointURL(self):
         """return an endpoint url applying load balacing strategy"""
-        if self.loadBalancing == "round-robin" :
+        if self.loadBalancing == "round-robin":
             url = self.arangoURL[self.currentURLId]
             self.currentURLId = (self.currentURLId + 1) % len(self.arangoURL)
             return url
-        elif self.loadBalancing == "random" :
+        elif self.loadBalancing == "random":
             import random
             return random.choice(self.arangoURL)
 
@@ -168,9 +170,9 @@ class Connection(object):
 
     def getDatabasesURL(self):
         """return an URL to the databases"""
-        if not self.session.auth :
+        if not self.session.auth:
             return '%s/database/user' % self.getURL()
-        else :
+        else:
             return '%s/user/%s/database' % (self.getURL(), self.username)
 
     def updateEndpoints(self, coordinatorURL = None):
@@ -181,10 +183,19 @@ class Connection(object):
         if self.session:
             self.session.disconnect()
 
+    def getVersion(self):
+        """fetches the arangodb server version"""
+        r = self.session.get(self.getURL() + "/version")
+        data = r.json()
+        if r.status_code == 200 and not "error" in data:
+            return data
+        else:
+            raise CreationError(data["errorMessage"], data)
+
     def resetSession(self, username=None, password=None, verify=True):
         """resets the session"""
         self.disconnectSession()
-        if self.use_grequests :
+        if self.use_grequests:
             from .gevent_session import AikidoSession_GRequests
             self.session = AikidoSession_GRequests(
                 username, password, self.arangoURL,
@@ -192,7 +203,7 @@ class Connection(object):
                 self.use_lock_for_reseting_jwt, self.max_retries,
                 verify
             )
-        else :
+        else:
             self.session = AikidoSession(username, password, verify, self.max_retries)
 
     def reload(self):
@@ -204,12 +215,12 @@ class Connection(object):
         r = self.session.get(self.getDatabasesURL())
 
         data = r.json()
-        if r.status_code == 200 and not data["error"] :
+        if r.status_code == 200 and not data["error"]:
             self.databases = {}
-            for dbName in data["result"] :
-                if dbName not in self.databases :
+            for dbName in data["result"]:
+                if dbName not in self.databases:
                     self.databases[dbName] = DBHandle(self, dbName)
-        else :
+        else:
             raise ConnectionError(data["errorMessage"], self.getDatabasesURL(), r.status_code, r.content)
 
     def createDatabase(self, name, **dbArgs):
@@ -219,11 +230,11 @@ class Connection(object):
         url = self.getURL() + "/database"
         r = self.session.post(url, data = payload)
         data = r.json()
-        if r.status_code == 201 and not data["error"] :
+        if r.status_code == 201 and not data["error"]:
             db = Database(self, name)
             self.databases[name] = db
             return self.databases[name]
-        else :
+        else:
             raise CreationError(data["errorMessage"], r.content)
 
     def hasDatabase(self, name):
@@ -232,13 +243,13 @@ class Connection(object):
 
     def __getitem__(self, dbName):
         """Collection[dbName] returns a database by the name of 'dbName', raises a KeyError if not found"""
-        try :
+        try:
             return self.databases[dbName]
-        except KeyError :
+        except KeyError:
             self.reload()
-            try :
+            try:
                 return self.databases[dbName]
-            except KeyError :
+            except KeyError:
                 raise KeyError("Can't find any database named : %s" % dbName)
 
     def reportStart(self, name):
