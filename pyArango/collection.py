@@ -319,11 +319,11 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         if initDict is not None:
             return self.createDocument_(initDict)
         else:
-            if self._validation["on_load"]:
-                self._validation["on_load"] = False
-                return self.createDocument_(self.defaultDocument)
+            return self.createDocument_(self.defaultDocument)
+            # if self._validation["on_load"]:
+            #     self._validation["on_load"] = False
                 # self._validation["on_load"] = True
-                return self.createDocument_(self.defaultDocument)
+                # return self.createDocument_(self.defaultDocument)
 
     def createDocument_(self, initDict = None):
         """create and returns a completely empty document or one populated with initDict"""
