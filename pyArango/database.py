@@ -99,7 +99,8 @@ class Database(object):
 
     def createCollection(self, className = 'Collection', **colProperties):
         """Creates a collection and returns it.
-        ClassName the name of a class inheriting from Collection or Egdes, it can also be set to 'Collection' or 'Edges' in order to create untyped collections of documents or edges.
+        ClassName the name of a class inheriting from Collection or Egdes, it can also be set to 'Collection' or 'Edges'
+        in order to create untyped collections of documents or edges.
         Use colProperties to put things such as 'waitForSync = True'.
         If a '_properties' dictionary is defined in the collection schema, arguments to this function overide it
         

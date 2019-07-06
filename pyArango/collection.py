@@ -513,11 +513,18 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         docs = data['result']
         return docs
 
-    def ensureHashIndex(self, fields, unique = False, sparse = True, deduplicate = False, name = None):
-        """Creates a hash index if it does not already exist, and returns it"""
+    def ensureHashIndex(self, fields, unique = False, sparse = True, deduplicate = False, name = None, inBackground=True):
+        """
+        Creates a hash index if it does not already exist, and returns it
+       
+        Parameters
+        -----------
+        inBackground: will not hold an exclusive collection lock for the entire index creation period (r​ ocksdb​ only).
+        """
         data = {
             "type" : "hash",
             "fields" : fields,
+            "inBackground" : inBackground,
             "unique" : unique,
             "sparse" : sparse,
             "deduplicate": deduplicate
@@ -530,11 +537,18 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             self.indexes_by_name[name] = ind
         return ind
 
-    def ensureSkiplistIndex(self, fields, unique = False, sparse = True, deduplicate = False, name = None):
-        """Creates a skiplist index if it does not already exist, and returns it"""
+    def ensureSkiplistIndex(self, fields, unique = False, sparse = True, deduplicate = False, name = None, inBackground=True):
+        """
+        Creates a skiplist index if it does not already exist, and returns it
+
+        Parameters
+        -----------
+        inBackground: will not hold an exclusive collection lock for the entire index creation period (r​ ocksdb​ only).
+        """
         data = {
             "type" : "skiplist",
             "fields" : fields,
+            "inBackground" : inBackground,
             "unique" : unique,
             "sparse" : sparse,
             "deduplicate": deduplicate
@@ -546,11 +560,18 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         if name:
             self.indexes_by_name[name] = ind
         return ind
-    def ensurePersistentIndex(self, fields, unique = False, sparse = True, name = None):
-        """Creates a persistent index if it does not already exist, and returns it"""
+    def ensurePersistentIndex(self, fields, unique = False, sparse = True, name = None, inBackground=True):
+        """
+        Creates a persistent index if it does not already exist, and returns it
+
+        Parameters
+        -----------
+        inBackground: will not hold an exclusive collection lock for the entire index creation period (r​ ocksdb​ only).
+        """
         data = {
             "type" : "persistent",
             "fields" : fields,
+            "inBackground" : inBackground,
             "unique" : unique,
             "sparse" : sparse,
         }
@@ -562,11 +583,18 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             self.indexes_by_name[name] = ind
         return ind
 
-    def ensureTTLIndex(self, fields, expireAfter, unique = False, sparse = True, name = None):
-        """Creates a TTL index if it does not already exist, and returns it"""
+    def ensureTTLIndex(self, fields, expireAfter, unique = False, sparse = True, name = None, inBackground=True):
+        """
+        Creates a TTL index if it does not already exist, and returns it
+
+        Parameters
+        -----------
+        inBackground: will not hold an exclusive collection lock for the entire index creation period (r​ ocksdb​ only).
+        """
         data = {
             "type" : "ttl",
             "fields" : fields,
+            "inBackground" : inBackground,
             "unique" : unique,
             "sparse" : sparse,
             "expireAfter" : expireAfter
@@ -579,11 +607,18 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             self.indexes_by_name[name] = ind
         return ind
 
-    def ensureGeoIndex(self, fields, name = None):
-        """Creates a geo index if it does not already exist, and returns it"""
+    def ensureGeoIndex(self, fields, name = None, inBackground=True):
+        """
+        Creates a geo index if it does not already exist, and returns it
+
+        Parameters
+        -----------
+        inBackground: will not hold an exclusive collection lock for the entire index creation period (r​ ocksdb​ only).
+        """
         data = {
             "type" : "geo",
             "fields" : fields,
+            "inBackground" : inBackground,
         }
         if name:
             data["name"] = name
@@ -593,11 +628,18 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             self.indexes_by_name[name] = ind
         return ind
 
-    def ensureFulltextIndex(self, fields, minLength = None, name = None):
-        """Creates a fulltext index if it does not already exist, and returns it"""
+    def ensureFulltextIndex(self, fields, minLength = None, name = None, inBackground=True):
+        """
+        Creates a fulltext index if it does not already exist, and returns it
+
+        Parameters
+        -----------
+        inBackground: will not hold an exclusive collection lock for the entire index creation period (r​ ocksdb​ only).
+        """
         data = {
             "type" : "fulltext",
             "fields" : fields,
+            "inBackground" : inBackground,
         }
         if name:
             data["name"] = name
