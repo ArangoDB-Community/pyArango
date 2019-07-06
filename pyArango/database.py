@@ -29,6 +29,7 @@ class Database(object):
         self.foxx = Foxx(self)
         self.tasks = Tasks(self)
 
+        self.transactions = set()
         self.reload()
 
     def getURL(self):
@@ -393,13 +394,13 @@ class Database(object):
         data = response.json()
         if data["error"]:
             raise CreationError(data["errorMessage"], data)
+        self.self.transactions.add(response["id"])
         return response["result"]
 
     def getTransaction(self, transaction_id):
         """
         Return the status of a runnning transation
         """
-
         response = self.connection.session.get(self.getTansactionUrl() + "/%s" % transaction_id)
         data = response.json()
         if data["error"]:
@@ -415,6 +416,7 @@ class Database(object):
         data = response.json()
         if data["error"]:
             raise ArangoError(data["errorMessage"], data)
+        self.self.transactions.remove(response["id"])
         return response["result"]
 
     def deleteTransaction(self, transaction_id):
@@ -426,6 +428,7 @@ class Database(object):
         data = response.json()
         if data["error"]:
             raise ArangoError(data["errorMessage"], data)
+        self.self.transactions.remove(response["id"])
         return response["result"]
 
     def __get_logger(self, logger, log_level):
