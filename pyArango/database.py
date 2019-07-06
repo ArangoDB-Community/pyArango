@@ -220,6 +220,71 @@ class Database(object):
         return AQLQuery(self, query, rawResults = rawResults, batchSize = batchSize, bindVars  = bindVars, options = options, count = count, fullCount = fullCount,
                         json_encoder = json_encoder, **moreArgs)
 
+    def transactionBegin(self, collections, allowImplicit, lockTimeout, maxTransactionSize, waitForSync=False):
+        """
+        Begin a transaction on the server, return value contains the created transaction Id.
+
+        Parameters
+        ----------
+        collections: collections must be a Dict object that can have one or all sub-attributes read,
+        write or exclusive, each being an array of collection names or a single collection name as
+        string. Collections that will be written to in the transaction must be declared with the write
+        or exclusive attribute or it will fail, whereas non-declared collections from which is solely
+        read will be added lazily. The optional sub-attribute allowImplicit can be set to false to let
+        transactions fail in case of undeclared collections for reading. Collections for reading should
+        be fully declared if possible, to avoid deadlocks. See locking and isolation for more information.
+
+        waitForSync: an optional boolean flag that, if set, will force the transaction to write all data
+        to disk before returning.
+
+        allowImplicit: Allow reading from undeclared collections.
+
+        lockTimeout: an optional numeric value that can be used to set a timeout for waiting on collection
+        locks. If not specified, a default value will be used. Setting lockTimeout to 0 will make ArangoDB
+        not time out waiting for a lock.
+
+        maxTransactionSize: Transaction size limit in bytes. Honored by the RocksDB storage engine only.
+
+        """
+        response = self.connection.session.post(self.getTansactionUrl())
+        data = response.json()
+        if data["error"]:
+            raise CreationError(data["errorMessage"], data)
+        return response["result"]
+
+    def getTransaction(self, transaction_id):
+        """
+        Return the status of a runnning transation
+        """
+
+        response = self.connection.session.get(self.getTansactionUrl() + "/%s" % transaction_id)
+        data = response.json()
+        if data["error"]:
+            raise ArangoError(data["errorMessage"], data)
+        return response["result"]
+
+    def commitTransaction(self, transaction_id):
+        """
+        Commit an existing transaction
+        """
+
+        response = self.connection.session.put(self.getTansactionUrl() + "/%s" % transaction_id)
+        data = response.json()
+        if data["error"]:
+            raise ArangoError(data["errorMessage"], data)
+        return response["result"]
+
+    def deleteTransaction(self, transaction_id):
+        """
+        Delete an existing transaction
+        """
+
+        response = self.connection.session.delete(self.getTansactionUrl() + "/%s" % transaction_id)
+        data = response.json()
+        if data["error"]:
+            raise ArangoError(data["errorMessage"], data)
+        return response["result"]
+
     def __get_logger(self, logger, log_level):
         if logger is None:
             return None
