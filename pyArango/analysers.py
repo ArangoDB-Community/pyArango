@@ -9,7 +9,7 @@ class Analysers(object):
     def reload(self):
         response = self.connection.session.get(self.URL)
         data = response.json()
-        if response["error"]
+        if response["error"]:
             raise ArangoError(data["errorMessage"])
 
         for ana in response["result"]:
