@@ -226,8 +226,8 @@ class Document(object):
             if priv in fieldDict:
                 setattr(self, priv, fieldDict[priv])
             else:
-                if priv not in ["_from", "_to"]:
-                    setattr(self, priv, None)
+                setattr(self, priv, None)
+                # if priv not in ["_from", "_to"]:
         
     def getURL(self):
         if self._id is None:
