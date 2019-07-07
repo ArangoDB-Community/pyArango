@@ -1,3 +1,5 @@
+from .theExceptions import CreationError, ArangoError
+
 class Analysers(object):
     """Manages analyserss"""
     def __init__(self, database):
@@ -7,10 +9,10 @@ class Analysers(object):
         self.analysers = {}
     
     def reload(self):
-        response = self.connection.session.get(self.URL)
+        response = self.database.connection.session.get(self.URL)
         data = response.json()
-        if response["error"]:
-            raise ArangoError(data["errorMessage"])
+        if data["error"]:
+            raise ArangoError(data)
 
         for ana in response["result"]:
             self.analysers[ana["name"]] = ana

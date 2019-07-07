@@ -1,3 +1,5 @@
+from .theExceptions import CreationError, ArangoError
+
 class Transactions(object):
     """Manages transactions"""
     def __init__(self, database):
@@ -54,7 +56,7 @@ class Transactions(object):
         response = self.database.connection.session.get(self.URL + "/%s" % transaction_id)
         data = response.json()
         if data["error"]:
-            raise ArangoError(data["errorMessage"], data)
+            raise ArangoError(data)
         return data["result"]
 
     def commit(self, transaction_id):

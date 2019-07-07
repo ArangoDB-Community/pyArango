@@ -10,6 +10,7 @@ from .action import DatabaseAction
 from .document import Document
 from .foxx import Foxx
 from .analysers import Analysers
+from .transactions import Transactions
 from .tasks import Tasks
 from .graph import Graph
 from .query import AQLQuery
