@@ -3,12 +3,16 @@ import json as json_mod
 from datetime import datetime
 
 import requests
+import base64
+import tempfile
+import shutil
 
 from .action import ConnectionAction
 from .database import Database, DBHandle
 from .theExceptions import CreationError, ConnectionError
 from .users import Users
 
+from .ca_certificate import CA_Certificate
 
 class JsonHook(object):
     """This one replaces requests' original json() function. If a call to json() fails, it will print a message with the request content"""
@@ -32,15 +36,19 @@ class AikidoSession(object):
         def __init__(self, fct, auth, verify=True):
             self.fct = fct
             self.auth = auth
-            if verify != None:
-              self.verify = verify
+            if not isinstance(verify, bool) and not isinstance(verify, CA_Certificate) and not not isinstance(verify, str) :
+                raise ValueError("'verify' argument can only be of type: bool, CA_Certificate or str ")
+            self.verify = verify
 
         def __call__(self, *args, **kwargs):
             if self.auth:
                 kwargs["auth"] = self.auth
-            if self.verify != True:
+            if isinstance(self.verify, CA_Certificate):
+                kwargs["verify"] = self.verify.get_file_path()
+            else :
                 kwargs["verify"] = self.verify
 
+            print (kwargs)
             try:
                 ret = self.fct(*args, **kwargs)
             except:
@@ -112,7 +120,7 @@ class Connection(object):
         use_grequests = False,
         use_jwt_authentication=False,
         use_lock_for_reseting_jwt=True,
-        max_retries=5
+        max_retries=5,
     ):
 
         if loadBalancing not in Connection.LOAD_BLANCING_METHODS:

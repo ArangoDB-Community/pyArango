@@ -20,6 +20,7 @@ import requests
 from requests import exceptions as requests_exceptions
 
 from .jwauth import JWTAuth
+from .ca_certificate import CA_Certificate
 
 class AikidoSession_GRequests(object):
     """A version of Aikido that uses grequests."""
@@ -38,8 +39,10 @@ class AikidoSession_GRequests(object):
                 )
             else:
                 self.auth = (username, password)
-                if verify is not None:
-                    self.verify = verify
+
+                if (verify is not None) and not isinstance(verify, bool) and not isinstance(verify, CA_Certificate) and not isinstance(verify, str) :
+                    raise ValueError("'verify' argument can only be of type: bool, CA_Certificate or str or None")
+                self.verify = verify
         else:
             self.auth = None
 
@@ -55,7 +58,10 @@ class AikidoSession_GRequests(object):
     def _run(self, req):
         """Run the request."""
         if not self.use_jwt_authentication and self.verify is not None:
-            req.kwargs['verify'] = self.verify
+            if isinstance(self.verify, CA_Certificate):
+                req.kwargs['verify'] = self.verify.get_file_path()
+            else :
+                req.kwargs['verify'] = self.verify
         for _ in range(self.max_retries):
             gevent.joinall([gevent.spawn(req.send)])
             if self.use_jwt_authentication:
