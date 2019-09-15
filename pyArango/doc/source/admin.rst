@@ -1,4 +1,4 @@
-Connection
+Admin
 ----------
 .. automodule:: pyArango.admin
    :members:

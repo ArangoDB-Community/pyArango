@@ -1,4 +1,4 @@
-Connection
+Tasks
 ----------
 .. automodule:: pyArango.tasks
    :members:
