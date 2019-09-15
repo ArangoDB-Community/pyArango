@@ -1044,4 +1044,4 @@ if __name__ == "__main__":
         ARANGODB_ROOT_USERNAME = inpFct("Please enter root username: ")
         ARANGODB_ROOT_PASSWORD = inpFct("Please enter root password: ")
 
-    unittest.main()
+    unittest.main(warnings='ignore')

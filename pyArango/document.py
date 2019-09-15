@@ -206,9 +206,12 @@ class Document(object):
         # self._store = None
 
     def reset(self, collection, jsonFieldInit = None, on_load_validation=False) :
+        """replaces the current values in the document by those in jsonFieldInit"""
         if not jsonFieldInit:
             jsonFieldInit = {}
-        """replaces the current values in the document by those in jsonFieldInit"""
+        for k in self.privates:
+            setattr(self, k, None)
+
         self.collection = collection
         self.connection = self.collection.connection
         
@@ -230,8 +233,8 @@ class Document(object):
         for priv in self.privates:
             if priv in fieldDict:
                 setattr(self, priv, fieldDict[priv])
-            else:
-                setattr(self, priv, None)
+            # else:
+                # setattr(self, priv, None)
                 # if priv not in ["_from", "_to"]:
         
     def getURL(self):
@@ -507,8 +510,8 @@ class Edge(Document):
         payload["_to"] = self._to
         Document._save(self, payload, **edgeArgs)
 
-    def __getattr__(self, k):
-        if k == "_from" or k == "_to":
-            return self._store[k]
-        else:
-            return Document.__getattr__(self, k)
+    # def __getattr__(self, k):
+    #     if k == "_from" or k == "_to":
+    #         return self._store[k]
+    #     else:
+    #         return Document.__getattr__(self, k)

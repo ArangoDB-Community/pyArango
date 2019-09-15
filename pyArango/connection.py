@@ -48,7 +48,6 @@ class AikidoSession(object):
             else :
                 kwargs["verify"] = self.verify
 
-            print (kwargs)
             try:
                 ret = self.fct(*args, **kwargs)
             except:
