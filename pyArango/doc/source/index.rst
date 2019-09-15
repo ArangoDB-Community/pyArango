@@ -71,11 +71,18 @@ Contents:
    collection
    indexes
    document
+   users
    query
    graph
    users
    exceptions
    validation
+   admin
+   ca_certificate
+   foxx
+   jwauth
+   tasks
+   gevent_session
 
 Indices and tables
 ==================
