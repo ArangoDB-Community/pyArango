@@ -1,6 +1,18 @@
 pyArango
 ========
 
+.. image:: https://pepy.tech/badge/pyarango
+   :alt: downloads
+   :target: https://pepy.tech/project/pyarango
+
+.. image:: https://pepy.tech/badge/pyarango/month
+   :alt: downloads_month
+   :target: https://pepy.tech/project/pyarango/month
+
+.. image:: https://pepy.tech/badge/pyarango/week
+   :alt: downloads_week
+   :target: https://pepy.tech/project/pyarango/week
+   
 .. image:: https://travis-ci.org/tariqdaouda/pyArango.svg?branch=1.2.2
     :target: https://travis-ci.org/tariqdaouda/pyArango
 .. image:: https://img.shields.io/badge/python-2.7%2C%203.5-blue.svg
