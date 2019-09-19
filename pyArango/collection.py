@@ -327,12 +327,14 @@ class Collection(with_metaclass(Collection_metaclass, object)):
 
     def createDocument_(self, initDict = None):
         """create and returns a completely empty document or one populated with initDict"""
+        res = dict(self.defaultDocument)
         if initDict is None:
             initV = {}
         else:
             initV = initDict
+        res.update(initV)
 
-        return self.documentClass(self, initV)
+        return self.documentClass(self, res)
 
     def _writeBatch(self):
         if not self._bulkCache:
