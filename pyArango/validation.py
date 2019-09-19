@@ -15,8 +15,12 @@ class Validator(object):
 
 class NotNull(Validator):
     """Checks that the Field has a non null value"""
-    def validate(self, value, zero=True, emptyString=True):
-        if value is None or (value == 0 is zero) or (value == "" and emptyString):
+    def __init__(self, reject_zero=True, reject_empty_string=True):
+        self.reject_zero = reject_zero
+        self.reject_empty_string = reject_empty_string
+
+    def validate(self, value):
+        if value is None or (value == 0 is self.reject_zero) or (value == "" and self.reject_empty_string):
             raise ValidationError("Field can't have a null value: '%s'" % value)
         return True
 
