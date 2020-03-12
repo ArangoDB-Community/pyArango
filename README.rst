@@ -310,44 +310,49 @@ to that document are also deleted:
  # deleting one of them along with the edge
  theGraph.deleteVertex(h2)
 
-Creating a Graph
+Creating a Satellite Graph
 -----------------
 
-from pyArango.connection import *
-from pyArango.collection import Collection, Edges, Field
-from pyArango.graph import Graph, EdgeDefinition
+If you want to benefit from the advantages of satellite graphs, you can also create them of course.
+Please read the official ArangoDB Documentation for further technical information.
 
-databaseName = "satellite_graph_db"
+.. code:: python
 
-conn = Connection()
+  from pyArango.connection import *
+  from pyArango.collection import Collection, Edges, Field
+  from pyArango.graph import Graph, EdgeDefinition
 
-# Cleanup (if needed)
-try:
-    conn.createDatabase(name=databaseName)
-except Exception:
-    pass
+  databaseName = "satellite_graph_db"
 
-# Select our "satellite_graph_db" database
-db = conn[databaseName] # all databases are loaded automatically into the connection and are accessible in this fashion
+  conn = Connection()
 
-# Define our vertex to use
-class Humans(Collection):
-    _fields = {
-        "name": Field()
-    }
+  # Cleanup (if needed)
+  try:
+      conn.createDatabase(name=databaseName)
+  except Exception:
+      pass
 
-# Define our edge to use
-class Friend(Edges):
-    _fields = {
-        "lifetime": Field()
-    }
+  # Select our "satellite_graph_db" database
+  db = conn[databaseName] # all databases are loaded automatically into the connection and are accessible in this fashion
 
-# Here's how you define a Satellite Graph
-class MySatelliteGraph(Graph) :
-    _edgeDefinitions = [EdgeDefinition("Friend", fromCollections=["Humans"], toCollections=["Humans"])]
-    _orphanedCollections = []
+  # Define our vertex to use
+  class Humans(Collection):
+      _fields = {
+          "name": Field()
+      }
 
-theSatelliteGraph = db.createSatelliteGraph("MySatelliteGraph")
+  # Define our edge to use
+  class Friend(Edges):
+      _fields = {
+          "lifetime": Field()
+      }
+
+  # Here's how you define a Satellite Graph
+  class MySatelliteGraph(Graph) :
+      _edgeDefinitions = [EdgeDefinition("Friend", fromCollections=["Humans"], toCollections=["Humans"])]
+      _orphanedCollections = []
+
+  theSatelliteGraph = db.createSatelliteGraph("MySatelliteGraph")
 
 Document Cache
 --------------
