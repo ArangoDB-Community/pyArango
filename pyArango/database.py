@@ -143,7 +143,7 @@ class Database(object):
         sid = _id.split("/")
         return self[sid[0]][sid[1]]
 
-    def createGraph(self, name, createCollections = True, isSmart = False, numberOfShards = None, smartGraphAttribute = None):
+    def createGraph(self, name, createCollections = True, isSmart = False, numberOfShards = None, smartGraphAttribute = None, replicationFactor = None, writeConcern = None):
         """Creates a graph and returns it. 'name' must be the name of a class inheriting from Graph.
         Checks will be performed to make sure that every collection mentionned in the edges definition exist. Raises a ValueError in case of
         a non-existing collection."""
@@ -171,6 +171,10 @@ class Database(object):
             options['numberOfShards'] = numberOfShards
         if smartGraphAttribute:
             options['smartGraphAttribute'] = smartGraphAttribute
+        if replicationFactor:
+            options['replicationFactor'] = replicationFactor
+        if writeConcern:
+            options['writeConcern'] = writeConcern
 
         payload = {
                 "name": name,
@@ -194,6 +198,9 @@ class Database(object):
         else:
             raise CreationError(data["errorMessage"], data)
         return self.graphs[name]
+
+    def createSatelliteGraph(self, name, createCollections = True, writeConcern = None):
+        return self.createGraph(name, createCollections, False, None, None, "satellite", None);
 
     def hasCollection(self, name):
         """returns true if the databse has a collection by the name of 'name'"""
