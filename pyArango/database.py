@@ -113,7 +113,7 @@ class Database(object):
             except AttributeError:
                 colProperties = {}
 
-        if className != 'Collection' and className != 'Edges':
+        if className != 'Collection' and className != 'Edges' and 'name' not in colProperties:
             colProperties['name'] = className
         else:
             if 'name' not in colProperties:
