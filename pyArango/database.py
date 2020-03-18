@@ -199,7 +199,7 @@ class Database(object):
             raise CreationError(data["errorMessage"], data)
         return self.graphs[name]
 
-    def createSatelliteGraph(self, name, createCollections = True, writeConcern = None):
+    def createSatelliteGraph(self, name, createCollections = True):
         return self.createGraph(name, createCollections, False, None, None, "satellite", None);
 
     def hasCollection(self, name):
