@@ -113,7 +113,7 @@ class Query(object):
         return self
 
     def __getitem__(self, i):
-        "returns a ith result of the query."
+        "returns a ith result of the query. Raises IndexError if we reached the end of the current batch."
         if not self.rawResults and (not isinstance(self.result[i], (Edge, Document))):
             self._developDoc(i)
         return self.result[i]
