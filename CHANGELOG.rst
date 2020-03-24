@@ -1,5 +1,9 @@
 1.3.4
 =====
+* Bugfix: Query iterrator now returns all elements instead of a premature empty list
+* Bugfix: Collection naming when using the arango's name argument
+* New: Schema validation example
+* New: Satelite graphs
 
 1.3.3
 =====
