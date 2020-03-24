@@ -119,7 +119,7 @@ class Query(object):
         try:
             return self.result[i]
         except IndexError as e:
-            return []
+            self.nextBatch()
 
     def __len__(self):
         """Returns the number of elements in the query results"""

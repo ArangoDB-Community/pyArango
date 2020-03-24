@@ -548,13 +548,15 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         if name:
             self.indexes_by_name[name] = ind
         return ind
-    def ensurePersistentIndex(self, fields, unique = False, sparse = True, name = None):
+
+    def ensurePersistentIndex(self, fields, unique = False, sparse = True, deduplicate = False, name = None):
         """Creates a persistent index if it does not already exist, and returns it"""
         data = {
             "type" : "persistent",
             "fields" : fields,
             "unique" : unique,
             "sparse" : sparse,
+            "deduplicate": deduplicate
         }
         if name:
             data["name"] = name

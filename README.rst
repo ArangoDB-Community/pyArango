@@ -1,6 +1,18 @@
 pyArango
 ========
 
+.. image:: https://pepy.tech/badge/pyarango
+   :alt: downloads
+   :target: https://pepy.tech/project/pyarango
+
+.. image:: https://pepy.tech/badge/pyarango/month
+   :alt: downloads_month
+   :target: https://pepy.tech/project/pyarango/month
+
+.. image:: https://pepy.tech/badge/pyarango/week
+   :alt: downloads_week
+   :target: https://pepy.tech/project/pyarango/week
+   
 .. image:: https://travis-ci.org/tariqdaouda/pyArango.svg?branch=1.2.2
     :target: https://travis-ci.org/tariqdaouda/pyArango
 .. image:: https://img.shields.io/badge/python-2.7%2C%203.5-blue.svg
@@ -14,22 +26,22 @@ NoSQL is really cool, but in this harsh world it is impossible to live without f
 
 Key Features
 ------------
-pyArango, is geared toward the developer. It's here to help to you develop really cool apps using ArangoDB, really fast.
+pyArango is geared toward the developer. It's here to help to you develop really cool apps using ArangoDB, really fast.
 
- - Light and Simple interface
- - Built-in Validation of fields on seting or on saving
+ - Light and simple interface
+ - Built-in validation of fields on seting or on saving
  - Support for all index types
  - Supports graphs, traversals and all types of queries
  - Caching of documents with Insertions and Lookups in O(1)
 
-Collections are treated as types that apply to the documents within. That means that you can define
-a Collection and then create instances of this Collection in several databases. The same goes for graphs
+Collections are treated as types that apply to the documents within. That means you can define
+a Collection and then create instances of this Collection in several databases. The same goes for graphs.
 
-In other words, you can have two databases **cache_db** and **real_db** each of them with an instance of a
+In other words, you can have two databases, **cache_db** and **real_db**, each of them with an instance of a
 **Users** Collection. You can then be assured that documents of both collections will be subjected to the same
 validation rules. Ain't that cool?
 
-You can be 100% permissive or enforce schemas and validate fields, on set, on save or both.
+You can be 100% permissive or enforce schemas and validate fields on set, on save or both.
 
 Installation
 ------------
@@ -53,7 +65,7 @@ For the latest version:
 Full documentation
 -------------------
 
-This is the quickstart guide, you can find the full documentation here_.
+This is the quickstart guide; you can find the full documentation here_.
 
 .. _here: https://pyarango.readthedocs.io/en/stable/
 
@@ -102,7 +114,7 @@ Queries : AQL
 
 Queries : Simple queries by example
 -------------------------------------
-PyArango supports all types of simple queries (see collection.py for the full list). Here's how you do a query by example:
+PyArango supports all types of simple queries (see collection.py for the full list). Here's an example query:
 
 .. code:: python
 
@@ -123,7 +135,7 @@ Defining a Collection and field/schema Validation
 
 PyArango allows you to implement your own field validation.
 Validators are simple objects deriving from classes that inherit
-from **Validator** and implement a **validate()** method.
+from **Validator** and implement a **validate()** method:
 
 .. code:: python
 
@@ -155,7 +167,7 @@ from **Validator** and implement a **validate()** method.
   collection = db.createCollection('Humans')
 
 
-In addition you can also define collection properties_ (creation arguments for ArangoDB) right inside the definition
+In addition, you can also define collection properties_ (creation arguments for ArangoDB) right inside the definition:
 
 .. code:: python
 
@@ -260,7 +272,7 @@ Creating a Graph
 -----------------
 
 By using the graph interface you ensure for example that, whenever you delete a document, all the edges linking
-to that document are also deleted.
+to that document are also deleted:
 
 .. code:: python
 
@@ -298,10 +310,54 @@ to that document are also deleted.
  # deleting one of them along with the edge
  theGraph.deleteVertex(h2)
 
+Creating a Satellite Graph
+-----------------
+
+If you want to benefit from the advantages of satellite graphs, you can also create them of course.
+Please read the official ArangoDB Documentation for further technical information.
+
+.. code:: python
+
+  from pyArango.connection import *
+  from pyArango.collection import Collection, Edges, Field
+  from pyArango.graph import Graph, EdgeDefinition
+
+  databaseName = "satellite_graph_db"
+
+  conn = Connection()
+
+  # Cleanup (if needed)
+  try:
+      conn.createDatabase(name=databaseName)
+  except Exception:
+      pass
+
+  # Select our "satellite_graph_db" database
+  db = conn[databaseName] # all databases are loaded automatically into the connection and are accessible in this fashion
+
+  # Define our vertex to use
+  class Humans(Collection):
+      _fields = {
+          "name": Field()
+      }
+
+  # Define our edge to use
+  class Friend(Edges):
+      _fields = {
+          "lifetime": Field()
+      }
+
+  # Here's how you define a Satellite Graph
+  class MySatelliteGraph(Graph) :
+      _edgeDefinitions = [EdgeDefinition("Friend", fromCollections=["Humans"], toCollections=["Humans"])]
+      _orphanedCollections = []
+
+  theSatelliteGraph = db.createSatelliteGraph("MySatelliteGraph")
+
 Document Cache
 --------------
 
-pyArango collections have a caching system for documents that performs insertions and retrievals in O(1)
+pyArango collections have a caching system for documents that performs insertions and retrievals in O(1):
 
 .. code:: python
 
@@ -314,18 +370,18 @@ pyArango collections have a caching system for documents that performs insertion
 Statsd Reporting
 ----------------
 
-pyArango can optionally report query times to a statsd server for statistical evaluation.
+pyArango can optionally report query times to a statsd server for statistical evaluation:
 
   import statsd
   from pyArango.connection import Connection
   statsdclient = statsd.StatsClient(os.environ.get('STATSD_HOST'), int(os.environ.get('STATSD_PORT')))
   conn = Connection('http://127.0.0.1:8529', 'root', 'opensesame', statsdClient = statsdclient, reportFileName = '/tmp/queries.log')
 
-Its intended to be used in a two phase way: (we assume you're using bind values - right?)
- - first run that will trigger all usecases. You create the connection by specifying statsdHost, statsdPort and reportFileName.
-   reportFilename will be filled with your queries paired with your hash identifiers. Its reported to statsd as 'pyArango_<hash>'.
-   you can later on use this digest to identify your queries to the gauges.
- - on subsequent runs you only specify statsdHost and statsdPort; only the request times are reported to statsd.
+It's intended to be used in a two phase way: (we assume you're using bind values - right?)
+ - First run, which will trigger all usecases. You create the connection by specifying statsdHost, statsdPort and reportFileName.
+   reportFilename will be filled with your queries paired with your hash identifiers. It's reported to statsd as 'pyArango_<hash>'.
+   Later on you can use this digest to identify your queries to the gauges.
+ - On subsequent runs you only specify statsdHost and statsdPort; only the request times are reported to statsd.
  
 Examples
 ========
@@ -335,7 +391,7 @@ To try them out change the connection strings according to your local setup.
 Debian Dependency Graph
 -----------------------
 If you are on a Debian / Ubuntu you can install packages with automatic dependency resolution.
-In the end this is a graph. This example parses debian package files using the `deb_pkg_tools`,
+In the end this is a graph. This example parses Debian package files using the `deb_pkg_tools`,
 and will then create vertices and edges from packages and their relations.
 
 Use `examples/debiangraph.py` to install it, or `examples/fetchDebianDependencyGraph.py` to browse
@@ -344,4 +400,4 @@ it as an ascii tree.
 ArangoDB Social Graph
 ---------------------
 You can create the `ArangoDB SocialGraph <https://docs.arangodb.com/latest/Manual/Graphs/#the-social-graph>`_ using `examples/createSocialGraph.py`.
-It resemples `The original ArangoDB Javascript implementation <https://github.com/arangodb/arangodb/blob/devel/js/common/modules/%40arangodb/graph-examples/example-graph.js#L56>`_ in python.
+It resemples `The original ArangoDB Javascript implementation: <https://github.com/arangodb/arangodb/blob/devel/js/common/modules/%40arangodb/graph-examples/example-graph.js#L56>`_ in python.
