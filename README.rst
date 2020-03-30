@@ -79,7 +79,7 @@ Initialization and document saving
   conn = Connection()
 
   conn.createDatabase(name="test_db")
-  db = self.conn["test_db"] # all databases are loaded automatically into the connection and are accessible in this fashion
+  db = conn["test_db"] # all databases are loaded automatically into the connection and are accessible in this fashion
   collection = db.createCollection(name="users") # all collections are also loaded automatically
 
   # collection.delete() # self explanatory
