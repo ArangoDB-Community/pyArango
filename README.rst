@@ -159,9 +159,9 @@ from **Validator** and implement a **validate()** method:
       }
 
       _fields = {
-          'name': Field(validators=[VAL.NotNull(), String_val()]),
-          'anything': Field(),
-          'species': Field(validators=[VAL.NotNull(), VAL.Length(5, 15), String_val()])
+          'name': COL.Field(validators=[VAL.NotNull(), String_val()]),
+          'anything': COL.Field(),
+          'species': COL.Field(validators=[VAL.NotNull(), VAL.Length(5, 15), String_val()])
       }
 
   collection = db.createCollection('Humans')
@@ -189,9 +189,9 @@ In addition, you can also define collection properties_ (creation arguments for 
       }
 
       _fields = {
-          'name': Field(validators=[VAL.NotNull(), String_val()]),
-          'anything': Field(),
-          'species': Field(validators=[VAL.NotNull(), VAL.Length(5, 15), String_val()])
+          'name': COL.Field(validators=[VAL.NotNull(), String_val()]),
+          'anything': COL.Field(),
+          'species': COL.Field(validators=[VAL.NotNull(), VAL.Length(5, 15), String_val()])
       }
 
 .. _properties: https://docs.arangodb.com/3.1/HTTP/Collection/Creating.html
