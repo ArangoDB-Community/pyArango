@@ -1,3 +1,8 @@
+1.3.5
+=====
+
+* restoreIndex and restoreIndexes in collection will restore previously deleted indexes
+
 1.3.4
 =====
 * Bugfix: Query iterrator now returns all elements instead of a premature empty list
