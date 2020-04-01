@@ -634,12 +634,10 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         if indexes_dct is None:
             indexes_dct = self.indexes
 
-        print("----", indexes_dct)
         for typ in indexes_dct.keys():
             if typ != "primary":
                 for name, idx in indexes_dct[typ].items():
                     infos = dict(idx.infos)
-                    # print("---", infos)
                     del infos["fields"]
                     self.ensureIndex(typ, idx.infos["fields"], **infos)
 
