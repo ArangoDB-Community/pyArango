@@ -629,12 +629,19 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             self.indexes_by_name[name] = ind
         return ind
 
-    def restoreIndexes(self):
+    def restoreIndexes(self, indexes_dct=None):
         """restores all previously removed indexes"""
-        for typ in self.indexes.keys():
+        if indexes_dct is None:
+            indexes_dct = self.indexes
+
+        print("----", indexes_dct)
+        for typ in indexes_dct.keys():
             if typ != "primary":
-                for name, idx in self.indexes[typ].items():
-                    idx.restore()
+                for name, idx in indexes_dct[typ].items():
+                    infos = dict(idx.infos)
+                    # print("---", infos)
+                    del infos["fields"]
+                    self.ensureIndex(typ, idx.infos["fields"], **infos)
 
     def validatePrivate(self, field, value):
         """validate a private field value"""

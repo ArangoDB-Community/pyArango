@@ -203,6 +203,10 @@ class Database(object):
         """returns true if the databse has a graph by the name of 'name'"""
         return name in self.graphs
 
+    def __contains__(self, name):
+        """if name in database"""
+        return self.hasCollection(name) or self.hasGraph(name)
+
     def dropAllCollections(self):
         """drops all public collections (graphs included) from the database"""
         for graph_name in self.graphs:
