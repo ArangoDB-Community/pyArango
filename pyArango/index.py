@@ -10,7 +10,8 @@ Indexes have a .infos dictionary that stores all the infos about the index"""
         self.collection = collection
         self.connection = self.collection.database.connection
         self.infos = None
-        
+        self.active = False
+
         if infos:
             self.infos = infos
         elif creationData:
@@ -26,12 +27,17 @@ Indexes have a .infos dictionary that stores all the infos about the index"""
 
     def _create(self, postData):
         """Creates an index of any type according to postData"""
-        if self.infos is None:
+        if self.infos is None or not self.active:
             r = self.connection.session.post(self.getIndexesURL(), params = {"collection" : self.collection.name}, data = json.dumps(postData, default=str))
             data = r.json()
             if (r.status_code >= 400) or data['error']:
                 raise CreationError(data['errorMessage'], data)
             self.infos = data
+            self.active = True
+        
+    def restore(self):
+        """restore and index that has been previously deleted"""
+        self._create(self.infos)
 
     def delete(self):
         """Delete the index"""
@@ -39,3 +45,4 @@ Indexes have a .infos dictionary that stores all the infos about the index"""
         data = r.json()
         if (r.status_code != 200 and r.status_code != 202) or data['error']:
             raise DeletionError(data['errorMessage'], data)
+        self.active = False

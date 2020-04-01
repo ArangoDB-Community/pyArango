@@ -612,6 +612,29 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             self.indexes_by_name[name] = ind
         return ind
 
+    def ensureIndex(self, index_type, fields, name=None, **index_args):
+        """Creates an index of any type."""
+        data = {
+            "type" : index_type,
+            "fields" : fields,
+        }
+        data.update(index_args)
+        
+        if name:
+            data["name"] = name
+
+        ind = Index(self, creationData = data)
+        self.indexes[index_type][ind.infos["id"]] = ind
+        if name:
+            self.indexes_by_name[name] = ind
+        return ind
+
+    def restoreIndexes(self):
+        """restores all previously removed indexes"""
+        for typ in self.indexes.keys():
+            if typ != "primary":
+                for name, idx in self.indexes[typ].items():
+                    idx.restore()
 
     def validatePrivate(self, field, value):
         """validate a private field value"""
