@@ -783,8 +783,10 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         if (r.status_code == 201) and "error" not in data:
             return True
         else:
-            if data["errors"] > 0:
+            if "errors" in data and data["errors"] > 0:
                 raise UpdateError("%d documents could not be created" % data["errors"], data)
+            elif data["error"]:
+                raise UpdateError("Documents could not be created", data)
 
         return data["updated"] + data["created"]
 
