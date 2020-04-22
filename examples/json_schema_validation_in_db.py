@@ -10,14 +10,16 @@ def main():
     db = conn["_system"]
     name = "pyArangoValidation"
 
-    validation = {
+    schema = {
         "rule" : {
             "properties" : {
                 "value" : {
                     "type" : "number"
                 }
             }
-        }
+        },
+        "level" : "strict",
+        "message" : "invalid document - schema validation failed!"
     }
 
     collection = None
@@ -27,7 +29,7 @@ def main():
 
     collection = db.createCollection(
         name = name,
-        validation = validation
+        schema = schema
     )
 
     try:
