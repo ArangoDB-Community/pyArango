@@ -36,11 +36,11 @@ class Social(object):
                if self.db.hasGraph('social'):
                    raise Exception("The social graph was already provisioned! remove it first")
 
-               self.female   = self.db.createCollection('Collection', "female")
-               self.male     = self.db.createCollection('Collection', "male")
-               
-               self.relation = self.db.createCollection('Edges', "relation")
-               
+               self.female   = self.db.createCollection(className='Collection', name='female')
+               self.male     = self.db.createCollection(className='Collection', name='male')
+
+               self.relation = self.db.createCollection(className='Edges', name='relation')
+
                g = self.db.createGraph("social")
                
                a = g.createVertex('female', {"name": 'Alice',  "_key": 'alice'});
