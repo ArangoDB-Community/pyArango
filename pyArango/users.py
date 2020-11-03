@@ -74,6 +74,23 @@ class User(object):
             else:
                 raise UpdateError("Unable to update user, status: %s" %r.status_code, data)
 
+    def getPermissions(self, dbName):
+        """Get rights on a database, return True if both read and write rights at the same time else return False"""
+        import json
+
+        if not self.isSet:
+            raise CreationError("Please save user first", None, None)
+
+        if not self.connection.hasDatabase(dbName):
+            raise KeyError("Unknown database: %s" % dbName)
+
+        url = "%s/database/%s" % (self.getURL(), dbName)
+        r = self.connection.session.get(url)
+        if r.status_code < 200 or r.status_code > 202:
+            raise CreationError("Unable to get rights", r.content)
+
+        return json.loads(r.content)["result"] == "rw"
+
     def setPermissions(self, dbName, access):
         """Grant revoke rights on a database, 'access' is supposed to be boolean. ArangoDB grants/revokes both read and write rights at the same time"""
         import json
