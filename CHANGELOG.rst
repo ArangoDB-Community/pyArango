@@ -1,12 +1,8 @@
-1.3.6
-=====
-
-* New: Add a new method getPermissions into class user to be symmetrical with the method setPermissions
-
 1.3.5
 =====
 
 * restoreIndex and restoreIndexes in collection will restore previously deleted indexes
+* New: Add a new method getPermissions into class user to be symmetrical with the method setPermissions
 
 1.3.4
 =====
