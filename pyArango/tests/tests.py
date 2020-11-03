@@ -986,7 +986,10 @@ class pyArangoTests(unittest.TestCase):
         u = self.conn.users.createUser("pyArangoTest_tesla", "secure")
         u.save()
 
+        self.assertFalse(u.getPermissions("test_db_2"))
         u.setPermissions("test_db_2", True)
+        self.assertTrue(u.getPermissions("test_db_2"))
+
         global ARANGODB_URL
         conn = Connection(arangoURL=ARANGODB_URL, username="pyArangoTest_tesla", password="secure")
 
