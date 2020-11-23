@@ -13,8 +13,8 @@ pyArango
    :alt: downloads_week
    :target: https://pepy.tech/project/pyarango/week
    
-.. image:: https://travis-ci.org/tariqdaouda/pyArango.svg?branch=1.2.2
-    :target: https://travis-ci.org/tariqdaouda/pyArango
+.. image:: https://travis-ci.com/Alexsaphir/pyArango.svg?branch=master
+    :target: https://travis-ci.com/github/Alexsaphir/pyArango
 .. image:: https://img.shields.io/badge/python-2.7%2C%203.5-blue.svg
 .. image:: https://img.shields.io/badge/arangodb-3.0-blue.svg
 
