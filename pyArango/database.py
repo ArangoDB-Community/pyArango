@@ -514,6 +514,13 @@ class Database(object):
     def __repr__(self):
         return "ArangoDB database: %s" % self.name
 
+    def __contains__(self, _id: str):
+        col, key = _id.split('/')
+        try:
+            return key in self[col]
+        except KeyError:
+            return False
+
     def __getitem__(self, collectionName):
         """use database[collectionName] to get a collection from the database"""
         try:

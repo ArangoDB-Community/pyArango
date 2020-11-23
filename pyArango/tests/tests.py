@@ -361,6 +361,16 @@ class pyArangoTests(unittest.TestCase):
         doc2 = collection.fetchDocument(doc._key)
         self.assertEqual(doc._id, doc2._id)
 
+    def test_database_contains_id(self):
+        collection = self.db.createCollection(name="lala")
+        doc = collection.createDocument()
+        doc["name"] = 'iop'
+        doc.save()
+        result = doc["_id"] in self.db
+        self.assertTrue(result)
+        result = doc["_id"] + '1' in self.db
+        self.assertFalse(result)
+
     # @unittest.skip("stand by")
     def test_document_set_private_w_rest(self):
         collection = self.db.createCollection(name = "lala")
