@@ -178,7 +178,9 @@ class AbstractInstanciationError(Exception):
 
 class ExportError(pyArangoException):
     """ Something went wrong using the export cursor """
-    def __init__(self, message, errors = {} ):
+    def __init__(self, message, errors = None ):
+        if errors is None:
+            errors = {}
         pyArangoException.__init__(self, message, errors)
 
 class DocumentNotFoundError(pyArangoException):
