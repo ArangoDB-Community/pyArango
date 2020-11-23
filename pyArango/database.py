@@ -510,7 +510,8 @@ class Database(object):
     def __repr__(self):
         return "ArangoDB database: %s" % self.name
 
-    def __contains__(self, _id: str):
+    def __contains__(self, _id):
+        """allows to check if _id:str is the id of an existing document"""
         col, key = _id.split('/')
         try:
             return key in self[col]
