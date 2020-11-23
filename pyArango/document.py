@@ -128,7 +128,7 @@ class DocumentStore(object):
         return dict(self.store) + dict(self.patchStore)
 
     def __contains__(self, field):
-        return field in store
+        return field in self.store
         
     def __getitem__(self, field):
         """Get an element from the store"""
