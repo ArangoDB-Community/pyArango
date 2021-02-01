@@ -327,7 +327,7 @@ class Database(object):
             batch_index = 0
             result = []
             while True:
-                if len(query.response['result']) is 0:
+                if len(query.response['result']) == 0:
                     break
                 result.extend(query.response['result'])
                 batch_index += 1
@@ -335,7 +335,7 @@ class Database(object):
         except StopIteration:
             if log is not None:
                 log(result)
-            if len(result) is not 0:
+            if len(result) != 0:
                 return result
         except:
             raise
@@ -393,7 +393,7 @@ class Database(object):
             )
             batch_index = 0
             while True:
-                if len(query.response['result']) is 0:
+                if len(query.response['result']) == 0:
                     break
                 if log is not None:
                     log(
@@ -448,7 +448,7 @@ class Database(object):
         ).response
         if log is not None:
             log(response["result"])
-        if len(response["result"]) is 0:
+        if len(response["result"]) == 0:
             return
         raise AQLFetchError("No results should be returned for the query.")
 

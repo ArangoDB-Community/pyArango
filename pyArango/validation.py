@@ -20,7 +20,7 @@ class NotNull(Validator):
         self.reject_empty_string = reject_empty_string
 
     def validate(self, value):
-        if value is None or (value == 0 is self.reject_zero) or (value == "" and self.reject_empty_string):
+        if value is None or (value == 0 and self.reject_zero) or (value == "" and self.reject_empty_string):
             raise ValidationError("Field can't have a null value: '%s'" % value)
         return True
 
