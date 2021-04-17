@@ -33,9 +33,10 @@ class AikidoSession(object):
     """
 
     class Holder(object):
-        def __init__(self, fct, auth, verify=True):
+        def __init__(self, fct, auth, max_conflict_retries=5, verify=True):
             self.fct = fct
             self.auth = auth
+            self.max_conflict_retries = max_conflict_retries
             if not isinstance(verify, bool) and not isinstance(verify, CA_Certificate) and not not isinstance(verify, str) :
                 raise ValueError("'verify' argument can only be of type: bool, CA_Certificate or str ")
             self.verify = verify
@@ -49,7 +50,11 @@ class AikidoSession(object):
                 kwargs["verify"] = self.verify
 
             try:
-                ret = self.fct(*args, **kwargs)
+                status_code = 1200
+                retry = 0
+                while status_code == 1200 and retry < self.max_conflict_retries :
+                    ret = self.fct(*args, **kwargs)
+                    retry += 1
             except:
                 print ("===\nUnable to establish connection, perhaps arango is not running.\n===")
                 raise
@@ -62,7 +67,7 @@ class AikidoSession(object):
             ret.json = JsonHook(ret)
             return ret
 
-    def __init__(self, username, password, verify=True, max_retries=5, log_requests=False):
+    def __init__(self, username, password, max_conflict_retries=5, single_session=True, verify=True, max_retries=5, log_requests=False):
         if username:
             self.auth = (username, password)
         else:
@@ -71,19 +76,33 @@ class AikidoSession(object):
         self.verify = verify
         self.max_retries = max_retries
         self.log_requests = log_requests
+        self.max_conflict_retries = max_conflict_retries
+
+        self.session = None
+        if single_session:
+            self.session = self._make_session()
 
         if log_requests:
             self.log = {}
             self.log["nb_request"] = 0
             self.log["requests"] = {}
 
+    def _make_session(self):
+        session = requests.Session()
+        http = requests.adapters.HTTPAdapter(max_retries=self.max_retries)
+        https = requests.adapters.HTTPAdapter(max_retries=self.max_retries)
+        session.mount('http://', http)
+        session.mount('https://', https)
+
+        return session
+
     def __getattr__(self, request_function_name):
+        if self.session is not None:
+            session = self.session
+        else :
+            session = self._make_session()
+
         try:
-            session = requests.Session()
-            http = requests.adapters.HTTPAdapter(max_retries=self.max_retries)
-            https = requests.adapters.HTTPAdapter(max_retries=self.max_retries)
-            session.mount('http://', http)
-            session.mount('https://', https)
             request_function = getattr(session, request_function_name)
         except AttributeError:
             raise AttributeError("Attribute '%s' not found (no Aikido move available)" % request_function_name)
@@ -95,7 +114,7 @@ class AikidoSession(object):
             log["nb_request"] += 1
             log["requests"][request_function.__name__] += 1
 
-        return AikidoSession.Holder(request_function, auth, verify)
+        return AikidoSession.Holder(request_function, auth, max_conflict_retries=self.max_conflict_retries, verify=verify)
 
     def disconnect(self):
         pass
