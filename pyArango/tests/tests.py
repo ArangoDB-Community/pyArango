@@ -39,6 +39,8 @@ class pyArangoTests(unittest.TestCase):
 
     def _reset(self):
         self.db.reload()
+        self.db.tasks.drop()
+
         for colName in self.db.collections:
             if not self.db[colName].isSystem:
                 self.db[colName].delete()
@@ -99,6 +101,7 @@ class pyArangoTests(unittest.TestCase):
                 count += 1
         return count
 
+    # @unittest.skip("stand by")
     def test_bulk_operations(self):
         (collection, docs) = self.createManyUsersBulk(55, 17)
         self.assertEqual(collection.count(), len(docs))
@@ -1009,14 +1012,17 @@ class pyArangoTests(unittest.TestCase):
 
         Connection(arangoURL=ARANGODB_URL, username="pyArangoTest_tesla", password="newpass")
 
+    # @unittest.skip("stand by")
     def test_action(self):
         response = self.db.action.get("/_admin/aardvark/index.html")
         self.assertEqual(response.status_code, 200, "Check if db is running")
-
+    
+    # @unittest.skip("stand by")
     def test_foxx_service(self):
         response = self.db.foxx.service("/_admin/aardvark").get("/index.html")
         self.assertEqual(response.status_code, 200, "Check if db is running")
 
+    # @unittest.skip("stand by")
     def test_tasks(self):
         db_tasks = self.db.tasks
         self.assertListEqual(db_tasks(), [])

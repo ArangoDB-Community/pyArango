@@ -128,10 +128,10 @@ class Database(object):
             colProperties["type"] = CONST.COLLECTION_DOCUMENT_TYPE
 
         payload = json.dumps(colProperties, default=str)
-        r = self.connection.session.post(self.getCollectionsURL(), data = payload)
-        data = r.json()
+        req = self.connection.session.post(self.getCollectionsURL(), data = payload)
+        data = req.json()
 
-        if r.status_code == 200 and not data["error"]:
+        if req.status_code == 200 and not data["error"]:
             col = colClass(self, data)
             self.collections[col.name] = col
             return self.collections[col.name]
