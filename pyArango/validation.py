@@ -14,14 +14,14 @@ class Validator(object):
         return self.__class__.__name__
 
 class NotNull(Validator):
-    """Checks that the Field has a non null value"""
+    """Checks that the Field has a non null value. False is not considered a Null Value"""
     def __init__(self, reject_zero=True, reject_empty_string=True):
         self.reject_zero = reject_zero
         self.reject_empty_string = reject_empty_string
 
     def validate(self, value):
-        if value is None or (value == 0 and self.reject_zero) or (value == "" and self.reject_empty_string):
-            raise ValidationError("Field can't have a null value: '%s'" % value)
+        if value is None or ( (value == 0 and type(value) != bool ) and self.reject_zero) or (value == "" and self.reject_empty_string):
+            raise ValidationError("Field can't have a null value, got: '%s'" % value)
         return True
 
 class Email(Validator):
