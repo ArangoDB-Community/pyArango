@@ -7,6 +7,7 @@
 * added task deletion to tests reset
 * added drop() to tasks to remove all tasks in one command 
 * better documentation of connection class
+* False is not considered a Null value while validating
 
 1.3.4
 =====
