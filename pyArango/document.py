@@ -65,7 +65,10 @@ class DocumentStore(object):
                 return self[field].validate()
             
             if field in self.patchStore:
-                return self.validators[field].validate(self.patchStore[field])
+                try:
+                    return self.validators[field].validate(self.patchStore[field])
+                except ValidationError as e:
+                    raise ValidationError( "'%s' -> %s" % ( field, str(e)) )
             else:
                 try:
                     return self.validators[field].validate(self.store[field])

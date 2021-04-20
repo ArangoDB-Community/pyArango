@@ -9,6 +9,7 @@
 * better documentation of connection class
 * False is not considered a Null value while validating
 * Removed redundant document creation functions
+* More explicit validation error with field name
 
 1.3.4
 =====
