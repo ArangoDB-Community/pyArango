@@ -315,25 +315,11 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             raise DeletionError(data["errorMessage"], data)
 
     def createDocument(self, initDict = None):
-        """create and returns a document populated with the defaults or with the values in initDict"""
-        if initDict is not None:
-            return self.createDocument_(initDict)
-        else:
-            return self.createDocument_(self.defaultDocument)
-            # if self._validation["on_load"]:
-            #     self._validation["on_load"] = False
-                # self._validation["on_load"] = True
-                # return self.createDocument_(self.defaultDocument)
-
-    def createDocument_(self, initDict = None):
         """create and returns a completely empty document or one populated with initDict"""
         res = dict(self.defaultDocument)
-        if initDict is None:
-            initV = {}
-        else:
-            initV = initDict
-        res.update(initV)
-
+        if initDict is not None:
+            res.update(initDict)
+ 
         return self.documentClass(self, res)
 
     def _writeBatch(self):
@@ -939,15 +925,9 @@ class Edges(Collection):
                 raise e
         return valValue
 
-    def createEdge(self):
+    def createEdge(self, initValues = None):
         """Create an edge populated with defaults"""
-        return self.createDocument()
-
-    def createEdge_(self, initValues = None):
-        """Create an edge populated with initValues"""
-        if not initValues:
-            initValues = {}
-        return self.createDocument_(initValues)
+        return self.createDocument(initValues)
 
     def getInEdges(self, vertex, rawResults = False):
         """An alias for getEdges() that returns only the in Edges"""
