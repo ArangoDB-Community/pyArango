@@ -8,6 +8,7 @@
 * added drop() to tasks to remove all tasks in one command 
 * better documentation of connection class
 * False is not considered a Null value while validating
+* Removed redundant document creation functions
 
 1.3.4
 =====
