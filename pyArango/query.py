@@ -156,8 +156,10 @@ class AQLQuery(Query):
         except QueryError as e:
             raise AQLQueryError( message = e.message, query = self.query, errors = e.errors)
 
-    def explain(self, bindVars={}, allPlans = False):
+    def explain(self, bindVars = None, allPlans = False):
         """Returns an explanation of the query. Setting allPlans to True will result in ArangoDB returning all possible plans. False returns only the optimal plan"""
+        if bindVars is None:
+            bindVars = {}
         return self.database.explainAQLQuery(self.query, bindVars, allPlans)
 
     def _raiseInitFailed(self, request):
