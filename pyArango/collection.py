@@ -315,25 +315,11 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             raise DeletionError(data["errorMessage"], data)
 
     def createDocument(self, initDict = None):
-        """create and returns a document populated with the defaults or with the values in initDict"""
-        if initDict is not None:
-            return self.createDocument_(initDict)
-        else:
-            return self.createDocument_(self.defaultDocument)
-            # if self._validation["on_load"]:
-            #     self._validation["on_load"] = False
-                # self._validation["on_load"] = True
-                # return self.createDocument_(self.defaultDocument)
-
-    def createDocument_(self, initDict = None):
         """create and returns a completely empty document or one populated with initDict"""
         res = dict(self.defaultDocument)
-        if initDict is None:
-            initV = {}
-        else:
-            initV = initDict
-        res.update(initV)
-
+        if initDict is not None:
+            res.update(initDict)
+ 
         return self.documentClass(self, res)
 
     def _writeBatch(self):
@@ -614,6 +600,34 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             self.indexes_by_name[name] = ind
         return ind
 
+    def ensureIndex(self, index_type, fields, name=None, **index_args):
+        """Creates an index of any type."""
+        data = {
+            "type" : index_type,
+            "fields" : fields,
+        }
+        data.update(index_args)
+        
+        if name:
+            data["name"] = name
+
+        ind = Index(self, creationData = data)
+        self.indexes[index_type][ind.infos["id"]] = ind
+        if name:
+            self.indexes_by_name[name] = ind
+        return ind
+
+    def restoreIndexes(self, indexes_dct=None):
+        """restores all previously removed indexes"""
+        if indexes_dct is None:
+            indexes_dct = self.indexes
+
+        for typ in indexes_dct.keys():
+            if typ != "primary":
+                for name, idx in indexes_dct[typ].items():
+                    infos = dict(idx.infos)
+                    del infos["fields"]
+                    self.ensureIndex(typ, idx.infos["fields"], **infos)
 
     def validatePrivate(self, field, value):
         """validate a private field value"""
@@ -757,8 +771,10 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         if (r.status_code == 201) and "error" not in data:
             return True
         else:
-            if data["errors"] > 0:
+            if "errors" in data and data["errors"] > 0:
                 raise UpdateError("%d documents could not be created" % data["errors"], data)
+            elif data["error"]:
+                raise UpdateError("Documents could not be created", data)
 
         return data["updated"] + data["created"]
 
@@ -909,15 +925,9 @@ class Edges(Collection):
                 raise e
         return valValue
 
-    def createEdge(self):
+    def createEdge(self, initValues = None):
         """Create an edge populated with defaults"""
-        return self.createDocument()
-
-    def createEdge_(self, initValues = None):
-        """Create an edge populated with initValues"""
-        if not initValues:
-            initValues = {}
-        return self.createDocument_(initValues)
+        return self.createDocument(initValues)
 
     def getInEdges(self, vertex, rawResults = False):
         """An alias for getEdges() that returns only the in Edges"""

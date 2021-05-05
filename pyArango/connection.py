@@ -33,9 +33,10 @@ class AikidoSession(object):
     """
 
     class Holder(object):
-        def __init__(self, fct, auth, verify=True):
+        def __init__(self, fct, auth, max_conflict_retries=5, verify=True):
             self.fct = fct
             self.auth = auth
+            self.max_conflict_retries = max_conflict_retries
             if not isinstance(verify, bool) and not isinstance(verify, CA_Certificate) and not not isinstance(verify, str) :
                 raise ValueError("'verify' argument can only be of type: bool, CA_Certificate or str ")
             self.verify = verify
@@ -49,7 +50,12 @@ class AikidoSession(object):
                 kwargs["verify"] = self.verify
 
             try:
-                ret = self.fct(*args, **kwargs)
+                status_code = 1200
+                retry = 0
+                while status_code == 1200 and retry < self.max_conflict_retries :
+                    ret = self.fct(*args, **kwargs)
+                    status_code = ret.status_code
+                    retry += 1
             except:
                 print ("===\nUnable to establish connection, perhaps arango is not running.\n===")
                 raise
@@ -62,7 +68,7 @@ class AikidoSession(object):
             ret.json = JsonHook(ret)
             return ret
 
-    def __init__(self, username, password, verify=True, max_retries=5, log_requests=False):
+    def __init__(self, username, password, verify=True, max_conflict_retries=5, max_retries=5, single_session=True, log_requests=False):
         if username:
             self.auth = (username, password)
         else:
@@ -71,19 +77,33 @@ class AikidoSession(object):
         self.verify = verify
         self.max_retries = max_retries
         self.log_requests = log_requests
+        self.max_conflict_retries = max_conflict_retries
+
+        self.session = None
+        if single_session:
+            self.session = self._make_session()
 
         if log_requests:
             self.log = {}
             self.log["nb_request"] = 0
             self.log["requests"] = {}
 
+    def _make_session(self):
+        session = requests.Session()
+        http = requests.adapters.HTTPAdapter(max_retries=self.max_retries)
+        https = requests.adapters.HTTPAdapter(max_retries=self.max_retries)
+        session.mount('http://', http)
+        session.mount('https://', https)
+
+        return session
+
     def __getattr__(self, request_function_name):
+        if self.session is not None:
+            session = self.session
+        else :
+            session = self._make_session()
+
         try:
-            session = requests.Session()
-            http = requests.adapters.HTTPAdapter(max_retries=self.max_retries)
-            https = requests.adapters.HTTPAdapter(max_retries=self.max_retries)
-            session.mount('http://', http)
-            session.mount('https://', https)
             request_function = getattr(session, request_function_name)
         except AttributeError:
             raise AttributeError("Attribute '%s' not found (no Aikido move available)" % request_function_name)
@@ -95,7 +115,7 @@ class AikidoSession(object):
             log["nb_request"] += 1
             log["requests"][request_function.__name__] += 1
 
-        return AikidoSession.Holder(request_function, auth, verify)
+        return AikidoSession.Holder(request_function, auth, max_conflict_retries=self.max_conflict_retries, verify=verify)
 
     def disconnect(self):
         pass
@@ -103,7 +123,38 @@ class AikidoSession(object):
 class Connection(object):
     """This is the entry point in pyArango and directly handles databases.
     @param arangoURL: can be either a string url or a list of string urls to different coordinators
-    @param use_grequests: allows for running concurent requets."""
+    @param use_grequests: allows for running concurent requets.
+
+    Parameters
+    ----------
+    arangoURL: list or str
+        list of urls or url for connecting to the db
+
+    username: str
+        for credentials
+    password: str
+        for credentials
+    verify: bool
+        check the validity of the CA certificate
+    verbose: bool
+        flag for addictional prints during run
+    statsdClient: instance
+        statsd instance    
+    reportFileName: str
+        where to save statsd report
+    loadBalancing: str
+        type of load balancing between collections
+    use_grequests: bool
+        parallelise requests using gevents. Use with care as gevents monkey patches python, this could have unintended concequences on other packages
+    use_jwt_authentication: bool
+        use JWT authentication
+    use_lock_for_reseting_jwt: bool
+        use lock for reseting gevents authentication
+    max_retries: int
+        max number of retries for a request
+    max_conflict_retries: int
+        max number of requests for a conflict error (1200 arangodb error). Does not work with gevents (grequests),
+    """
 
     LOAD_BLANCING_METHODS = {'round-robin', 'random'}
 
@@ -120,6 +171,7 @@ class Connection(object):
         use_jwt_authentication=False,
         use_lock_for_reseting_jwt=True,
         max_retries=5,
+        max_conflict_retries=5
     ):
 
         if loadBalancing not in Connection.LOAD_BLANCING_METHODS:
@@ -132,6 +184,7 @@ class Connection(object):
         self.use_jwt_authentication = use_jwt_authentication
         self.use_lock_for_reseting_jwt = use_lock_for_reseting_jwt
         self.max_retries = max_retries
+        self.max_conflict_retries = max_conflict_retries
         self.action = ConnectionAction(self)
 
         self.databases = {}
@@ -211,7 +264,16 @@ class Connection(object):
                 verify
             )
         else:
-            self.session = AikidoSession(username, password, verify, self.max_retries)
+            # self.session = AikidoSession(username, password, verify, self.max_retries)
+            self.session = AikidoSession(
+                username=username,
+                password=password,
+                verify=verify,
+                single_session=True,
+                max_conflict_retries=self.max_conflict_retries,
+                max_retries=self.max_retries,
+                log_requests=False
+            )
 
     def reload(self):
         """Reloads the database list.

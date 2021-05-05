@@ -9,7 +9,7 @@ Welcome to pyArango's documentation!
 .. image:: https://travis-ci.org/tariqdaouda/pyArango.svg?branch=1.2.2
     :target: https://travis-ci.org/tariqdaouda/pyArango
 .. image:: https://img.shields.io/badge/python-2.7%2C%203.5-blue.svg
-.. image:: https://img.shields.io/badge/arangodb-3.0-blue.svg
+.. image:: https://img.shields.io/badge/arangodb-3.6-blue.svg
 
 pyArango is a python driver for the NoSQL amazing database ArangoDB_ first written by `Tariq Daouda`_. As of January 2019 pyArango was handed over to the ArangoDB-Community that now ensures the developement and maintenance. It has a very light interface and built in validation. pyArango is distributed under the ApacheV2 Licence and the full source code can be found on github_.
 

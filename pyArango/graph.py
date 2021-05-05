@@ -171,7 +171,7 @@ class Graph(with_metaclass(Graph_metaclass, object)):
         raise CreationError("Unable to create edge, %s" % r.json()["errorMessage"], data)
 
     def link(self, definition, doc1, doc2, edgeAttributes, waitForSync = False):
-        "A shorthand for createEdge that takes two documents as input"
+        """A shorthand for createEdge that takes two documents as input"""
         if type(doc1) is DOC.Document:
             if not doc1._id:
                 doc1.save()
@@ -189,7 +189,7 @@ class Graph(with_metaclass(Graph_metaclass, object)):
         return self.createEdge(definition, doc1_id, doc2_id, edgeAttributes, waitForSync)
 
     def unlink(self, definition, doc1, doc2):
-        "deletes all links between doc1 and doc2"
+        """deletes all links between doc1 and doc2"""
         links = self.database[definition].fetchByExample( {"_from": doc1._id,"_to" : doc2._id}, batchSize = 100)
         for l in links:
             self.deleteEdge(l)

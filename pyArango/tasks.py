@@ -12,15 +12,25 @@ class Tasks:
 
     def __call__(self):
         """All the active tasks in the db."""
-        response = self.database.action.get(self.URL)
-        response.raise_for_status()
-        return response.json()
+        # response = self.database.action.get(self.URL)
+        # response.raise_for_status()
+        # return response.json()
+        return self.fetch()
 
-    def fetch(self, task_id):
-        """Fetch the task for given task_id."""
-        url = '{tasks_url}/{task_id}'.format(
-            tasks_url=self.URL, task_id=task_id
-        )
+    def drop(self):
+        """delete all tasks"""
+        for task in self.fetch():
+            self.delete(task["id"])
+
+    def fetch(self, task_id=None):
+        """Fetch the task for given task_id. If task_id is None return all tasks """
+        if task_id is not None:
+            url = '{tasks_url}/{task_id}'.format(
+                tasks_url=self.URL, task_id=task_id
+            )
+        else:
+            url = self.URL
+
         response = self.database.action.get(url)
         response.raise_for_status()
         return response.json()

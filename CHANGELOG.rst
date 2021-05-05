@@ -1,3 +1,16 @@
+1.3.5
+=====
+
+* restoreIndex and restoreIndexes in collection will restore previously deleted indexes
+* added max_conflict_retries to handle arango's 1200
+* added single session so AikidoSessio.Holders can share a single request session
+* added task deletion to tests reset
+* added drop() to tasks to remove all tasks in one command 
+* better documentation of connection class
+* False is not considered a Null value while validating
+* Removed redundant document creation functions
+* More explicit validation error with field name
+
 1.3.4
 =====
 * Bugfix: Query iterator now returns all elements instead of a premature empty list

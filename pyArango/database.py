@@ -128,10 +128,10 @@ class Database(object):
             colProperties["type"] = CONST.COLLECTION_DOCUMENT_TYPE
 
         payload = json.dumps(colProperties, default=str)
-        r = self.connection.session.post(self.getCollectionsURL(), data = payload)
-        data = r.json()
+        req = self.connection.session.post(self.getCollectionsURL(), data = payload)
+        data = req.json()
 
-        if r.status_code == 200 and not data["error"]:
+        if req.status_code == 200 and not data["error"]:
             col = colClass(self, data)
             self.collections[col.name] = col
             return self.collections[col.name]
@@ -209,6 +209,10 @@ class Database(object):
     def hasGraph(self, name):
         """returns true if the databse has a graph by the name of 'name'"""
         return name in self.graphs
+
+    def __contains__(self, name):
+        """if name in database"""
+        return self.hasCollection(name) or self.hasGraph(name)
 
     def dropAllCollections(self):
         """drops all public collections (graphs included) from the database"""
@@ -335,7 +339,7 @@ class Database(object):
             batch_index = 0
             result = []
             while True:
-                if len(query.response['result']) is 0:
+                if len(query.response['result']) == 0:
                     break
                 result.extend(query.response['result'])
                 batch_index += 1
@@ -343,7 +347,7 @@ class Database(object):
         except StopIteration:
             if log is not None:
                 log(result)
-            if len(result) is not 0:
+            if len(result) != 0:
                 return result
         except:
             raise
@@ -401,7 +405,7 @@ class Database(object):
             )
             batch_index = 0
             while True:
-                if len(query.response['result']) is 0:
+                if len(query.response['result']) == 0:
                     break
                 if log is not None:
                     log(
@@ -456,7 +460,7 @@ class Database(object):
         ).response
         if log is not None:
             log(response["result"])
-        if len(response["result"]) is 0:
+        if len(response["result"]) == 0:
             return
         raise AQLFetchError("No results should be returned for the query.")
 
