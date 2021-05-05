@@ -15,7 +15,7 @@ class Validator(object):
 
 class NotNull(Validator):
     """Checks that the Field has a non null value. False is not considered a Null Value"""
-    def __init__(self, reject_zero=True, reject_empty_string=True):
+    def __init__(self, reject_zero=False, reject_empty_string=True):
         self.reject_zero = reject_zero
         self.reject_empty_string = reject_empty_string
 

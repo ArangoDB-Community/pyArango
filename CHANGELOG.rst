@@ -1,3 +1,8 @@
+2.0
+=====
+
+* changed the default value of reject_zero in NotNull from True to False
+
 1.3.5
 =====
 
