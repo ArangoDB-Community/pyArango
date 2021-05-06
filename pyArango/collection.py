@@ -638,55 +638,6 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             self._fields[field].validate(value)
         return True
 
-    # @classmethod
-    # def validateField(cls, fieldName, value):
-    #     """checks if 'value' is valid for field 'fieldName'. If the validation is unsuccessful, raises a SchemaViolation or a ValidationError.
-    #     for nested dicts ex: {address : { street: xxx} }, fieldName can take the form address.street
-    #     """
-
-    #     def _getValidators(cls, fieldName):
-    #         path = fieldName.split(".")
-    #         v = cls._fields
-    #         for k in path:
-    #             try:
-    #                 v = v[k]
-    #             except KeyError:
-    #                 return None
-    #         return v
-
-    #     field = _getValidators(cls, fieldName)
-
-    #     if field is None:
-    #         if not cls._validation["allow_foreign_fields"]:
-    #             raise SchemaViolation(cls, fieldName)
-    #     else:
-    #         return field.validate(value)
-
-    # @classmethod
-    # def validateDct(cls, dct):
-    #     "validates a dictionary. The dictionary must be defined such as {field: value}. If the validation is unsuccefull, raises an InvalidDocument"
-    #     def _validate(dct, res, parentsStr=""):
-    #         for k, v in dct.items():
-    #             if len(parentsStr) == 0:
-    #                 ps = k
-    #             else:
-    #                 ps = "%s.%s" % (parentsStr, k)
-
-    #             if type(v) is dict:
-    #                 _validate(v, res, ps)
-    #             elif k not in cls.arangoPrivates:
-    #                 try:
-    #                     cls.validateField(ps, v)
-    #                 except (ValidationError, SchemaViolation) as e:
-    #                     res[k] = str(e)
-
-    #     res = {}
-    #     _validate(dct, res)
-    #     if len(res) > 0:
-    #         raise InvalidDocument(res)
-
-    #     return True
-
     @classmethod
     def hasField(cls, fieldName):
         """returns True/False wether the collection has field K in it's schema. Use the dot notation for the nested fields: address.street"""
@@ -982,3 +933,4 @@ class BulkOperation(object):
         return self.coll
     def __exit__(self, type, value, traceback):
         self.coll._finalizeBatch();
+
