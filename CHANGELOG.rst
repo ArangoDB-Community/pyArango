@@ -2,6 +2,7 @@
 =====
 
 * changed the default value of reject_zero in NotNull from True to False
+* added to_default function to reset a document to its default values
 
 1.3.5
 =====

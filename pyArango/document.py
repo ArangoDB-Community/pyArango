@@ -225,6 +225,10 @@ class Document(object):
 
         self.modified = True
 
+    def to_default(self):
+        """reset the document to the default values"""
+        self.reset(self.collection, self.collection.defaultDocument)
+
     def validate(self):
         """validate the document"""
         self._store.validate()
