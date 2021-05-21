@@ -325,9 +325,6 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         """create and returns a completely empty document or one populated with initDict"""
         # res = dict(self.defaultDocument)
         res = self.getDefaultDocument()
-        from icecream import ic
-        ic(res)
-        
         if initDict is not None:
             res.update(initDict)
  
