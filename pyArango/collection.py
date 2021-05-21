@@ -118,8 +118,8 @@ class DocumentCache(object):
 
 class Field(object):
     """The class for defining pyArango fields."""
-    def __init__(self, validators = None, default = ""):
-        """validators must be a list of validators"""
+    def __init__(self, validators = None, default = None):
+        """validators must be a list of validators. default can also be a callable"""
         if not validators:
             validators = []
         self.validators = validators
@@ -238,16 +238,6 @@ class Collection(with_metaclass(Collection_metaclass, object)):
 
     def __init__(self, database, jsonData):
 
-        def getDefaultDoc(fields, dct):
-            for k, v in fields.items():
-                if isinstance(v, dict):
-                    dct[k] = getDefaultDoc(fields[k], {})
-                elif isinstance(v, Field):
-                    dct[k] = v.default
-                else:
-                    raise ValueError("Field '%s' is of invalid type '%s'" % (k, type(v)) )
-            return dct
-
         self.database = database
         self.connection = self.database.connection
         self.name = self.__class__.__name__
@@ -267,12 +257,29 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             "fulltext" : {},
         }
         self.indexes_by_name = {}
-
-        self.defaultDocument = getDefaultDoc(self._fields, {})
+        self.defaultDocument = None #getDefaultDoc(self._fields, {})
         self._isBulkInProgress = False
         self._bulkSize = 0
         self._bulkCache = []
         self._bulkMode = BulkMode.NONE
+
+    def getDefaultDocument(self, fields=None, dct=None):
+        if dct is None:
+            dct = {}
+        if fields is None:
+            fields = self._fields
+
+        for k, v in fields.items():
+            if isinstance(v, dict):
+                dct[k] = self.getDefaultDocument(fields[k], None)
+            elif isinstance(v, Field):
+                if callable(v.default):
+                    dct[k] = v.default()
+                else :
+                    dct[k] = v.default
+            else:
+                raise ValueError("Field '%s' is of invalid type '%s'" % (k, type(v)) )
+        return dct
 
     def getURL(self):
         return "%s/collection/%s" % (self.database.getURL(), self.name)
@@ -316,7 +323,11 @@ class Collection(with_metaclass(Collection_metaclass, object)):
 
     def createDocument(self, initDict = None):
         """create and returns a completely empty document or one populated with initDict"""
-        res = dict(self.defaultDocument)
+        # res = dict(self.defaultDocument)
+        res = self.getDefaultDocument()
+        from icecream import ic
+        ic(res)
+        
         if initDict is not None:
             res.update(initDict)
  

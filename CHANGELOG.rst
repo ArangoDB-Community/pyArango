@@ -3,6 +3,9 @@
 
 * changed the default value of reject_zero in NotNull from True to False
 * added to_default function to reset a document to its default values
+* fixed bug in default documents where default values could be overwritten
+* default value for fields is now None
+* defaual value for fields can now be a callable
 
 1.3.5
 =====
