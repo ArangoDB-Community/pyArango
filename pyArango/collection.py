@@ -789,10 +789,8 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             data = f.read()
             r = self.connection.session.post(url, params = params, data = data)
 
-            try:
-                errorMessage = "At least: %d errors. The first one is: '%s'\n\n more in <this_exception>.data" % (len(data), data[0]["errorMessage"])
-            except KeyError:
-                raise UpdateError(data['errorMessage'], data)
+            if r.status_code != 201:
+                raise UpdateError('Unable to bulk import JSON', r)
 
     def bulkImport_values(self, filename, onDuplicate="error", **params):
         """bulk import from a file repecting arango's json format"""
@@ -804,10 +802,8 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             data = f.read()
             r = self.connection.session.post(url, params = params, data = data)
 
-            try:
-                errorMessage = "At least: %d errors. The first one is: '%s'\n\n more in <this_exception>.data" % (len(data), data[0]["errorMessage"])
-            except KeyError:
-                raise UpdateError(data['errorMessage'], data)
+            if r.status_code != 201:
+                raise UpdateError('Unable to bulk import values', r)
 
     def truncate(self):
         """deletes every document in the collection"""
