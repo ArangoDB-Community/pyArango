@@ -257,7 +257,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             "fulltext" : {},
         }
         self.indexes_by_name = {}
-        self.defaultDocument = None #getDefaultDoc(self._fields, {})
+        # self.defaultDocument = None #getDefaultDoc(self._fields, {})
         self._isBulkInProgress = False
         self._bulkSize = 0
         self._bulkCache = []
@@ -325,6 +325,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         """create and returns a completely empty document or one populated with initDict"""
         # res = dict(self.defaultDocument)
         res = self.getDefaultDocument()
+        
         if initDict is not None:
             res.update(initDict)
  

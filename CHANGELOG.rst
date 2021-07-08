@@ -1,3 +1,8 @@
+2.0.1
+=====
+
+* Fixed max retries for write conflicts
+
 2.0
 =====
 
