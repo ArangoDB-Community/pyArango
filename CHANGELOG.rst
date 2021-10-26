@@ -10,7 +10,7 @@ Unreleased
 * added max_conflict_retries to handle arango's 1200
 * added single session so AikidoSessio.Holders can share a single request session
 * added task deletion to tests reset
-* added drop() to tasks to remove all tasks in one command 
+* added drop() to tasks to remove all tasks in one command
 * better documentation of connection class
 * False is not considered a Null value while validating
 * Removed redundant document creation functions

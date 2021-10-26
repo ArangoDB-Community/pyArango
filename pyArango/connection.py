@@ -3,9 +3,6 @@ import json as json_mod
 from datetime import datetime
 
 import requests
-import base64
-import tempfile
-import shutil
 
 from .action import ConnectionAction
 from .database import Database, DBHandle
@@ -13,6 +10,8 @@ from .theExceptions import CreationError, ConnectionError
 from .users import Users
 
 from .ca_certificate import CA_Certificate
+
+from json.decoder import JSONDecodeError
 
 class JsonHook(object):
     """This one replaces requests' original json() function. If a call to json() fails, it will print a message with the request content"""
@@ -27,8 +26,10 @@ class JsonHook(object):
             print( "Unable to get json for request: %s. Content: %s" % (self.ret.url, self.ret.content) )
             raise e
 
-class AikidoSession(object):
-    """Magical Aikido being that you probably do not need to access directly that deflects every http request to requests in the most graceful way.
+
+class AikidoSession:
+    """Magical Aikido being that you probably do not need to access directly
+    that deflects every http request to requests in the most graceful way.
     It will also save basic stats on requests in it's attribute '.log'.
     """
 
@@ -50,11 +51,17 @@ class AikidoSession(object):
                 kwargs["verify"] = self.verify
 
             try:
-                status_code = 1200
+                do_retry = True
                 retry = 0
-                while status_code == 1200 and retry < self.max_conflict_retries :
+                while do_retry and retry < self.max_conflict_retries :
                     ret = self.fct(*args, **kwargs)
-                    status_code = ret.status_code
+                    do_retry = ret.status_code == 1200
+                    try :
+                        data = ret.json()
+                        do_retry = do_retry or ("errorNum" in data and data["errorNum"] == 1200) 
+                    except JSONDecodeError:
+                        pass
+                    
                     retry += 1
             except:
                 print ("===\nUnable to establish connection, perhaps arango is not running.\n===")
