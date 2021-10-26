@@ -118,8 +118,8 @@ class DocumentCache(object):
 
 class Field(object):
     """The class for defining pyArango fields."""
-    def __init__(self, validators = None, default = ""):
-        """validators must be a list of validators"""
+    def __init__(self, validators = None, default = None):
+        """validators must be a list of validators. default can also be a callable"""
         if not validators:
             validators = []
         self.validators = validators
@@ -238,16 +238,6 @@ class Collection(with_metaclass(Collection_metaclass, object)):
 
     def __init__(self, database, jsonData):
 
-        def getDefaultDoc(fields, dct):
-            for k, v in fields.items():
-                if isinstance(v, dict):
-                    dct[k] = getDefaultDoc(fields[k], {})
-                elif isinstance(v, Field):
-                    dct[k] = v.default
-                else:
-                    raise ValueError("Field '%s' is of invalid type '%s'" % (k, type(v)) )
-            return dct
-
         self.database = database
         self.connection = self.database.connection
         self.name = self.__class__.__name__
@@ -267,12 +257,29 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             "fulltext" : {},
         }
         self.indexes_by_name = {}
-
-        self.defaultDocument = getDefaultDoc(self._fields, {})
+        # self.defaultDocument = None #getDefaultDoc(self._fields, {})
         self._isBulkInProgress = False
         self._bulkSize = 0
         self._bulkCache = []
         self._bulkMode = BulkMode.NONE
+
+    def getDefaultDocument(self, fields=None, dct=None):
+        if dct is None:
+            dct = {}
+        if fields is None:
+            fields = self._fields
+
+        for k, v in fields.items():
+            if isinstance(v, dict):
+                dct[k] = self.getDefaultDocument(fields[k], None)
+            elif isinstance(v, Field):
+                if callable(v.default):
+                    dct[k] = v.default()
+                else :
+                    dct[k] = v.default
+            else:
+                raise ValueError("Field '%s' is of invalid type '%s'" % (k, type(v)) )
+        return dct
 
     def getURL(self):
         return "%s/collection/%s" % (self.database.getURL(), self.name)
@@ -316,7 +323,9 @@ class Collection(with_metaclass(Collection_metaclass, object)):
 
     def createDocument(self, initDict = None):
         """create and returns a completely empty document or one populated with initDict"""
-        res = dict(self.defaultDocument)
+        # res = dict(self.defaultDocument)
+        res = self.getDefaultDocument()
+        
         if initDict is not None:
             res.update(initDict)
  
@@ -638,55 +647,6 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             self._fields[field].validate(value)
         return True
 
-    # @classmethod
-    # def validateField(cls, fieldName, value):
-    #     """checks if 'value' is valid for field 'fieldName'. If the validation is unsuccessful, raises a SchemaViolation or a ValidationError.
-    #     for nested dicts ex: {address : { street: xxx} }, fieldName can take the form address.street
-    #     """
-
-    #     def _getValidators(cls, fieldName):
-    #         path = fieldName.split(".")
-    #         v = cls._fields
-    #         for k in path:
-    #             try:
-    #                 v = v[k]
-    #             except KeyError:
-    #                 return None
-    #         return v
-
-    #     field = _getValidators(cls, fieldName)
-
-    #     if field is None:
-    #         if not cls._validation["allow_foreign_fields"]:
-    #             raise SchemaViolation(cls, fieldName)
-    #     else:
-    #         return field.validate(value)
-
-    # @classmethod
-    # def validateDct(cls, dct):
-    #     "validates a dictionary. The dictionary must be defined such as {field: value}. If the validation is unsuccefull, raises an InvalidDocument"
-    #     def _validate(dct, res, parentsStr=""):
-    #         for k, v in dct.items():
-    #             if len(parentsStr) == 0:
-    #                 ps = k
-    #             else:
-    #                 ps = "%s.%s" % (parentsStr, k)
-
-    #             if type(v) is dict:
-    #                 _validate(v, res, ps)
-    #             elif k not in cls.arangoPrivates:
-    #                 try:
-    #                     cls.validateField(ps, v)
-    #                 except (ValidationError, SchemaViolation) as e:
-    #                     res[k] = str(e)
-
-    #     res = {}
-    #     _validate(dct, res)
-    #     if len(res) > 0:
-    #         raise InvalidDocument(res)
-
-    #     return True
-
     @classmethod
     def hasField(cls, fieldName):
         """returns True/False wether the collection has field K in it's schema. Use the dot notation for the nested fields: address.street"""
@@ -982,3 +942,4 @@ class BulkOperation(object):
         return self.coll
     def __exit__(self, type, value, traceback):
         self.coll._finalizeBatch();
+

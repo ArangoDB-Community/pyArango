@@ -51,11 +51,17 @@ class AikidoSession:
                 kwargs["verify"] = self.verify
 
             try:
-                status_code = 1200
+                do_retry = True
                 retry = 0
-                while status_code == 1200 and retry < self.max_conflict_retries :
+                while do_retry and retry < self.max_conflict_retries :
                     ret = self.fct(*args, **kwargs)
-                    status_code = ret.status_code
+                    do_retry = ret.status_code == 1200
+                    try :
+                        data = ret.json()
+                        do_retry = do_retry or ("errorNum" in data and data["errorNum"] == 1200) 
+                    except JSONDecodeError:
+                        pass
+                    
                     retry += 1
             except:
                 print ("===\nUnable to establish connection, perhaps arango is not running.\n===")
