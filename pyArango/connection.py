@@ -143,6 +143,7 @@ class AikidoSession:
     def disconnect(self):
         pass
 
+
 class Connection(object):
     """This is the entry point in pyArango and directly handles databases.
     @param arangoURL: can be either a string url or a list of string urls to different coordinators
@@ -280,9 +281,14 @@ class Connection(object):
         else:
             raise CreationError(data["errorMessage"], data)
 
-    def create_aikido_session(self, username, password, verify) -> AikidoSession:
+    def create_aikido_session(
+            self,
+            username,
+            password,
+            verify
+    ) -> AikidoSession:
         return AikidoSession(
-            username=self.username,
+            username=username,
             password=password,
             verify=verify,
             single_session=True,

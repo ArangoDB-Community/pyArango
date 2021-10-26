@@ -1,3 +1,8 @@
+Unreleased
+=====
+
+* Added parameter ``pool_maxsize`` on class ``Connection`` to allow user configure the http pool size.
+
 2.0.1
 =====
 
