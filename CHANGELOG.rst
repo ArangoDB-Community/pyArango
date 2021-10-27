@@ -3,6 +3,7 @@ Unreleased
 
 * Added parameter ``pool_maxsize`` on class ``Connection`` to allow user configure the http pool size.
 
+<<<<<<<<< Temporary merge branch 1
 2.0.1
 =====
 
@@ -17,6 +18,8 @@ Unreleased
 * default value for fields is now None
 * defaual value for fields can now be a callable
 
+=========
+>>>>>>>>> Temporary merge branch 2
 1.3.5
 =====
 
@@ -24,7 +27,7 @@ Unreleased
 * added max_conflict_retries to handle arango's 1200
 * added single session so AikidoSessio.Holders can share a single request session
 * added task deletion to tests reset
-* added drop() to tasks to remove all tasks in one command 
+* added drop() to tasks to remove all tasks in one command
 * better documentation of connection class
 * False is not considered a Null value while validating
 * Removed redundant document creation functions
