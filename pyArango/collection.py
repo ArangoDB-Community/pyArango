@@ -689,7 +689,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
     def fetchAll(self, rawResults = False, **queryArgs):
         """Returns all the documents in the collection. You can use the optinal arguments 'skip' and 'limit'::
 
-            fetchAlll(limit = 3, shik = 10)"""
+            fetchAll(limit = 3, skip = 10)"""
         return self.simpleQuery('all', rawResults = rawResults, **queryArgs)
 
     def simpleQuery(self, queryType, rawResults = False, **queryArgs):
