@@ -102,6 +102,28 @@ class pyArangoTests(unittest.TestCase):
         return count
 
     # @unittest.skip("stand by")
+    def test_to_default(self):
+        class theCol(Collection):
+            _fields = {
+                'address' : {
+                    'street' : Field(default="Paper street"),
+                    },
+                "name": Field(default = "Tyler Durden")
+            }
+
+        col = self.db.createCollection("theCol")
+        doc = col.createDocument()
+        self.assertEqual(doc["address"]["street"], "Paper street")
+        self.assertEqual(doc["name"], "Tyler Durden")
+        doc["address"]["street"] = "North street"
+        doc["name"] = "Jon Snow"
+        self.assertEqual(doc["address"]["street"], "North street")
+        self.assertEqual(doc["name"], "Jon Snow")
+        doc.to_default()
+        self.assertEqual(doc["address"]["street"], "Paper street")
+        self.assertEqual(doc["name"], "Tyler Durden")
+        
+    # @unittest.skip("stand by")
     def test_bulk_operations(self):
         (collection, docs) = self.createManyUsersBulk(55, 17)
         self.assertEqual(collection.count(), len(docs))
