@@ -143,7 +143,7 @@ class Database(object):
         sid = _id.split("/")
         return self[sid[0]][sid[1]]
 
-    def createGraph(self, name, createCollections = True, isSmart = False, numberOfShards = None, smartGraphAttribute = None):
+    def createGraph(self, name, createCollections = True, isSmart = False, numberOfShards = None, smartGraphAttribute = None, replicationFactor = None, writeConcern = None):
         """Creates a graph and returns it. 'name' must be the name of a class inheriting from Graph.
         Checks will be performed to make sure that every collection mentionned in the edges definition exist. Raises a ValueError in case of
         a non-existing collection."""
@@ -171,6 +171,10 @@ class Database(object):
             options['numberOfShards'] = numberOfShards
         if smartGraphAttribute:
             options['smartGraphAttribute'] = smartGraphAttribute
+        if replicationFactor:
+            options['replicationFactor'] = replicationFactor
+        if writeConcern:
+            options['writeConcern'] = writeConcern
 
         payload = {
                 "name": name,
@@ -195,6 +199,9 @@ class Database(object):
             raise CreationError(data["errorMessage"], data)
         return self.graphs[name]
 
+    def createSatelliteGraph(self, name, createCollections = True):
+        return self.createGraph(name, createCollections, False, None, None, "satellite", None);
+
     def hasCollection(self, name):
         """returns true if the databse has a collection by the name of 'name'"""
         return name in self.collections
@@ -217,10 +224,15 @@ class Database(object):
                 self[collection_name].delete()
         return
 
-    def AQLQuery(self, query, batchSize = 100, rawResults = False, bindVars = {}, options = {}, count = False, fullCount = False,
+    def AQLQuery(self, query, batchSize = 100, rawResults = False, bindVars = None, options = None, count = False, fullCount = False,
                  json_encoder = None, **moreArgs):
         """Set rawResults = True if you want the query to return dictionnaries instead of Document objects.
         You can use **moreArgs to pass more arguments supported by the api, such as ttl=60 (time to live)"""
+        if bindVars is None:
+            bindVars = {}
+        if options is None:
+            options = {}
+
         return AQLQuery(self, query, rawResults = rawResults, batchSize = batchSize, bindVars  = bindVars, options = options, count = count, fullCount = fullCount,
                         json_encoder = json_encoder, **moreArgs)
 
@@ -452,8 +464,11 @@ class Database(object):
             return
         raise AQLFetchError("No results should be returned for the query.")
 
-    def explainAQLQuery(self, query, bindVars={}, allPlans = False):
+    def explainAQLQuery(self, query, bindVars = None, allPlans = False):
         """Returns an explanation of the query. Setting allPlans to True will result in ArangoDB returning all possible plans. False returns only the optimal plan"""
+        if bindVars is None:
+            bindVars = {}
+
         payload = {'query' : query, 'bindVars' : bindVars, 'allPlans' : allPlans}
         request = self.connection.session.post(self.getExplainURL(), data = json.dumps(payload, default=str))
         return request.json()
@@ -498,6 +513,14 @@ class Database(object):
 
     def __repr__(self):
         return "ArangoDB database: %s" % self.name
+
+    def __contains__(self, _id):
+        """allows to check if _id:str is the id of an existing document"""
+        col, key = _id.split('/')
+        try:
+            return key in self[col]
+        except KeyError:
+            return False
 
     def __getitem__(self, collectionName):
         """use database[collectionName] to get a collection from the database"""

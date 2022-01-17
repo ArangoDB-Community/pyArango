@@ -32,10 +32,10 @@ Unreleased
 
 1.3.4
 =====
-* Bugfix: Query iterrator now returns all elements instead of a premature empty list
+* Bugfix: Query iterator now returns all elements instead of a premature empty list
 * Bugfix: Collection naming when using the arango's name argument
 * New: Schema validation example
-* New: Satelite graphs
+* New: Satellite graphs
 
 1.3.3
 =====
@@ -43,9 +43,9 @@ Unreleased
 * SSL certificate support
 * More doc
 * Fixed on_load schema validation
-* Gevent, monkey patcjing breaks python's multi=processing. Removed grequests as the default, back to requests.
+* Gevent, monkey patching breaks python's multi=processing. Removed grequests as the default, back to requests.
 * Removed grequests and gevent as hard dependencies. Added explicit error messages, to prompt users can install them if needed.
-* Jwauth is not in it's own file
+* Jwauth is not in its own file
 * Generic rest call to database support (action) for connection, database.
 * Foxx support
 * Tasks create, delete, fetch support
@@ -56,7 +56,7 @@ Unreleased
 * Validation bug fixes
 * New Numeric, Int, Bool, String, Enumeration, Range validators
 * Fields can have default values
-* When creationg a new document, Collection will serve one populated with defaults
+* When creating a new document, Collection will serve one populated with defaults
 * stastd support thx to: @dothebart
 * properties definition in schema
 * AQL errors now come with prints and line numbers for everyone's convenience
@@ -79,7 +79,7 @@ Unreleased
 =====
 
 * Added bulk import to connection
-* Added binvars to explain
+* Added bindvars to explain
 
 1.2.8
 =====
@@ -87,7 +87,7 @@ Unreleased
 * BugFix: recursive field validation
 * BugFix: fullCount option now works
 * Length validator will raise a ValidationError if value has no length
-* users can now specify custon json encoders
+* users can now specify custom json encoders
 
 1.2.7
 =====
@@ -143,7 +143,7 @@ Unreleased
 * Support for ArangoDB 3.X, pyArango no longer supports 2.X versions
 * Support for authentication
 * User support added
-* Adedd AikidoSession to seemlessly manage request sessions
+* Added AikidoSession to seemlessly manage request sessions
 * AikidoSession stores basic stats about the requests
 * AikidoSession detects 401 errors and notifies the user that authentication is required
 * AikidoSession detects connection errors and notifies the user that arango is probably not running

@@ -13,8 +13,8 @@ pyArango
    :alt: downloads_week
    :target: https://pepy.tech/project/pyarango/week
    
-.. image:: https://travis-ci.org/tariqdaouda/pyArango.svg?branch=1.2.2
-    :target: https://travis-ci.org/tariqdaouda/pyArango
+.. image:: https://travis-ci.com/Alexsaphir/pyArango.svg?branch=master
+    :target: https://travis-ci.com/github/Alexsaphir/pyArango
 .. image:: https://img.shields.io/badge/python-2.7%2C%203.5-blue.svg
 .. image:: https://img.shields.io/badge/arangodb-3.0-blue.svg
 
@@ -29,7 +29,7 @@ Key Features
 pyArango is geared toward the developer. It's here to help to you develop really cool apps using ArangoDB, really fast.
 
  - Light and simple interface
- - Built-in validation of fields on seting or on saving
+ - Built-in validation of fields on setting or on saving
  - Support for all index types
  - Supports graphs, traversals and all types of queries
  - Caching of documents with Insertions and Lookups in O(1)
@@ -79,7 +79,7 @@ Initialization and document saving
   conn = Connection()
 
   conn.createDatabase(name="test_db")
-  db = self.conn["test_db"] # all databases are loaded automatically into the connection and are accessible in this fashion
+  db = conn["test_db"] # all databases are loaded automatically into the connection and are accessible in this fashion
   collection = db.createCollection(name="users") # all collections are also loaded automatically
 
   # collection.delete() # self explanatory
@@ -159,9 +159,9 @@ from **Validator** and implement a **validate()** method:
       }
 
       _fields = {
-          'name': Field(validators=[VAL.NotNull(), String_val()]),
-          'anything': Field(),
-          'species': Field(validators=[VAL.NotNull(), VAL.Length(5, 15), String_val()])
+          'name': COL.Field(validators=[VAL.NotNull(), String_val()]),
+          'anything': COL.Field(),
+          'species': COL.Field(validators=[VAL.NotNull(), VAL.Length(5, 15), String_val()])
       }
 
   collection = db.createCollection('Humans')
@@ -189,9 +189,9 @@ In addition, you can also define collection properties_ (creation arguments for 
       }
 
       _fields = {
-          'name': Field(validators=[VAL.NotNull(), String_val()]),
-          'anything': Field(),
-          'species': Field(validators=[VAL.NotNull(), VAL.Length(5, 15), String_val()])
+          'name': COL.Field(validators=[VAL.NotNull(), String_val()]),
+          'anything': COL.Field(),
+          'species': COL.Field(validators=[VAL.NotNull(), VAL.Length(5, 15), String_val()])
       }
 
 .. _properties: https://docs.arangodb.com/3.1/HTTP/Collection/Creating.html
@@ -199,7 +199,7 @@ In addition, you can also define collection properties_ (creation arguments for 
 A note on inheritence
 ----------------------
 
-There is no inheritence of the "_validation" and "_fields" dictionaries.
+There is no inheritance of the "_validation" and "_fields" dictionaries.
 If a class does not fully define its own, the defaults will be automatically assigned to any missing value.
 
 Creating Edges
@@ -309,6 +309,50 @@ to that document are also deleted:
 
  # deleting one of them along with the edge
  theGraph.deleteVertex(h2)
+
+Creating a Satellite Graph
+-----------------
+
+If you want to benefit from the advantages of satellite graphs, you can also create them of course.
+Please read the official ArangoDB Documentation for further technical information.
+
+.. code:: python
+
+  from pyArango.connection import *
+  from pyArango.collection import Collection, Edges, Field
+  from pyArango.graph import Graph, EdgeDefinition
+
+  databaseName = "satellite_graph_db"
+
+  conn = Connection()
+
+  # Cleanup (if needed)
+  try:
+      conn.createDatabase(name=databaseName)
+  except Exception:
+      pass
+
+  # Select our "satellite_graph_db" database
+  db = conn[databaseName] # all databases are loaded automatically into the connection and are accessible in this fashion
+
+  # Define our vertex to use
+  class Humans(Collection):
+      _fields = {
+          "name": Field()
+      }
+
+  # Define our edge to use
+  class Friend(Edges):
+      _fields = {
+          "lifetime": Field()
+      }
+
+  # Here's how you define a Satellite Graph
+  class MySatelliteGraph(Graph) :
+      _edgeDefinitions = [EdgeDefinition("Friend", fromCollections=["Humans"], toCollections=["Humans"])]
+      _orphanedCollections = []
+
+  theSatelliteGraph = db.createSatelliteGraph("MySatelliteGraph")
 
 Document Cache
 --------------

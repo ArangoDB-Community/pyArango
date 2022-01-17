@@ -7,7 +7,12 @@ class DocumentStore(object):
     """Store all the data of a document in hierarchy of stores and handles validation.
     Does not store private information, these are in the document."""
 
-    def __init__(self, collection, validators={}, initDct={}, patch=False, subStore=False, validateInit=False):
+    def __init__(self, collection, validators=None, initDct=None, patch=False, subStore=False, validateInit=False):
+        if validators is None:
+            validators = {}
+        if initDct is None:
+            initDct = {}
+
         self.store = {}
         self.patchStore = {}
         self.collection = collection
@@ -131,7 +136,7 @@ class DocumentStore(object):
         return dict(self.store) + dict(self.patchStore)
 
     def __contains__(self, field):
-        return field in store
+        return field in self.store
         
     def __getitem__(self, field):
         """Get an element from the store"""
