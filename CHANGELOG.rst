@@ -1,12 +1,12 @@
-Unreleased
+2.0.2
 =====
 
-* Added parameter ``pool_maxsize`` on class ``Connection`` to allow user configure the http pool size.
 
 2.0.1
 =====
 
 * Fixed max retries for write conflicts
+* Added parameter ``pool_maxsize`` on class ``Connection`` to allow user configure the http pool size.
 
 2.0
 =====
