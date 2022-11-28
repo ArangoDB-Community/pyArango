@@ -20,7 +20,7 @@ class BulkMode(Enum):
     DELETE = 3
 
 class CachedDoc(object):
-    """A cached document"""
+    """A cached document."""
     def __init__(self, document, prev, nextDoc):
         self.prev = prev
         self.document = document
@@ -43,7 +43,7 @@ class CachedDoc(object):
                 raise e2
 
 class DocumentCache(object):
-    "Document cache for collection, with insert, deletes and updates in O(1)"
+    """Document cache for collection, with insert, deletes and updates in O(1)."""
 
     def __init__(self, cacheSize):
         self.cacheSize = cacheSize
@@ -78,7 +78,7 @@ class DocumentCache(object):
                 self.cacheStore[doc._key] = ret
 
     def delete(self, _key):
-        "removes a document from the cache"
+        """Remove a document from the cache."""
         try:
             doc = self.cacheStore[_key]
             doc.prev.nextDoc = doc.nextDoc
@@ -88,7 +88,7 @@ class DocumentCache(object):
             raise KeyError("Document with _key %s is not available in cache" % _key)
 
     def getChain(self):
-        "returns a list of keys representing the chain of documents"
+        """Return a list of keys representing the chain of documents."""
         l = []
         h = self.head
         while h:
@@ -96,8 +96,8 @@ class DocumentCache(object):
             h = h.nextDoc
         return l
 
-    def stringify(self):
-        "a pretty str version of getChain()"
+    def stringify(self) -> str:
+        """Return a pretty string of 'getChain()'."""
         l = []
         h = self.head
         while h:
@@ -119,14 +119,16 @@ class DocumentCache(object):
 class Field(object):
     """The class for defining pyArango fields."""
     def __init__(self, validators = None, default = None):
-        """validators must be a list of validators. default can also be a callable"""
+        """Validators must be a list of validators.
+
+        'default' can also be a callable."""
         if not validators:
             validators = []
         self.validators = validators
         self.default = default
 
     def validate(self, value):
-        """checks the validity of 'value' given the lits of validators"""
+        """Check the validity of 'value' given the list of validators."""
         for v in self.validators:
             v.validate(value)
         return True
@@ -138,7 +140,7 @@ class Field(object):
         return "<Field, validators: '%s'>" % ', '.join(strv)
 
 class Collection_metaclass(type):
-    """The metaclass that takes care of keeping a register of all collection types"""
+    """The metaclass that takes care of keeping a register of all collection types."""
     collectionClasses = {}
 
     _validationDefault = {
@@ -173,20 +175,20 @@ class Collection_metaclass(type):
 
     @classmethod
     def getCollectionClass(cls, name):
-        """Return the class object of a collection given its 'name'"""
+        """Return the class object of a collection given its 'name'."""
         try:
             return cls.collectionClasses[name]
         except KeyError:
             raise KeyError( "There is no Collection Class of type: '%s'; currently supported values: [%s]" % (name, ', '.join(getCollectionClasses().keys())) )
 
     @classmethod
-    def isCollection(cls, name):
-        """return true or false wether 'name' is the name of collection."""
+    def isCollection(cls, name) -> bool:
+        """return 'True' or 'False' whether 'name' is the name of collection."""
         return name in cls.collectionClasses
 
     @classmethod
-    def isDocumentCollection(cls, name):
-        """return true or false wether 'name' is the name of a document collection."""
+    def isDocumentCollection(cls, name) -> bool:
+        """Return 'True' or 'False' whether 'name' is the name of a document collection."""
         try:
             col = cls.getCollectionClass(name)
             return issubclass(col, Collection)
@@ -194,37 +196,37 @@ class Collection_metaclass(type):
             return False
 
     @classmethod
-    def isEdgeCollection(cls, name):
-        """return true or false wether 'name' is the name of an edge collection."""
+    def isEdgeCollection(cls, name) -> bool:
+        """Return 'True' or 'False' whether 'name' is the name of an edge collection."""
         try:
             col = cls.getCollectionClass(name)
             return issubclass(col, Edges)
         except KeyError:
             return False
 
-def getCollectionClass(name):
-    """return true or false wether 'name' is the name of collection."""
+def getCollectionClass(name) -> bool:
+    """Return 'True' or 'False' whether 'name' is the name of collection."""
     return Collection_metaclass.getCollectionClass(name)
 
-def isCollection(name):
-    """return true or false wether 'name' is the name of a document collection."""
+def isCollection(name) -> bool:
+    """Return 'True' or 'False' whether 'name' is the name of a document collection."""
     return Collection_metaclass.isCollection(name)
 
-def isDocumentCollection(name):
-    """return true or false wether 'name' is the name of a document collection."""
+def isDocumentCollection(name) -> bool:
+    """Return 'True' or 'False' whether 'name' is the name of a document collection."""
     return Collection_metaclass.isDocumentCollection(name)
 
-def isEdgeCollection(name):
-    """return true or false wether 'name' is the name of an edge collection."""
+def isEdgeCollection(name) -> bool:
+    """Return 'True' or 'False' whether 'name' is the name of an edge collection."""
     return Collection_metaclass.isEdgeCollection(name)
 
-def getCollectionClasses():
-    """returns a dictionary of all defined collection classes"""
+def getCollectionClasses() -> bool:
+    """Return a dictionary of all defined collection classes."""
     return Collection_metaclass.collectionClasses
 
 class Collection(with_metaclass(Collection_metaclass, object)):
-    """A document collection. Collections are meant to be instanciated by databases"""
-    #here you specify the fields that you want for the documents in your collection
+    """A document collection. Collections are meant to be instantiated by databases."""
+    # here you specify the fields that you want for the documents in your collection
     _fields = {}
 
     _validation = {
@@ -288,7 +290,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         return "%s/document" % (self.database.getURL())
 
     def getIndexes(self):
-        """Fills self.indexes with all the indexes associates with the collection and returns it"""
+        """Fill 'self.indexes' with all the indexes associated with the collection and return it."""
         self.indexes_by_name = {}
         url = "%s/index" % self.database.getURL()
         r = self.connection.session.get(url, params = {"collection": self.name})
@@ -307,28 +309,30 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         return self.indexes_by_name[name]
 
     def activateCache(self, cacheSize):
-        """Activate the caching system. Cached documents are only available through the __getitem__ interface"""
+        """Activate the caching system.
+
+        Cached documents are only available through the __getitem__ interface."""
         self.documentCache = DocumentCache(cacheSize)
 
     def deactivateCache(self):
-        "deactivate the caching system"
+        """Deactivate the caching system."""
         self.documentCache = None
 
     def delete(self):
-        """deletes the collection from the database"""
+        """Delete the collection from the database."""
         r = self.connection.session.delete(self.getURL())
         data = r.json()
         if not r.status_code == 200 or data["error"]:
             raise DeletionError(data["errorMessage"], data)
 
     def createDocument(self, initDict = None):
-        """create and returns a completely empty document or one populated with initDict"""
+        """Create and return a completely empty document unless the initial document is set via 'initDict'."""
         # res = dict(self.defaultDocument)
         res = self.getDefaultDocument()
-        
+
         if initDict is not None:
             res.update(initDict)
- 
+
         return self.documentClass(self, res)
 
     def _writeBatch(self):
@@ -378,7 +382,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         if len(self._bulkCache) == self._bulkSize:
             self._writeBatch()
             self._bulkMode = BulkMode.NONE
-        
+
     def _updateBatch(self):
         if not self._bulkCache:
             return
@@ -387,7 +391,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         payload = []
         for d in self._bulkCache:
             dPayload = d._store.getPatches()
-        
+
             if d.collection._validation['on_save']:
                 d.validate()
 
@@ -418,8 +422,8 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         self._bulkCache = []
         if bulkError != None:
             raise bulkError
-        
-        
+
+
     def _patchBatch(self, document, params):
         if self._bulkMode != BulkMode.NONE and self._bulkMode != BulkMode.UPDATE:
             raise UpdateError("Mixed bulk operations not supported - have " + str(self._bulkMode))
@@ -487,7 +491,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         self._isBulkInProgress = False
         self._batchParams = None
         self._bulkMode = BulkMode.NONE
-        
+
     def importBulk(self, data, **addParams):
         url = "%s/import" % (self.database.getURL())
         payload = json.dumps(data, default=str)
@@ -511,7 +515,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         return docs
 
     def ensureHashIndex(self, fields, unique = False, sparse = True, deduplicate = False, name = None):
-        """Creates a hash index if it does not already exist, and returns it"""
+        """Create a hash index if it does not already exist, then return it."""
         data = {
             "type" : "hash",
             "fields" : fields,
@@ -528,7 +532,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         return ind
 
     def ensureSkiplistIndex(self, fields, unique = False, sparse = True, deduplicate = False, name = None):
-        """Creates a skiplist index if it does not already exist, and returns it"""
+        """Create a skiplist index if it does not already exist, then return it."""
         data = {
             "type" : "skiplist",
             "fields" : fields,
@@ -545,7 +549,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         return ind
 
     def ensurePersistentIndex(self, fields, unique = False, sparse = True, deduplicate = False, name = None):
-        """Creates a persistent index if it does not already exist, and returns it"""
+        """Create a persistent index if it does not already exist, then return it."""
         data = {
             "type" : "persistent",
             "fields" : fields,
@@ -562,7 +566,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         return ind
 
     def ensureTTLIndex(self, fields, expireAfter, unique = False, sparse = True, name = None):
-        """Creates a TTL index if it does not already exist, and returns it"""
+        """Create a TTL index if it does not already exist, then return it."""
         data = {
             "type" : "ttl",
             "fields" : fields,
@@ -579,7 +583,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         return ind
 
     def ensureGeoIndex(self, fields, name = None):
-        """Creates a geo index if it does not already exist, and returns it"""
+        """Create a geo index if it does not already exist, then return it."""
         data = {
             "type" : "geo",
             "fields" : fields,
@@ -593,7 +597,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         return ind
 
     def ensureFulltextIndex(self, fields, minLength = None, name = None):
-        """Creates a fulltext index if it does not already exist, and returns it"""
+        """Create a fulltext index if it does not already exist, then return it."""
         data = {
             "type" : "fulltext",
             "fields" : fields,
@@ -610,13 +614,13 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         return ind
 
     def ensureIndex(self, index_type, fields, name=None, **index_args):
-        """Creates an index of any type."""
+        """Create an index of any type."""
         data = {
             "type" : index_type,
             "fields" : fields,
         }
         data.update(index_args)
-        
+
         if name:
             data["name"] = name
 
@@ -627,7 +631,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         return ind
 
     def restoreIndexes(self, indexes_dct=None):
-        """restores all previously removed indexes"""
+        """Restore all previously removed indexes."""
         if indexes_dct is None:
             indexes_dct = self.indexes
 
@@ -639,7 +643,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
                     self.ensureIndex(typ, idx.infos["fields"], **infos)
 
     def validatePrivate(self, field, value):
-        """validate a private field value"""
+        """Validate a private field value."""
         if field not in self.arangoPrivates:
             raise ValueError("%s is not a private field of collection %s" % (field, self))
 
@@ -649,7 +653,9 @@ class Collection(with_metaclass(Collection_metaclass, object)):
 
     @classmethod
     def hasField(cls, fieldName):
-        """returns True/False wether the collection has field K in it's schema. Use the dot notation for the nested fields: address.street"""
+        """Return 'True' or 'False' whether the collection has field 'K' in its schema.
+
+        Use the dot notation for the nested fields: address.street"""
         path = fieldName.split(".")
         v = cls._fields
         for k in path:
@@ -660,8 +666,10 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         return True
 
     def fetchDocument(self, key, rawResults = False, rev = None):
-        """Fetches a document from the collection given it's key. This function always goes straight to the db and bypasses the cache. If you
-        want to take advantage of the cache use the __getitem__ interface: collection[key]"""
+        """Fetche a document from the collection given its key.
+
+        This function always goes straight to the db and bypasses the cache.
+        If you want to take advantage of the cache use the '__getitem__' interface: collection[key]"""
         url = "%s/%s/%s" % (self.getDocumentsURL(), self.name, key)
         if rev is not None:
             r = self.connection.session.get(url, params = {'rev' : rev})
@@ -678,36 +686,41 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             raise DocumentNotFoundError("Unable to find document with _key: %s, response: %s" % (key, r.json()), r.json())
 
     def fetchByExample(self, exampleDict, batchSize, rawResults = False, **queryArgs):
-        """exampleDict should be something like {'age' : 28}"""
+        """'exampleDict' should be something like {'age' : 28}."""
         return self.simpleQuery('by-example', rawResults, example = exampleDict, batchSize = batchSize, **queryArgs)
 
     def fetchFirstExample(self, exampleDict, rawResults = False):
-        """exampleDict should be something like {'age' : 28}. returns only a single element but still in a SimpleQuery object.
-        returns the first example found that matches the example"""
+        """'exampleDict' should be something like {'age' : 28}.
+
+        Return the first example found that matches the example, still in a 'SimpleQuery' object."""
         return self.simpleQuery('first-example', rawResults = rawResults, example = exampleDict)
 
     def fetchAll(self, rawResults = False, **queryArgs):
-        """Returns all the documents in the collection. You can use the optinal arguments 'skip' and 'limit'::
+        """Returns all the documents in the collection.
 
+        You can use the optinal arguments 'skip' and 'limit'::
             fetchAlll(limit = 3, shik = 10)"""
         return self.simpleQuery('all', rawResults = rawResults, **queryArgs)
 
     def simpleQuery(self, queryType, rawResults = False, **queryArgs):
-        """General interface for simple queries. queryType can be something like 'all', 'by-example' etc... everything is in the arango doc.
-        If rawResults, the query will return dictionaries instead of Document objetcs.
-        """
+        """General interface for simple queries.
+
+        'queryType' takes the arguments known to the ArangoDB, for instance: 'all' or 'by-example'.
+        See the ArangoDB documentation for a list of valid 'queryType's.
+        If 'rawResults' is set to 'True', the query will return dictionaries instead of 'Document' objetcs."""
         return SimpleQuery(self, queryType, rawResults, **queryArgs)
 
     def action(self, method, action, **params):
-        """a generic fct for interacting everything that doesn't have an assigned fct"""
+        """A generic 'fct' for interacting everything that does not have an assigned 'fct'."""
         fct = getattr(self.connection.session, method.lower())
         r = fct(self.getURL() + "/" + action, params = params)
         return r.json()
 
     def bulkSave(self, docs, onDuplicate="error", **params):
-        """Parameter docs must be either an iterrable of documents or dictionnaries.
-        This function will return the number of documents, created and updated, and will raise an UpdateError exception if there's at least one error.
-        params are any parameters from arango's documentation"""
+        """Parameter 'docs' must be either an iterable of documents or dictionaries.
+
+        This function will return the number of documents, created and updated, and will raise an UpdateError exception if there is at least one error.
+        'params' are any parameters from the ArangoDB documentation."""
 
         payload = []
         for d in docs:
@@ -739,7 +752,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         return data["updated"] + data["created"]
 
     def bulkImport_json(self, filename, onDuplicate="error", formatType="auto", **params):
-        """bulk import from a file repecting arango's key/value format"""
+        """Bulk import from a file following the ArangoDB key-value format."""
 
         url = "%s/import" % self.database.getURL()
         params["onDuplicate"] = onDuplicate
@@ -755,8 +768,8 @@ class Collection(with_metaclass(Collection_metaclass, object)):
                 raise UpdateError(data['errorMessage'], data)
 
     def bulkImport_values(self, filename, onDuplicate="error", **params):
-        """bulk import from a file repecting arango's json format"""
-        
+        """Bulk import from a file following the ArangoDB json format."""
+
         url = "%s/import" % self.database.getURL()
         params["onDuplicate"] = onDuplicate
         params["collection"] = self.name
@@ -770,43 +783,45 @@ class Collection(with_metaclass(Collection_metaclass, object)):
                 raise UpdateError(data['errorMessage'], data)
 
     def truncate(self):
-        """deletes every document in the collection"""
+        """Delete every document in the collection."""
         return self.action('PUT', 'truncate')
 
     def empty(self):
-        """alias for truncate"""
+        """Alias for truncate."""
         return self.truncate()
 
     def load(self):
-        """loads collection in memory"""
+        """Load collection in memory."""
         return self.action('PUT', 'load')
 
     def unload(self):
-        """unloads collection from memory"""
+        """Unload collection from memory."""
         return self.action('PUT', 'unload')
 
     def revision(self):
-        """returns the current revision"""
+        """Return the current revision."""
         return self.action('GET', 'revision')["revision"]
 
     def properties(self):
-        """returns the current properties"""
+        """Return the current properties."""
         return self.action('GET', 'properties')
 
     def checksum(self):
-        """returns the current checksum"""
+        """Return the current checksum."""
         return self.action('GET', 'checksum')["checksum"]
 
     def count(self):
-        """returns the number of documents in the collection"""
+        """Return the number of documents in the collection."""
         return self.action('GET', 'count')["count"]
 
     def figures(self):
-        "a more elaborate version of count, see arangodb docs for more infos"
+        """A more elaborate version of 'count', see the ArangoDB documentation for more."""
         return self.action('GET', 'figures')
 
     def getType(self):
-        """returns a word describing the type of the collection (edges or ducments) instead of a number, if you prefer the number it's in self.type"""
+        """Return a word describing the type of the collection (edges or ducments) instead of a number.
+
+        If you prefer the number it is in 'self.type'."""
         if self.type == CONST.COLLECTION_DOCUMENT_TYPE:
             return "document"
         elif self.type == CONST.COLLECTION_EDGE_TYPE:
@@ -815,7 +830,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             raise ValueError("The collection is of Unknown type %s" % self.type)
 
     def getStatus(self):
-        """returns a word describing the status of the collection (loaded, loading, deleted, unloaded, newborn) instead of a number, if you prefer the number it's in self.status"""
+        """Return a word describing the status of the collection (loaded, loading, deleted, unloaded, newborn) instead of a number, if you prefer the number it is in 'self.status'."""
         if self.status == CONST.COLLECTION_LOADING_STATUS:
             return "loading"
         elif self.status == CONST.COLLECTION_LOADED_STATUS:
@@ -830,14 +845,17 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             raise ValueError("The collection has an Unknown status %s" % self.status)
 
     def __len__(self):
-        """returns the number of documents in the collection"""
+        """Return the number of documents in the collection."""
         return self.count()
 
     def __repr__(self):
         return "ArangoDB collection name: %s, id: %s, type: %s, status: %s" % (self.name, self.id, self.getType(), self.getStatus())
 
     def __getitem__(self, key):
-        """returns a document from the cache. If it's not there, fetches it from the db and caches it first. If the cache is not activated this is equivalent to fetchDocument( rawResults=False)"""
+        """Return a document from the cache.
+
+        If it is not there, fetch from the db and cache it first.
+        If the cache is not activated, this is equivalent to 'fetchDocument(rawResults=False)'."""
         if self.documentCache is None:
             return self.fetchDocument(key, rawResults = False)
         try:
@@ -848,7 +866,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         return doc
 
     def __contains__(self, key):
-        """if doc in collection"""
+        """Return 'True' or 'False' whether the doc is in the collection."""
         try:
             self.fetchDocument(key, rawResults = False)
             return True
@@ -856,26 +874,27 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             return False
 
 class SystemCollection(Collection):
-    """for all collections with isSystem = True"""
+    """For all collections with 'isSystem=True'."""
     def __init__(self, database, jsonData):
         Collection.__init__(self, database, jsonData)
 
 class Edges(Collection):
-    """The default edge collection. All edge Collections must inherit from it"""
+    """The default edge collection. All edge Collections must inherit from it."""
 
     arangoPrivates = ["_id", "_key", "_rev", "_to", "_from"]
 
     def __init__(self, database, jsonData):
-        """This one is meant to be called by the database"""
+        """This one is meant to be called by the database."""
         Collection.__init__(self, database, jsonData)
         self.documentClass = Edge
         self.edgesURL = "%s/edges/%s" % (self.database.getURL(), self.name)
 
     @classmethod
     def validateField(cls, fieldName, value):
-        """checks if 'value' is valid for field 'fieldName'. If the validation is unsuccessful, raises a SchemaViolation or a ValidationError.
-        for nested dicts ex: {address : { street: xxx} }, fieldName can take the form address.street
-        """
+        """Check if 'value' is valid for field 'fieldName'.
+
+        If the validation fails, raise a 'SchemaViolation' or a 'ValidationError'.
+        For nested dicts ex: {address : { street: xxx} }, 'fieldName' can take the form 'address.street'."""
         try:
             valValue = Collection.validateField(fieldName, value)
         except SchemaViolation as e:
@@ -886,20 +905,23 @@ class Edges(Collection):
         return valValue
 
     def createEdge(self, initValues = None):
-        """Create an edge populated with defaults"""
+        """Create an edge populated with defaults."""
         return self.createDocument(initValues)
 
     def getInEdges(self, vertex, rawResults = False):
-        """An alias for getEdges() that returns only the in Edges"""
+        """An alias for 'getEdges()' that returns only the in 'Edges'."""
         return self.getEdges(vertex, inEdges = True, outEdges = False, rawResults = rawResults)
 
     def getOutEdges(self, vertex, rawResults = False):
-        """An alias for getEdges() that returns only the out Edges"""
+        """An alias for 'getEdges()' that returns only the out 'Edges'."""
         return self.getEdges(vertex, inEdges = False, outEdges = True, rawResults = rawResults)
 
     def getEdges(self, vertex, inEdges = True, outEdges = True, rawResults = False):
-        """returns in, out, or both edges liked to a given document. vertex can be either a Document object or a string for an _id.
-        If rawResults a arango results will be return as fetched, if false, will return a liste of Edge objects"""
+        """Return in, out, or both edges linked to a given document.
+
+        Vertex can be either a 'Document' object or a string for an '_id'.
+        If 'rawResults' is set to 'True', return the results just as fetched without any processing.
+        Otherwise, return a list of Edge objects."""
         if isinstance(vertex, Document):
             vId = vertex._id
         elif (type(vertex) is str) or (type(vertex) is bytes):
@@ -935,11 +957,10 @@ class BulkOperation(object):
     def __init__(self, collection, batchSize=100):
         self.coll = collection
         self.batchSize = batchSize
-        
+
     def __enter__(self):
         self.coll._isBulkInProgress = True
         self.coll._bulkSize = self.batchSize
         return self.coll
     def __exit__(self, type, value, traceback):
         self.coll._finalizeBatch();
-
