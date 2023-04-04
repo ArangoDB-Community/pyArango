@@ -364,6 +364,10 @@ class Connection(object):
         """returns true/false wether the connection has a database by the name of 'name'"""
         return name in self.databases
 
+    def __contains__(self, name):
+        """Alias for hasDatabase"""
+        return self.hasDatabase(name)
+
     def __getitem__(self, dbName):
         """Collection[dbName] returns a database by the name of 'dbName', raises a KeyError if not found"""
         try:
