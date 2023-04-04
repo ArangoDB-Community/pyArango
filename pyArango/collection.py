@@ -272,6 +272,8 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         for k, v in fields.items():
             if isinstance(v, dict):
                 dct[k] = self.getDefaultDocument(fields[k], None)
+            elif isinstance(v, list) or isinstance(v, tuple):
+                dct[k] = []
             elif isinstance(v, Field):
                 if callable(v.default):
                     dct[k] = v.default()
