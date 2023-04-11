@@ -31,6 +31,13 @@ class CreationError(pyArangoException):
             errors = {}
         pyArangoException.__init__(self, message, errors)
 
+class UniqueConstrainViolation(CreationError):
+    """Violation of a unique key"""
+    def __init__(self, message, errors = None):
+        if errors is None:
+            errors = {}
+        CreationError.__init__(self, message, errors)
+
 class IndexError(pyArangoException):
     """wasn't able to get the index"""
     def __init__(self, message, errors = None):
