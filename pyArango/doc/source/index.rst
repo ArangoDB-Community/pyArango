@@ -74,7 +74,6 @@ Contents:
    users
    query
    graph
-   users
    exceptions
    validation
    admin

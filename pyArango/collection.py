@@ -274,6 +274,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
                 dct[k] = self.getDefaultDocument(fields[k], None)
             elif isinstance(v, list) or isinstance(v, tuple):
                 dct[k] = []
+
             elif isinstance(v, Field):
                 if callable(v.default):
                     dct[k] = v.default()
@@ -934,3 +935,4 @@ class BulkOperation(object):
         return self.coll
     def __exit__(self, type, value, traceback):
         self.coll._finalizeBatch();
+
