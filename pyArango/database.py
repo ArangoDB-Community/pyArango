@@ -210,10 +210,6 @@ class Database(object):
         """returns true if the databse has a graph by the name of 'name'"""
         return name in self.graphs
 
-    def __contains__(self, name):
-        """if name in database"""
-        return self.hasCollection(name) or self.hasGraph(name)
-
     def dropAllCollections(self):
         """drops all public collections (graphs included) from the database"""
         for graph_name in self.graphs:
@@ -514,13 +510,21 @@ class Database(object):
     def __repr__(self):
         return "ArangoDB database: %s" % self.name
 
-    def __contains__(self, _id):
-        """allows to check if _id:str is the id of an existing document"""
-        col, key = _id.split('/')
-        try:
-            return key in self[col]
-        except KeyError:
-            return False
+    # def __contains__(self, name):
+        # """if name in database"""
+        # return self.hasCollection(name) or self.hasGraph(name)
+
+    def __contains__(self, name_or_id):
+        """allows to check if name_or_id:str is the id of an existing document"""
+        splid = name_or_id.split('/')
+        if len(splid) == 2:
+            col, key = splid
+            try:
+                return key in self[col]
+            except KeyError:
+                return False
+        else:
+            return self.hasCollection(name_or_id) or self.hasGraph(name_or_id)
 
     def __getitem__(self, collectionName):
         """use database[collectionName] to get a collection from the database"""

@@ -1,5 +1,5 @@
 import json, types
-from .theExceptions import (CreationError, DeletionError, UpdateError, ValidationError, SchemaViolation, InvalidDocument, ArangoError)
+from .theExceptions import (CreationError, UniqueConstrainViolation, DeletionError, UpdateError, ValidationError, SchemaViolation, InvalidDocument, ArangoError)
 
 __all__ = ["DocumentStore", "Document", "Edge"]
 
@@ -305,7 +305,10 @@ class Document(object):
                 if update:
                     raise UpdateError(data['errorMessage'], data)
                 else:
-                    raise CreationError(data['errorMessage'], data)
+                    if data["errorNum"] == 1210:
+                        raise UniqueConstrainViolation(data['errorMessage'], data)
+                    else:
+                        raise CreationError(data['errorMessage'], data)
 
             self.modified = False
 

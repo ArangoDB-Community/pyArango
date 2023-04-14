@@ -1,7 +1,14 @@
+2.0.2
+=====
+* Fixed contains functions
+* Added UniqueConstrainViolation exception, inherits from CreationError
+
 2.0.1
 =====
 
 * Fixed max retries for write conflicts
+* Added parameter ``pool_maxsize`` on class ``Connection`` to allow user configure the http pool size.
+=======
 
 2.0
 =====
@@ -10,7 +17,6 @@
 * added to_default function to reset a document to its default values
 * fixed bug in default documents where default values could be overwritten
 * default value for fields is now None
-* defaual value for fields can now be a callable
 
 1.3.5
 =====

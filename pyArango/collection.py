@@ -272,6 +272,9 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         for k, v in fields.items():
             if isinstance(v, dict):
                 dct[k] = self.getDefaultDocument(fields[k], None)
+            elif isinstance(v, list) or isinstance(v, tuple):
+                dct[k] = []
+
             elif isinstance(v, Field):
                 if callable(v.default):
                     dct[k] = v.default()
@@ -338,7 +341,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             raise UpdateError("Mixed bulk operations not supported - have " + str(self._bulkMode))
         payload = []
         for d in self._bulkCache:
-            if type(d) is dict:
+            if isinstance(d,dict):
                 payload.append(json.dumps(d, default=str))
             else:
                 try:
@@ -355,7 +358,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         bulkError = None
         for xd in data:
             if not '_key' in xd and 'error' in xd and 'errorNum' in xd:
-                if bulkError == None:
+                if bulkError is None:
                     bulkError = BulkOperationError("saving failed")
                 bulkError.addBulkError(ArangoError(xd), self._bulkCache[i])
             else:
@@ -363,7 +366,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
                 self._bulkCache[i]._key = \
                     xd['_key']
             i += 1
-        if bulkError != None:
+        if bulkError is not None:
             self._bulkCache = []
             raise bulkError
 
@@ -391,7 +394,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             if d.collection._validation['on_save']:
                 d.validate()
 
-            if type(d) is dict:
+            if isinstance(d,dict):
                 payload.append(json.dumps(d, default=str))
             else:
                 try:
@@ -407,7 +410,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         bulkError = None
         for xd in data:
             if not '_key' in xd and 'error' in xd and 'errorNum' in xd:
-                if bulkError == None:
+                if bulkError is None:
                     bulkError = BulkOperationError("patching failed")
                 bulkError.addBulkError(ArangoError(xd), str(self._bulkCache[i]))
             else:
@@ -416,7 +419,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
                     xd['_key']
             i += 1
         self._bulkCache = []
-        if bulkError != None:
+        if bulkError is not None:
             raise bulkError
         
         
@@ -437,7 +440,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             raise UpdateError("Mixed bulk operations not supported - have " + self._bulkMode)
         payload = []
         for d in self._bulkCache:
-            if type(d) is dict:
+            if isinstance(d,dict):
                 payload.append('"%s"' % d['_key'])
             else:
                 try:
@@ -454,14 +457,14 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         bulkError = None
         for xd in data:
             if not '_key' in xd and 'error' in xd and 'errorNum' in xd:
-                if bulkError == None:
+                if bulkError is None:
                     bulkError = BulkOperationError("deleting failed")
                 bulkError.addBulkError(ArangoError(xd), self._bulkCache[i])
             else:
                 self._bulkCache[i].reset(self)
             i += 1
         self._bulkCache = []
-        if bulkError != None:
+        if bulkError is not None:
             raise bulkError
 
     def _deleteBatch(self, document, params):
@@ -674,8 +677,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             return self.documentClass(self, r.json(), on_load_validation=self._validation["on_load"])
         elif r.status_code == 404 :
             raise DocumentNotFoundError("Unable to find document with _key: %s" % key, r.json())
-        else:
-            raise DocumentNotFoundError("Unable to find document with _key: %s, response: %s" % (key, r.json()), r.json())
+        raise DocumentNotFoundError("Unable to find document with _key: %s, response: %s" % (key, r.json()), r.json())
 
     def fetchByExample(self, exampleDict, batchSize, rawResults = False, **queryArgs):
         """exampleDict should be something like {'age' : 28}"""
@@ -689,7 +691,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
     def fetchAll(self, rawResults = False, **queryArgs):
         """Returns all the documents in the collection. You can use the optinal arguments 'skip' and 'limit'::
 
-            fetchAlll(limit = 3, shik = 10)"""
+            fetchAll(limit = 3, skip = 10)"""
         return self.simpleQuery('all', rawResults = rawResults, **queryArgs)
 
     def simpleQuery(self, queryType, rawResults = False, **queryArgs):
@@ -711,7 +713,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
 
         payload = []
         for d in docs:
-            if type(d) is dict:
+            if isinstance(d,dict):
                 payload.append(json.dumps(d, default=str))
             else:
                 try:
@@ -730,11 +732,10 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         data = r.json()
         if (r.status_code == 201) and "error" not in data:
             return True
-        else:
-            if "errors" in data and data["errors"] > 0:
-                raise UpdateError("%d documents could not be created" % data["errors"], data)
-            elif data["error"]:
-                raise UpdateError("Documents could not be created", data)
+        if "errors" in data and data["errors"] > 0:
+            raise UpdateError("%d documents could not be created" % data["errors"], data)
+        elif data["error"]:
+            raise UpdateError("Documents could not be created", data)
 
         return data["updated"] + data["created"]
 
@@ -749,10 +750,8 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             data = f.read()
             r = self.connection.session.post(url, params = params, data = data)
 
-            try:
-                errorMessage = "At least: %d errors. The first one is: '%s'\n\n more in <this_exception>.data" % (len(data), data[0]["errorMessage"])
-            except KeyError:
-                raise UpdateError(data['errorMessage'], data)
+            if r.status_code != 201:
+                raise UpdateError('Unable to bulk import JSON', r)
 
     def bulkImport_values(self, filename, onDuplicate="error", **params):
         """bulk import from a file repecting arango's json format"""
@@ -764,10 +763,8 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             data = f.read()
             r = self.connection.session.post(url, params = params, data = data)
 
-            try:
-                errorMessage = "At least: %d errors. The first one is: '%s'\n\n more in <this_exception>.data" % (len(data), data[0]["errorMessage"])
-            except KeyError:
-                raise UpdateError(data['errorMessage'], data)
+            if r.status_code != 201:
+                raise UpdateError('Unable to bulk import values', r)
 
     def truncate(self):
         """deletes every document in the collection"""
@@ -811,8 +808,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             return "document"
         elif self.type == CONST.COLLECTION_EDGE_TYPE:
             return "edge"
-        else:
-            raise ValueError("The collection is of Unknown type %s" % self.type)
+        raise ValueError("The collection is of Unknown type %s" % self.type)
 
     def getStatus(self):
         """returns a word describing the status of the collection (loaded, loading, deleted, unloaded, newborn) instead of a number, if you prefer the number it's in self.status"""
@@ -826,8 +822,7 @@ class Collection(with_metaclass(Collection_metaclass, object)):
             return "unloaded"
         elif self.status == CONST.COLLECTION_NEWBORN_STATUS:
             return "newborn"
-        else:
-            raise ValueError("The collection has an Unknown status %s" % self.status)
+        raise ValueError("The collection has an Unknown status %s" % self.status)
 
     def __len__(self):
         """returns the number of documents in the collection"""
@@ -881,8 +876,7 @@ class Edges(Collection):
         except SchemaViolation as e:
             if fieldName == "_from" or fieldName == "_to":
                 return True
-            else:
-                raise e
+            raise e
         return valValue
 
     def createEdge(self, initValues = None):
@@ -902,7 +896,7 @@ class Edges(Collection):
         If rawResults a arango results will be return as fetched, if false, will return a liste of Edge objects"""
         if isinstance(vertex, Document):
             vId = vertex._id
-        elif (type(vertex) is str) or (type(vertex) is bytes):
+        elif isinstance(vertex,str) or isinstance(vertex,bytes):
             vId = vertex
         else:
             raise ValueError("Vertex is neither a Document nor a String")
@@ -925,8 +919,7 @@ class Edges(Collection):
                 for e in data["edges"]:
                     ret.append(Edge(self, e))
                 return ret
-            else:
-                return data["edges"]
+            return data["edges"]
         else:
             raise CreationError("Unable to return edges for vertex: %s" % vId, data)
 
