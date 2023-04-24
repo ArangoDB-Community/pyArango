@@ -38,7 +38,7 @@ class AikidoSession:
             self.fct = fct
             self.auth = auth
             self.max_conflict_retries = max_conflict_retries
-            if not isinstance(verify, bool) and not isinstance(verify, CA_Certificate) and not not isinstance(verify, str) :
+            if not isinstance(verify, bool) and not isinstance(verify, CA_Certificate) and not isinstance(verify, str) :
                 raise ValueError("'verify' argument can only be of type: bool, CA_Certificate or str ")
             self.verify = verify
 
