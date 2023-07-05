@@ -34,13 +34,14 @@ class AikidoSession:
     """
 
     class Holder(object):
-        def __init__(self, fct, auth, max_conflict_retries=5, verify=True):
+        def __init__(self, fct, auth, max_conflict_retries=5, verify=True, timeout=30):
             self.fct = fct
             self.auth = auth
             self.max_conflict_retries = max_conflict_retries
             if not isinstance(verify, bool) and not isinstance(verify, CA_Certificate) and not not isinstance(verify, str) :
                 raise ValueError("'verify' argument can only be of type: bool, CA_Certificate or str ")
             self.verify = verify
+            self.timeout = timeout
 
         def __call__(self, *args, **kwargs):
             if self.auth:
@@ -50,10 +51,12 @@ class AikidoSession:
             else :
                 kwargs["verify"] = self.verify
 
+            kwargs["timeout"] = self.timeout
+
             try:
                 do_retry = True
                 retry = 0
-                while do_retry and retry < self.max_conflict_retries :
+                while do_retry and retry < self.max_conflict_retries:
                     ret = self.fct(*args, **kwargs)
                     do_retry = ret.status_code == 1200
                     try :
@@ -84,7 +87,8 @@ class AikidoSession:
             max_retries=5,
             single_session=True,
             log_requests=False,
-            pool_maxsize=10
+            pool_maxsize=10,
+            timeout=10,
     ):
         if username:
             self.auth = (username, password)
@@ -95,6 +99,7 @@ class AikidoSession:
         self.max_retries = max_retries
         self.log_requests = log_requests
         self.max_conflict_retries = max_conflict_retries
+        self.timeout = timeout
 
         self.session = None
         if single_session:
@@ -133,12 +138,13 @@ class AikidoSession:
 
         auth = object.__getattribute__(self, "auth")
         verify = object.__getattribute__(self, "verify")
+        timeout = object.__getattribute__(self, "timeout")
         if self.log_requests:
             log = object.__getattribute__(self, "log")
             log["nb_request"] += 1
             log["requests"][request_function.__name__] += 1
 
-        return AikidoSession.Holder(request_function, auth, max_conflict_retries=self.max_conflict_retries, verify=verify)
+        return AikidoSession.Holder(request_function, auth, max_conflict_retries=self.max_conflict_retries, verify=verify, timeout=timeout)
 
     def disconnect(self):
         pass
@@ -180,6 +186,8 @@ class Connection(object):
         max number of requests for a conflict error (1200 arangodb error). Does not work with gevents (grequests),
     pool_maxsize: int
         max number of open connections. (Not intended for grequest)
+    timeout: int
+        number of seconds to wait on a hanging connection before giving up
     """
 
     LOAD_BLANCING_METHODS = {'round-robin', 'random'}
@@ -199,7 +207,8 @@ class Connection(object):
             use_lock_for_reseting_jwt=True,
             max_retries=5,
             max_conflict_retries=5,
-            pool_maxsize=10
+            pool_maxsize=10,
+            timeout=10
     ):
 
         if loadBalancing not in Connection.LOAD_BLANCING_METHODS:
@@ -215,6 +224,7 @@ class Connection(object):
         self.max_retries = max_retries
         self.max_conflict_retries = max_conflict_retries
         self.action = ConnectionAction(self)
+        self.timeout = timeout
 
         self.databases = {}
         self.verbose = verbose
@@ -295,7 +305,8 @@ class Connection(object):
             max_conflict_retries=self.max_conflict_retries,
             max_retries=self.max_retries,
             log_requests=False,
-            pool_maxsize=self.pool_maxsize
+            pool_maxsize=self.pool_maxsize,
+            timeout=self.timeout
         )
 
     def create_grequest_session(
