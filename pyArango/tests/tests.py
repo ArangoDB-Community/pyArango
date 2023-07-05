@@ -1078,7 +1078,7 @@ class pyArangoTests(unittest.TestCase):
         # Create a mock AikidoSession class
         mock_aikido_session = MagicMock()
 
-        timeout = 30
+        timeout = 120
         connection = Connection(arangoURL='http://127.0.0.1:8529', username='root', password='root', timeout=timeout)
 
         # Call the reload method
