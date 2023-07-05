@@ -88,7 +88,7 @@ class AikidoSession:
             single_session=True,
             log_requests=False,
             pool_maxsize=10,
-            timeout=10,
+            timeout=30,
     ):
         if username:
             self.auth = (username, password)
@@ -208,7 +208,7 @@ class Connection(object):
             max_retries=5,
             max_conflict_retries=5,
             pool_maxsize=10,
-            timeout=10
+            timeout=30
     ):
 
         if loadBalancing not in Connection.LOAD_BLANCING_METHODS:
