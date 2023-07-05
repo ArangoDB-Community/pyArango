@@ -1075,14 +1075,8 @@ class pyArangoTests(unittest.TestCase):
 
     def test_timeout_parameter(self):
         # Create a Connection object with the desired timeout
-        # Create a mock AikidoSession class
-        mock_aikido_session = MagicMock()
-
         timeout = 120
-        connection = Connection(arangoURL='http://127.0.0.1:8529', username='root', password='root', timeout=timeout)
-
-        # Call the reload method
-        connection.reload()
+        connection = Connection(arangoURL=ARANGODB_URL, username=ARANGODB_ROOT_USERNAME, password=ARANGODB_ROOT_PASSWORD, timeout=timeout)
 
         # Verify that the Connection session was created with the correct timeout
         assert connection.session.timeout == timeout
