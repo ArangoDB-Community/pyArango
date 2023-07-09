@@ -1,5 +1,6 @@
 import unittest, copy
 import os
+from unittest.mock import MagicMock, patch
 
 from pyArango.connection import *
 from pyArango.database import *
@@ -1072,7 +1073,14 @@ class pyArangoTests(unittest.TestCase):
         db_tasks.delete(task_id)
         self.assertListEqual(db_tasks(), [])
 
+    def test_timeout_parameter(self):
+        # Create a Connection object with the desired timeout
+        timeout = 120
+        connection = Connection(arangoURL=ARANGODB_URL, username=ARANGODB_ROOT_USERNAME, password=ARANGODB_ROOT_PASSWORD, timeout=timeout)
 
+        # Verify that the Connection session was created with the correct timeout
+        assert connection.session.timeout == timeout
+            
 if __name__ == "__main__":
     # Change default username/password in bash like this:
     # export ARANGODB_ROOT_USERNAME=myUserName
