@@ -3,9 +3,6 @@ import json as json_mod
 from datetime import datetime
 
 import requests
-import base64
-import tempfile
-import shutil
 
 from .action import ConnectionAction
 from .database import Database, DBHandle
@@ -29,19 +26,22 @@ class JsonHook(object):
             print( "Unable to get json for request: %s. Content: %s" % (self.ret.url, self.ret.content) )
             raise e
 
-class AikidoSession(object):
-    """Magical Aikido being that you probably do not need to access directly that deflects every http request to requests in the most graceful way.
+
+class AikidoSession:
+    """Magical Aikido being that you probably do not need to access directly
+    that deflects every http request to requests in the most graceful way.
     It will also save basic stats on requests in it's attribute '.log'.
     """
 
     class Holder(object):
-        def __init__(self, fct, auth, max_conflict_retries=5, verify=True):
+        def __init__(self, fct, auth, max_conflict_retries=5, verify=True, timeout=30):
             self.fct = fct
             self.auth = auth
             self.max_conflict_retries = max_conflict_retries
             if not isinstance(verify, bool) and not isinstance(verify, CA_Certificate) and not not isinstance(verify, str) :
                 raise ValueError("'verify' argument can only be of type: bool, CA_Certificate or str ")
             self.verify = verify
+            self.timeout = timeout
 
         def __call__(self, *args, **kwargs):
             if self.auth:
@@ -51,10 +51,12 @@ class AikidoSession(object):
             else :
                 kwargs["verify"] = self.verify
 
+            kwargs["timeout"] = self.timeout
+
             try:
                 do_retry = True
                 retry = 0
-                while do_retry and retry < self.max_conflict_retries :
+                while do_retry and retry < self.max_conflict_retries:
                     ret = self.fct(*args, **kwargs)
                     do_retry = ret.status_code == 1200
                     try :
@@ -76,16 +78,28 @@ class AikidoSession(object):
             ret.json = JsonHook(ret)
             return ret
 
-    def __init__(self, username, password, verify=True, max_conflict_retries=5, max_retries=5, single_session=True, log_requests=False):
+    def __init__(
+            self,
+            username,
+            password,
+            verify=True,
+            max_conflict_retries=5,
+            max_retries=5,
+            single_session=True,
+            log_requests=False,
+            pool_maxsize=10,
+            timeout=30,
+    ):
         if username:
             self.auth = (username, password)
         else:
             self.auth = None
-
+        self.pool_maxsize = pool_maxsize
         self.verify = verify
         self.max_retries = max_retries
         self.log_requests = log_requests
         self.max_conflict_retries = max_conflict_retries
+        self.timeout = timeout
 
         self.session = None
         if single_session:
@@ -98,8 +112,14 @@ class AikidoSession(object):
 
     def _make_session(self):
         session = requests.Session()
-        http = requests.adapters.HTTPAdapter(max_retries=self.max_retries)
-        https = requests.adapters.HTTPAdapter(max_retries=self.max_retries)
+        kwargs = {
+            'max_retries': self.max_retries,
+            'pool_connections': self.pool_maxsize,
+            'pool_maxsize': self.pool_maxsize,
+            #'pool_block': True  # We don't want to lose connections
+        }
+        http = requests.adapters.HTTPAdapter(**kwargs)
+        https = requests.adapters.HTTPAdapter(**kwargs)
         session.mount('http://', http)
         session.mount('https://', https)
 
@@ -108,7 +128,7 @@ class AikidoSession(object):
     def __getattr__(self, request_function_name):
         if self.session is not None:
             session = self.session
-        else :
+        else:
             session = self._make_session()
 
         try:
@@ -118,15 +138,17 @@ class AikidoSession(object):
 
         auth = object.__getattribute__(self, "auth")
         verify = object.__getattribute__(self, "verify")
+        timeout = object.__getattribute__(self, "timeout")
         if self.log_requests:
             log = object.__getattribute__(self, "log")
             log["nb_request"] += 1
             log["requests"][request_function.__name__] += 1
 
-        return AikidoSession.Holder(request_function, auth, max_conflict_retries=self.max_conflict_retries, verify=verify)
+        return AikidoSession.Holder(request_function, auth, max_conflict_retries=self.max_conflict_retries, verify=verify, timeout=timeout)
 
     def disconnect(self):
         pass
+
 
 class Connection(object):
     """This is the entry point in pyArango and directly handles databases.
@@ -162,29 +184,37 @@ class Connection(object):
         max number of retries for a request
     max_conflict_retries: int
         max number of requests for a conflict error (1200 arangodb error). Does not work with gevents (grequests),
+    pool_maxsize: int
+        max number of open connections. (Not intended for grequest)
+    timeout: int
+        number of seconds to wait on a hanging connection before giving up
     """
 
     LOAD_BLANCING_METHODS = {'round-robin', 'random'}
 
-    def __init__(self,
-        arangoURL = 'http://127.0.0.1:8529',
-        username = None,
-        password = None,
-        verify = True,
-        verbose = False,
-        statsdClient = None,
-        reportFileName = None,
-        loadBalancing = "round-robin",
-        use_grequests = False,
-        use_jwt_authentication=False,
-        use_lock_for_reseting_jwt=True,
-        max_retries=5,
-        max_conflict_retries=5
+    def __init__(
+            self,
+            arangoURL='http://127.0.0.1:8529',
+            username=None,
+            password=None,
+            verify=True,
+            verbose=False,
+            statsdClient=None,
+            reportFileName=None,
+            loadBalancing="round-robin",
+            use_grequests=False,
+            use_jwt_authentication=False,
+            use_lock_for_reseting_jwt=True,
+            max_retries=5,
+            max_conflict_retries=5,
+            pool_maxsize=10,
+            timeout=30
     ):
 
         if loadBalancing not in Connection.LOAD_BLANCING_METHODS:
             raise ValueError("loadBalancing should be one of : %s, got %s" % (Connection.LOAD_BLANCING_METHODS, loadBalancing) )
 
+        self.pool_maxsize = pool_maxsize
         self.loadBalancing = loadBalancing
         self.currentURLId = 0
         self.username = username
@@ -194,6 +224,7 @@ class Connection(object):
         self.max_retries = max_retries
         self.max_conflict_retries = max_conflict_retries
         self.action = ConnectionAction(self)
+        self.timeout = timeout
 
         self.databases = {}
         self.verbose = verbose
@@ -260,27 +291,53 @@ class Connection(object):
         else:
             raise CreationError(data["errorMessage"], data)
 
+    def create_aikido_session(
+            self,
+            username,
+            password,
+            verify
+    ) -> AikidoSession:
+        return AikidoSession(
+            username=username,
+            password=password,
+            verify=verify,
+            single_session=True,
+            max_conflict_retries=self.max_conflict_retries,
+            max_retries=self.max_retries,
+            log_requests=False,
+            pool_maxsize=self.pool_maxsize,
+            timeout=self.timeout
+        )
+
+    def create_grequest_session(
+            self,
+            username,
+            password,
+            verify
+    ):
+        from .gevent_session import AikidoSession_GRequests
+        return AikidoSession_GRequests(
+            username, password, self.arangoURL,
+            self.use_jwt_authentication,
+            self.use_lock_for_reseting_jwt,
+            self.max_retries,
+            verify
+        )
+
     def resetSession(self, username=None, password=None, verify=True):
         """resets the session"""
         self.disconnectSession()
         if self.use_grequests:
-            from .gevent_session import AikidoSession_GRequests
-            self.session = AikidoSession_GRequests(
-                username, password, self.arangoURL,
-                self.use_jwt_authentication,
-                self.use_lock_for_reseting_jwt, self.max_retries,
+            self.session = self.create_grequest_session(
+                username,
+                password,
                 verify
             )
         else:
-            # self.session = AikidoSession(username, password, verify, self.max_retries)
-            self.session = AikidoSession(
-                username=username,
-                password=password,
-                verify=verify,
-                single_session=True,
-                max_conflict_retries=self.max_conflict_retries,
-                max_retries=self.max_retries,
-                log_requests=False
+            self.session = self.create_aikido_session(
+                username,
+                password,
+                verify
             )
 
     def reload(self):
@@ -317,6 +374,10 @@ class Connection(object):
     def hasDatabase(self, name):
         """returns true/false wether the connection has a database by the name of 'name'"""
         return name in self.databases
+
+    def __contains__(self, name):
+        """Alias for hasDatabase"""
+        return self.hasDatabase(name)
 
     def __getitem__(self, dbName):
         """Collection[dbName] returns a database by the name of 'dbName', raises a KeyError if not found"""
