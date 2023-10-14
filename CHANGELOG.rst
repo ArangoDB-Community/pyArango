@@ -1,3 +1,7 @@
+2.0.3
+=====
+* Added support for authentication via client-side certificates
+
 2.0.2
 =====
 * Fixed contains functions
