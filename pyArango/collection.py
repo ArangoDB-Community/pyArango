@@ -269,19 +269,19 @@ class Collection(with_metaclass(Collection_metaclass, object)):
         if fields is None:
             fields = self._fields
 
-        for k, v in fields.items():
-            if isinstance(v, dict):
-                dct[k] = self.getDefaultDocument(fields[k], None)
-            elif isinstance(v, list) or isinstance(v, tuple):
-                dct[k] = []
+        for key, value in fields.items():
+            if isinstance(value, dict):
+                dct[key] = self.getDefaultDocument(fields[key], None)
+            elif isinstance(value, list) or isinstance(value, tuple):
+                dct[key] = []
 
-            elif isinstance(v, Field):
-                if callable(v.default):
-                    dct[k] = v.default()
+            elif isinstance(value, Field):
+                if callable(value.default):
+                    dct[key] = value.default()
                 else :
-                    dct[k] = v.default
+                    dct[key] = value.default
             else:
-                raise ValueError("Field '%s' is of invalid type '%s'" % (k, type(v)) )
+                raise ValueError("Field '%s' is of invalid type '%s'" % (key, type(value)) )
         return dct
 
     def getURL(self):

@@ -1,6 +1,8 @@
 import json, types
 from .theExceptions import (CreationError, UniqueConstrainViolation, DeletionError, UpdateError, ValidationError, SchemaViolation, InvalidDocument, ArangoError)
 
+from icecream import ic
+
 __all__ = ["DocumentStore", "Document", "Edge"]
 
 class DocumentStore(object):
@@ -202,6 +204,15 @@ class DocumentStore(object):
     def __repr__(self):
         return "<store: %s>" % repr(self.store)
 
+    def keys(self):
+        return self.store.keys()
+
+    def values(self):
+        return self.store.values()
+
+    def items(self):
+        return self.store.items()
+
 class Document(object):
     """The class that represents a document. Documents are meant to be instanciated by collections"""
 
@@ -209,11 +220,28 @@ class Document(object):
         if jsonFieldInit is None :
             jsonFieldInit = {}
         self.privates = ["_id", "_key", "_rev"]
-        self.reset(collection, jsonFieldInit, on_load_validation=on_load_validation)
-        self.typeName = "ArangoDoc"
         # self._store = None
+        self.reset(collection, jsonFieldInit, on_load_validation=on_load_validation, hard_reset=True)
+        self.typeName = "ArangoDoc"
 
-    def reset(self, collection, jsonFieldInit = None, on_load_validation=False) :
+    # def reset(self, collection, jsonFieldInit=None, on_load_validation=False) :
+    #     """replaces the current values in the document by those in jsonFieldInit"""
+    #     if not jsonFieldInit:
+    #         jsonFieldInit = {}
+    #     for k in self.privates:
+    #         setattr(self, k, None)
+
+    #     self.collection = collection
+    #     self.connection = self.collection.connection
+        
+    #     self.setPrivates(jsonFieldInit)
+    #     self._store = DocumentStore(self.collection, validators=self.collection._fields, initDct=jsonFieldInit, validateInit=on_load_validation)
+    #     if self.collection._validation['on_load']:
+    #         self.validate()
+
+    #     self.modified = True
+
+    def reset(self, collection, jsonFieldInit=None, on_load_validation=False, hard_reset=True) :
         """replaces the current values in the document by those in jsonFieldInit"""
         if not jsonFieldInit:
             jsonFieldInit = {}
@@ -224,7 +252,24 @@ class Document(object):
         self.connection = self.collection.connection
         
         self.setPrivates(jsonFieldInit)
-        self._store = DocumentStore(self.collection, validators=self.collection._fields, initDct=jsonFieldInit, validateInit=on_load_validation)
+        store = DocumentStore(self.collection, validators=self.collection._fields, initDct=jsonFieldInit, validateInit=on_load_validation)
+        # ic(store, self.collection._fields)
+        
+        if hard_reset:
+            self._store = store
+        else:
+            # ic(store)
+            for key in store.keys():
+                ic(store)
+                ic(key)
+                if self._store[key] is None or (not key in self._store):
+                    ic(key, store[key], self._store[key])
+                    self._store[key] = store[key]
+                    # ic(store[key], self._store[key])
+                elif type(self.collection._fields[key]) is dict:
+                    print("=======>", key)
+                    self._store[key] = self.reset(self.collection, jsonFieldInit=jsonFieldInit[key], hard_reset=hard_reset)
+        
         if self.collection._validation['on_load']:
             self.validate()
 
@@ -232,7 +277,11 @@ class Document(object):
 
     def to_default(self):
         """reset the document to the default values"""
-        self.reset(self.collection, self.collection.getDefaultDocument())
+        self.reset(self.collection, jsonFieldInit=self.collection.getDefaultDocument(), hard_reset=True)
+
+    def fill_default(self):
+        """reset the document to the default values"""
+        self.reset(self.collection, jsonFieldInit=self.collection.getDefaultDocument(), hard_reset=False)
 
     def validate(self):
         """validate the document"""
@@ -264,6 +313,7 @@ class Document(object):
         If you want to only update the modified fields use the .patch() function.
         Use docArgs to put things such as 'waitForSync = True' (for a full list cf ArangoDB's doc).
         It will only trigger a saving of the document if it has been modified since the last save. If you want to force the saving you can use forceSave()"""
+        self.fill_default()
         payload = self._store.getStore()
         self._save(payload, waitForSync = False, **docArgs)
 
@@ -444,10 +494,10 @@ class Document(object):
             return getattr(self, k)
         return self._store[k]
 
-    def __getattr__(self, k):
+    def __getattr__(self, key):
         if not self._store:
             return None
-        return self._store[k]
+        return self._store[key]
 
     def __setitem__(self, k, v):
         """set an element in the document"""
