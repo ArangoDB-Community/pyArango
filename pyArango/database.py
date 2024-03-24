@@ -526,16 +526,20 @@ class Database(object):
         else:
             return self.hasCollection(name_or_id) or self.hasGraph(name_or_id)
 
-    def __getitem__(self, collectionName):
-        """use database[collectionName] to get a collection from the database"""
+    def __getitem__(self, col_or_doc_id):
+        """use database[col_or_doc_id] to get a collection from the database"""
         try:
-            return self.collections[collectionName]
-        except KeyError:
-            self.reload()
+            col_name, doc_key = col_or_doc_id.split('/')
+            return self.collections[col_name][doc_key]
+        except ValueError:
             try:
-                return self.collections[collectionName]
+                return self.collections[col_or_doc_id]
             except KeyError:
-                raise KeyError("Can't find any collection named : %s" % collectionName)
+                self.reload()
+                try:
+                    return self.collections[col_or_doc_id]
+                except KeyError:
+                    raise KeyError("Can't find any collection named : %s" % col_or_doc_id)
 
 class DBHandle(Database):
     "As the loading of a Database also triggers the loading of collections and graphs within. Only handles are loaded first. The full database are loaded on demand in a fully transparent manner."
