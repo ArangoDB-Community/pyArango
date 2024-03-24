@@ -1,3 +1,9 @@
+2.1.0
+=====
+* Added getitem for documents at the database level
+* Added fill_default() on documents to replace None values by schema defaults
+* fill_default() is automatically called on save
+
 2.0.2
 =====
 * Fixed contains functions
