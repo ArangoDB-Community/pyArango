@@ -1,5 +1,6 @@
 import unittest, copy
 import os
+from unittest.mock import MagicMock, patch
 
 from pyArango.connection import *
 from pyArango.database import *
@@ -122,7 +123,78 @@ class pyArangoTests(unittest.TestCase):
         doc.to_default()
         self.assertEqual(doc["address"]["street"], "Paper street")
         self.assertEqual(doc["name"], "Tyler Durden")
+
+    # @unittest.skip("stand by")
+    def test_fill_default(self):
+        class theCol(Collection):
+            _fields = {
+                "name": Field( default="Paper"),
+                "dct1":{
+                    "num": Field(default=13),
+                    "dct2":{
+                        "str": Field(default='string'),
+                    }
+                }
+            }
+
+            _validation = {
+                "on_save" : True,
+                "on_set" : True,
+                "allow_foreign_fields" : False
+            }
+
+        col = self.db.createCollection("theCol")
+        doc = col.createDocument()
+        doc['name'] = 'Orson'
+        doc['dct1']['num'] = None
+        doc['dct1']['dct2']['str'] = None
         
+        doc.fill_default()
+        self.assertEqual(doc['name'], 'Orson')
+        self.assertEqual(doc['dct1']['num'], 13)
+        self.assertEqual(doc['dct1']['dct2']['str'], 'string')
+
+    # @unittest.skip("stand by")
+    def test_fill_default_on_save(self):
+        class theCol(Collection):
+            _fields = {
+                "name": Field( default="Paper"),
+                "dct1":{
+                    "num": Field(default=13),
+                    "dct2":{
+                        "str": Field(default='string'),
+                    }
+                }
+            }
+
+            _validation = {
+                "on_save" : True,
+                "on_set" : True,
+                "allow_foreign_fields" : False
+            }
+
+        col = self.db.createCollection("theCol")
+        doc = col.createDocument()
+        doc['name'] = 'Orson'
+        doc['dct1']['num'] = None
+        doc['dct1']['dct2']['str'] = None
+        
+        store = doc.getStore()
+        doc.save()
+
+        self.assertEqual(store['name'], 'Orson')
+        self.assertEqual(store['dct1']['num'], None)
+        self.assertEqual(store['dct1']['dct2']['str'], None)
+
+        self.assertEqual(doc['name'], 'Orson')
+        self.assertEqual(doc['dct1']['num'], 13)
+        self.assertEqual(doc['dct1']['dct2']['str'], 'string')
+
+        doc2 = col[doc['_key']]
+        self.assertEqual(doc2['name'], 'Orson')
+        self.assertEqual(doc2['dct1']['num'], 13)
+        self.assertEqual(doc2['dct1']['dct2']['str'], 'string')
+
     # @unittest.skip("stand by")
     def test_bulk_operations(self):
         (collection, docs) = self.createManyUsersBulk(55, 17)
@@ -1072,7 +1144,15 @@ class pyArangoTests(unittest.TestCase):
         db_tasks.delete(task_id)
         self.assertListEqual(db_tasks(), [])
 
+    # @unittest.skip("stand by")
+    def test_timeout_parameter(self):
+        # Create a Connection object with the desired timeout
+        timeout = 120
+        connection = Connection(arangoURL=ARANGODB_URL, username=ARANGODB_ROOT_USERNAME, password=ARANGODB_ROOT_PASSWORD, timeout=timeout)
 
+        # Verify that the Connection session was created with the correct timeout
+        assert connection.session.timeout == timeout
+            
 if __name__ == "__main__":
     # Change default username/password in bash like this:
     # export ARANGODB_ROOT_USERNAME=myUserName

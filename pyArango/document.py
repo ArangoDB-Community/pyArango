@@ -108,12 +108,7 @@ class DocumentStore(object):
         return True
 
     def set(self, dct):
-        """Set the store using a dictionary"""
-        # if not self.mustValidate:
-        #     self.store = dct
-        #     self.patchStore = dct
-        #     return
-
+        """Set the values to a dict. Any missing value will be filled by it's default"""
         for field, value in dct.items():
             if field not in self.collection.arangoPrivates:
                 if isinstance(value, dict):
@@ -126,6 +121,14 @@ class DocumentStore(object):
                 else:
                     self[field] = value
 
+    def fill_default(self):
+        """replace all None values with defaults"""
+        for field, value in self.validators.items():
+            if isinstance(value, dict):
+                self[field].fill_default()
+            elif self[field] is None:
+                self[field] = value.default
+ 
     def __dir__(self):
         return dir(self.getStore())
 
@@ -234,6 +237,10 @@ class Document(object):
         """reset the document to the default values"""
         self.reset(self.collection, self.collection.getDefaultDocument())
 
+    def fill_default(self):
+        """reset the document to the default values"""
+        self._store.fill_default()
+
     def validate(self):
         """validate the document"""
         self._store.validate()
@@ -264,7 +271,9 @@ class Document(object):
         If you want to only update the modified fields use the .patch() function.
         Use docArgs to put things such as 'waitForSync = True' (for a full list cf ArangoDB's doc).
         It will only trigger a saving of the document if it has been modified since the last save. If you want to force the saving you can use forceSave()"""
+        self._store.fill_default()
         payload = self._store.getStore()
+        # print(payload)
         self._save(payload, waitForSync = False, **docArgs)
 
     def _save(self, payload, waitForSync = False, **docArgs):
