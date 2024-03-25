@@ -151,11 +151,15 @@ class DocumentStore(object):
         if self.collection._validation['allow_foreign_fields'] or self.collection.hasField(field):
             return self.store.get(field)
 
+        if not field in self.validators:
+            raise SchemaViolation(self.collection.__class__, field)
+
         try:
             return self.store[field]
         except KeyError:
-            raise SchemaViolation(self.collection.__class__, field)
-
+            self.store[field] = self.validators[field].default
+        return self.store[field]
+       
     def __setitem__(self, field, value):
         """Set an element in the store"""
         if self.mustValidate and (not self.collection._validation['allow_foreign_fields']) and (field not in self.validators) and (field not in self.collection.arangoPrivates):

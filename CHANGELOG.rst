@@ -1,3 +1,9 @@
+2.1.1
+=====
+* Added missing fields value settings on getitem
+
+=====
+
 2.1.0
 =====
 * Added getitem for documents at the database level
