@@ -2,10 +2,13 @@ import unittest, copy
 import os
 from unittest.mock import MagicMock, patch
 
+from requests import HTTPError
+
 from pyArango.connection import *
 from pyArango.database import *
 from pyArango.collection import *
 from pyArango.document import *
+from pyArango.foxx import Foxx
 from pyArango.query import *
 from pyArango.graph import *
 from pyArango.users import *
@@ -31,6 +34,9 @@ class pyArangoTests(unittest.TestCase):
             self.conn.createDatabase(name = "test_db_2")
         except CreationError:
             pass
+
+        url = f"{self.conn.getURL()}/database/test_db_foxx_error"
+        self.conn.session.delete(url)
 
         self.db = self.conn["test_db_2"]
         self.admin = Admin(self.conn)
@@ -1152,6 +1158,19 @@ class pyArangoTests(unittest.TestCase):
 
         # Verify that the Connection session was created with the correct timeout
         assert connection.session.timeout == timeout
+
+    def test_foxx_disabled(self):
+        with patch("pyArango.database.Foxx", autospec=True) as Moxx:
+            moxx = MagicMock(spec_set=Foxx)
+            moxx.reload.side_effect = HTTPError()
+            Moxx.return_value = moxx
+            connection = Connection(arangoURL=ARANGODB_URL, username=ARANGODB_ROOT_USERNAME, password=ARANGODB_ROOT_PASSWORD, foxx_enabled=False)
+            try:
+                connection.createDatabase(name="test_db_foxx_error")
+            except HTTPError:
+                self.fail("Should not raise error")
+
+
             
 if __name__ == "__main__":
     # Change default username/password in bash like this:
