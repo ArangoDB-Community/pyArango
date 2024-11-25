@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -e
+
 PYTHON=python3
 while [ $# -gt 0 ];  do
     case "$1" in
