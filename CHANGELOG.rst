@@ -1,3 +1,9 @@
+2.1.2
+=====
+* Bugfix: ``NameError: unicode`` in ``String`` validator (``pyArango.validation``) for seamless Python 2 and Python 3 support
+
+=====
+
 2.1.1
 =====
 * Added missing fields value settings on getitem
