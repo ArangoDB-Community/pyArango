@@ -192,6 +192,8 @@ class Connection(object):
         max number of open connections. (Not intended for grequest)
     timeout: int
         number of seconds to wait on a hanging connection before giving up
+    foxx_enabled: bool
+        when set to False prevents attempted loading of Foxx services
     """
 
     LOAD_BLANCING_METHODS = {'round-robin', 'random'}
@@ -213,7 +215,8 @@ class Connection(object):
             max_retries=5,
             max_conflict_retries=5,
             pool_maxsize=10,
-            timeout=30
+            timeout=30,
+            foxx_enabled=True,
     ):
 
         if loadBalancing not in Connection.LOAD_BLANCING_METHODS:
@@ -230,6 +233,7 @@ class Connection(object):
         self.max_conflict_retries = max_conflict_retries
         self.action = ConnectionAction(self)
         self.timeout = timeout
+        self.foxx_enabled = foxx_enabled
 
         self.databases = {}
         self.verbose = verbose

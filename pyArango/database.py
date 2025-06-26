@@ -95,7 +95,8 @@ class Database(object):
         "reloads collections and graphs"
         self.reloadCollections()
         self.reloadGraphs()
-        self.foxx.reload()
+        if self.connection.foxx_enabled:
+            self.foxx.reload()
 
     def createCollection(self, className = 'Collection', **colProperties):
         """Creates a collection and returns it.
