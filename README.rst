@@ -26,13 +26,15 @@ NoSQL is really cool, but in this harsh world it is impossible to live without f
 
 Key Features
 ------------
-pyArango is geared toward the developer. It's here to help to you develop really cool apps using ArangoDB, really fast.
-
+pyArango is geared toward the developer. It's strength are:
  - Light and simple interface
+ - Built-in extendable schema and field validation
  - Built-in validation of fields on setting or on saving
  - Support for all index types
  - Supports graphs, traversals and all types of queries
  - Caching of documents with Insertions and Lookups in O(1)
+
+This makes pyArango ideal to start quickly, but also a perfect tool for developing complex critical applications that require precise field validation.
 
 Collections are treated as types that apply to the documents within. That means you can define
 a Collection and then create instances of this Collection in several databases. The same goes for graphs.
@@ -46,7 +48,7 @@ You can be 100% permissive or enforce schemas and validate fields on set, on sav
 Installation
 ------------
 
-Supports python 2.7 and 3.5.
+Supports python 2.7 and 3.5+
 
 From PyPi:
 
